@@ -1,7 +1,7 @@
 // src/models/Pedido.ts
 
-import type { Estado } from "./Estado";
-import type { TipoEnvio } from "./TipoEnvio";
+import type { Estado } from "./enums/Estado";
+import type { TipoEnvio } from "./enums/TipoEnvio";
 import type { Cliente } from "./Cliente";
 import type { Domicilio } from "./Domicilio";
 import type { SucursalEmpresa } from "./SucursalEmpresa";

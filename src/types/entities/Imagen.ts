@@ -1,4 +1,4 @@
-// src/models/Imagen.ts
+
 
 import type { Articulo } from "./Articulo";
 import type { Promocion } from "./Promocion";
