@@ -34,7 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary:
-      "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-300",
+      "text-white hover:opacity-90 focus:ring-2 focus:ring-[#CD6C50]/50 disabled:opacity-50",
     secondary:
       "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 disabled:bg-gray-300",
     danger:
@@ -42,7 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
     success:
       "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 disabled:bg-green-300",
     outline:
-      "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400",
+      "border text-white hover:bg-[#CD6C50]/10 focus:ring-2 focus:ring-[#CD6C50]/50 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-300",
   };
 
   const isDisabled = disabled || loading;
@@ -52,6 +52,11 @@ export const Button: React.FC<ButtonProps> = ({
       type={type}
       onClick={onClick}
       disabled={isDisabled}
+      style={{
+        backgroundColor: variant === "primary" ? "#CD6C50" : undefined,
+        borderColor: variant === "outline" ? "#CD6C50" : undefined,
+        color: variant === "outline" ? "#CD6C50" : undefined,
+      }}
       className={`${baseClasses} ${sizeClasses[size]} ${
         variantClasses[variant]
       } ${className} ${
