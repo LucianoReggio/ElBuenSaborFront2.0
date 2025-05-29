@@ -44,7 +44,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900">
-                🍕 Delivery Admin
+                🍕 El buen sabor
               </h1>
             </div>
             <div className="flex items-center space-x-4">

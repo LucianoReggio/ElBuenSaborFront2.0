@@ -9,7 +9,7 @@ export interface CompraInsumoDTO {
 }
 
 export class InsumoService extends ApiClient {
-  private readonly endpoint = "/insumos";
+  private readonly endpoint = "/articulos-insumo";
 
   async getAll(): Promise<ArticuloInsumoResponseDTO[]> {
     return this.get<ArticuloInsumoResponseDTO[]>(this.endpoint);

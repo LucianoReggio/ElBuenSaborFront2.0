@@ -1,9 +1,8 @@
 import { ApiClient } from "./ApiClient";
 
 export interface UnidadMedidaDTO {
-  id: number;
+  idUnidadMedida: number;
   denominacion: string;
-  activo: boolean;
 }
 
 export class UnidadMedidaService extends ApiClient {
@@ -11,10 +10,6 @@ export class UnidadMedidaService extends ApiClient {
 
   async getAll(): Promise<UnidadMedidaDTO[]> {
     return this.get<UnidadMedidaDTO[]>(this.endpoint);
-  }
-
-  async getActivas(): Promise<UnidadMedidaDTO[]> {
-    return this.get<UnidadMedidaDTO[]>(`${this.endpoint}/activas`);
   }
 
   async getById(id: number): Promise<UnidadMedidaDTO> {
