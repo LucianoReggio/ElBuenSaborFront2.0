@@ -4,7 +4,6 @@ import { Alert } from "../components/common/Alert";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { InsumosList } from "../components/insumos/InsumosList";
 import { InsumoModal } from "../components/insumos/InsumoModal";
-import { CompraModal } from "../components/insumos/CompraModal";
 import { useInsumos } from "../hooks/useInsumos";
 import { useCategorias } from "../hooks/useCategorias";
 import { unidadMedidaService } from "../services";
@@ -13,15 +12,8 @@ import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRe
 import type { UnidadMedidaDTO } from "../services";
 
 export const Insumos: React.FC = () => {
-  const {
-    insumos,
-    loading,
-    error,
-    createInsumo,
-    updateInsumo,
-    deleteInsumo,
-    registrarCompra,
-  } = useInsumos();
+  const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo } =
+    useInsumos();
 
   const { categorias } = useCategorias();
 
@@ -30,11 +22,7 @@ export const Insumos: React.FC = () => {
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [compraModalOpen, setCompraModalOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<
-    ArticuloInsumoResponseDTO | undefined
-  >();
-  const [comprando, setComprando] = useState<
     ArticuloInsumoResponseDTO | undefined
   >();
   const [operationLoading, setOperationLoading] = useState(false);
@@ -74,11 +62,6 @@ export const Insumos: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleCompra = (insumo: ArticuloInsumoResponseDTO) => {
-    setComprando(insumo);
-    setCompraModalOpen(true);
-  };
-
   const handleSubmit = async (data: ArticuloInsumoRequestDTO) => {
     setOperationLoading(true);
     try {
@@ -102,33 +85,6 @@ export const Insumos: React.FC = () => {
           error instanceof Error
             ? error.message
             : "Error al guardar el ingrediente",
-      });
-    } finally {
-      setOperationLoading(false);
-    }
-  };
-
-  const handleRegistrarCompra = async (
-    cantidad: number,
-    precioCompra: number
-  ) => {
-    if (!comprando) return;
-
-    setOperationLoading(true);
-    try {
-      await registrarCompra({
-        idInsumo: comprando.idArticulo,
-        cantidad,
-        precioCompra,
-      });
-      setAlert({ type: "success", message: "Compra registrada correctamente" });
-    } catch (error) {
-      setAlert({
-        type: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Error al registrar la compra",
       });
     } finally {
       setOperationLoading(false);
@@ -162,11 +118,6 @@ export const Insumos: React.FC = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditingInsumo(undefined);
-  };
-
-  const closeCompraModal = () => {
-    setCompraModalOpen(false);
-    setComprando(undefined);
   };
 
   const closeAlert = () => {
@@ -268,7 +219,6 @@ export const Insumos: React.FC = () => {
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onCompra={handleCompra}
       />
 
       {/* Modal de Insumo */}
@@ -279,15 +229,6 @@ export const Insumos: React.FC = () => {
         categorias={categorias}
         unidadesMedida={unidadesMedida}
         onSubmit={handleSubmit}
-        loading={operationLoading}
-      />
-
-      {/* Modal de Compra */}
-      <CompraModal
-        isOpen={compraModalOpen}
-        onClose={closeCompraModal}
-        insumo={comprando}
-        onSubmit={handleRegistrarCompra}
         loading={operationLoading}
       />
     </div>

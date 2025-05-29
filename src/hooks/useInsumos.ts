@@ -48,15 +48,6 @@ export const useInsumos = () => {
     }
   };
 
-  const registrarCompra = async (data: CompraInsumoDTO) => {
-    try {
-      await insumoService.registrarCompra(data);
-      await fetchInsumos(); // Refrescar para ver el stock actualizado
-    } catch (err) {
-      throw err;
-    }
-  };
-
   const getInsumosStockBajo = async () => {
     try {
       return await insumoService.getInsumosStockBajo();
@@ -76,7 +67,6 @@ export const useInsumos = () => {
     createInsumo,
     updateInsumo,
     deleteInsumo,
-    registrarCompra,
     getInsumosStockBajo,
     refresh: fetchInsumos,
   };

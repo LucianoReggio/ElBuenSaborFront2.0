@@ -8,7 +8,6 @@ interface InsumosListProps {
   loading?: boolean;
   onEdit: (insumo: ArticuloInsumoResponseDTO) => void;
   onDelete: (id: number) => void;
-  onCompra: (insumo: ArticuloInsumoResponseDTO) => void;
 }
 
 export const InsumosList: React.FC<InsumosListProps> = ({
@@ -16,7 +15,6 @@ export const InsumosList: React.FC<InsumosListProps> = ({
   loading = false,
   onEdit,
   onDelete,
-  onCompra,
 }) => {
   const getStockBadge = (insumo: ArticuloInsumoResponseDTO) => {
     const { estadoStock } = insumo;
@@ -102,14 +100,6 @@ export const InsumosList: React.FC<InsumosListProps> = ({
       align: "center",
       render: (_, record: ArticuloInsumoResponseDTO) => (
         <div className="flex justify-center space-x-1">
-          <Button
-            size="sm"
-            variant="success"
-            onClick={() => onCompra(record)}
-            title="Registrar compra"
-          >
-            💰
-          </Button>
           <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
             ✏️
           </Button>

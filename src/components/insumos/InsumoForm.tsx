@@ -109,7 +109,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
   };
 
   // Filtrar solo categorías de ingredientes (no subcategorías por simplicidad)
-  const categoriasDisponibles = categorias.filter((cat) => !cat.esSubcategoria);
+  const categoriasDisponibles = categorias;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
