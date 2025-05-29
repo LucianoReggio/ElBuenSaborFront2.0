@@ -3,7 +3,7 @@ import type { ArticuloManufacturadoRequestDTO } from "../types/productos/Articul
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 
 export class ProductoService extends ApiClient {
-  private readonly endpoint = "/productos";
+  private readonly endpoint = "/articulos-manufacturados";
 
   async getAll(): Promise<ArticuloManufacturadoResponseDTO[]> {
     return this.get<ArticuloManufacturadoResponseDTO[]>(this.endpoint);
