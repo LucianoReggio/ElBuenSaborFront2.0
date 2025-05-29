@@ -1,4 +1,4 @@
-import type { ImagenDTO } from './ImagenDTO';
+import type { ImagenDTO } from "../common/ImagenDTO";
 
 export interface ArticuloInsumoRequestDTO {
   denominacion: string;

@@ -1,4 +1,4 @@
-import type { ImagenDTO } from '../request/ImagenDTO';
+import type { ImagenDTO } from "../common/ImagenDTO";
 
 export interface ArticuloInsumoResponseDTO {
   idArticulo: number;
@@ -19,7 +19,7 @@ export interface ArticuloInsumoResponseDTO {
   esParaElaborar: boolean;
 
   porcentajeStock: number;
-  estadoStock: 'CRITICO' | 'BAJO' | 'NORMAL' | 'ALTO';
+  estadoStock: "CRITICO" | "BAJO" | "NORMAL" | "ALTO";
   stockDisponible: number;
 
   imagenes: ImagenDTO[];

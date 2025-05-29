@@ -1,1 +1,0 @@
-export type Estado = "PREPARACION" | "PENDIENTE" | "CANCELADO" | "RECHAZADO" | "ENTREGADO";

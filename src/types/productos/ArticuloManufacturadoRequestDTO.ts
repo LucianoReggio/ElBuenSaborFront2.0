@@ -1,5 +1,5 @@
-import type { ImagenDTO } from './ImagenDTO';
-import type { ManufacturadoDetalleDTO } from './ManufacturadoDetalleDTO';
+import type { ImagenDTO } from "../common/ImagenDTO";
+import type { ManufacturadoDetalleDTO } from "./ManufacturadoDetalleDTO";
 
 export interface ArticuloManufacturadoRequestDTO {
   denominacion: string;

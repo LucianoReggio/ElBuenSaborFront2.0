@@ -1,12 +1,6 @@
-import type { ImagenDTO } from '../request/ImagenDTO';
-import type { ManufacturadoDetalleDTO } from '../request/ManufacturadoDetalleDTO';
-
-export interface CategoriaInfo {
-  idCategoria: number;
-  denominacion: string;
-  esSubcategoria: boolean;
-  denominacionCategoriaPadre?: string;
-}
+import type { CategoriaInfo } from "../common/CategoriaInfo";
+import type { ImagenDTO } from "../common/ImagenDTO";
+import type { ManufacturadoDetalleDTO } from "./ManufacturadoDetalleDTO";
 
 export interface ArticuloManufacturadoResponseDTO {
   idArticulo: number;
