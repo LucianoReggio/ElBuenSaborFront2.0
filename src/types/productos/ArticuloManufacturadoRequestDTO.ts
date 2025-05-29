@@ -8,8 +8,8 @@ export interface ArticuloManufacturadoRequestDTO {
   descripcion?: string;
   tiempoEstimadoEnMinutos: number;
   preparacion?: string;
-  precioVenta?: number;
-  margenGanancia?: number;
+  precioVenta: number;
+  margenGanancia: number;
   detalles: ManufacturadoDetalleDTO[];
   imagen?: ImagenDTO;
 }
