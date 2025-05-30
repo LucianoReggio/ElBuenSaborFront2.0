@@ -3,17 +3,17 @@ import { Phone, Mail, MapPin, Instagram, Facebook } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-slate-400 py-8 px-6">
+    <footer className="bg-slate-400 py-2 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-center gap-8">
           
           {/* Logo Section - Left side */}
           <div className="flex-shrink-0">
-            <div className="w-40 h-40 bg-orange-200 rounded-full flex items-center justify-center">
+            <div className="rounded-full flex items-center justify-center">
               <img 
-                src="/src/assets/logos/Logo-Completo.png" 
+                src="/src/assets/logos/Logo-Completo1.png" 
                 alt="Logo" 
-                className="w-40 h-40 object-contain"
+                className="w-35 h-35 object-contain"
               />
             </div>
           </div>
