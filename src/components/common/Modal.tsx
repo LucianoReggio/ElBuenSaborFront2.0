@@ -63,18 +63,32 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-6"
+      className="fixed inset-0 flex items-center justify-center z-50 p-6"
+      style={{ backgroundColor: "rgba(68, 54, 57, 0.7)" }}
       onClick={handleOverlayClick}
     >
       <div
-        className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`}
+        className={`rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`}
+        style={{ backgroundColor: "#F7F7F5" }}
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        <div 
+          className="flex justify-between items-center px-6 py-4 border-b rounded-t-xl"
+          style={{ 
+            borderColor: "#E29C44",
+            backgroundColor: "#CD6C50"
+          }}
+        >
+          <h2 className="text-xl font-semibold" style={{ color: "#F7F7F5" }}>
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+            className="transition-all duration-200 p-2 rounded-lg hover:opacity-80"
+            style={{ 
+              color: "#F7F7F5",
+              backgroundColor: "rgba(247, 247, 245, 0.1)"
+            }}
             aria-label="Cerrar modal"
           >
             <svg
@@ -94,7 +108,12 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+        <div 
+          className="flex-1 overflow-y-auto px-6 py-6"
+          style={{ color: "#443639" }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

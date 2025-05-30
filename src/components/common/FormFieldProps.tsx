@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface FormFieldProps {
   label: string;
   name: string;
@@ -39,15 +41,30 @@ export const FormField: React.FC<FormFieldProps> = ({
   };
 
   const inputClasses = `
-    w-full px-3 py-2 border rounded-md shadow-sm transition-colors
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-    disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
-    ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'}
+    w-full px-3 py-2 border rounded-md shadow-sm transition-all duration-200
+    focus:outline-none focus:ring-2 focus:ring-opacity-50
+    disabled:cursor-not-allowed disabled:opacity-60
+    ${error ? 'border-red-500 focus:ring-red-400 focus:border-red-500' : ''}
   `;
+
+  const inputStyles = {
+    backgroundColor: disabled ? '#9AAAB3' : '#F7F7F5',
+    borderColor: error ? '#ef4444' : '#E29C44',
+    color: disabled ? '#F7F7F5' : '#443639',
+    '--tw-ring-color': error ? 'rgba(239, 68, 68, 0.5)' : 'rgba(205, 108, 80, 0.5)',
+  } as React.CSSProperties;
+
+  const focusStyles = {
+    borderColor: error ? '#ef4444' : '#CD6C50',
+  };
 
   return (
     <div className={`space-y-1 ${className}`}>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label 
+        htmlFor={name} 
+        className="block text-sm font-medium"
+        style={{ color: '#443639' }}
+      >
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -63,6 +80,17 @@ export const FormField: React.FC<FormFieldProps> = ({
           disabled={disabled}
           rows={rows}
           className={inputClasses}
+          style={inputStyles}
+          onFocus={(e) => {
+            if (!error) {
+              e.target.style.borderColor = '#CD6C50';
+              e.target.style.boxShadow = '0 0 0 2px rgba(205, 108, 80, 0.2)';
+            }
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = error ? '#ef4444' : '#E29C44';
+            e.target.style.boxShadow = 'none';
+          }}
         />
       ) : (
         <input
@@ -78,6 +106,17 @@ export const FormField: React.FC<FormFieldProps> = ({
           max={max}
           step={step}
           className={inputClasses}
+          style={inputStyles}
+          onFocus={(e) => {
+            if (!error) {
+              e.target.style.borderColor = '#CD6C50';
+              e.target.style.boxShadow = '0 0 0 2px rgba(205, 108, 80, 0.2)';
+            }
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = error ? '#ef4444' : '#E29C44';
+            e.target.style.boxShadow = 'none';
+          }}
         />
       )}
       
@@ -88,11 +127,10 @@ export const FormField: React.FC<FormFieldProps> = ({
       )}
       
       {helperText && !error && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: '#9AAAB3' }}>
           {helperText}
         </p>
       )}
     </div>
   );
 };
-

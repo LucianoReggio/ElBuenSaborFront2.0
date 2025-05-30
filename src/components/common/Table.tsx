@@ -37,10 +37,22 @@ export function Table<T extends Record<string, any>>({
 
   if (loading) {
     return (
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200">
+      <div 
+        className="shadow-sm rounded-xl border overflow-hidden"
+        style={{ 
+          backgroundColor: "#F7F7F5",
+          borderColor: "#E29C44"
+        }}
+      >
         <div className="p-12 text-center">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Cargando datos...</p>
+          <div 
+            className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4"
+            style={{ 
+              borderColor: "#E29C44",
+              borderTopColor: "#CD6C50"
+            }}
+          ></div>
+          <p style={{ color: "#9AAAB3" }}>Cargando datos...</p>
         </div>
       </div>
     );
@@ -48,35 +60,44 @@ export function Table<T extends Record<string, any>>({
 
   return (
     <div
-      className={`bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden ${className}`}
+      className={`shadow-sm rounded-xl border overflow-hidden ${className}`}
+      style={{ 
+        backgroundColor: "#F7F7F5",
+        borderColor: "#E29C44"
+      }}
     >
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full">
+          <thead style={{ backgroundColor: "#CD6C50" }}>
             <tr>
               {columns.map((column, index) => (
                 <th
                   key={index}
-                  className={`px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider ${
+                  className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider border-b ${
                     column.align === "center"
                       ? "text-center"
                       : column.align === "right"
                       ? "text-right"
                       : "text-left"
                   }`}
-                  style={{ width: column.width }}
+                  style={{ 
+                    width: column.width,
+                    color: "#F7F7F5",
+                    borderBottomColor: "#E29C44"
+                  }}
                 >
                   {column.title}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody style={{ backgroundColor: "#F7F7F5" }}>
             {data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-6 py-12 text-center text-gray-500"
+                  className="px-6 py-12 text-center"
+                  style={{ color: "#9AAAB3" }}
                 >
                   <div className="text-4xl mb-2">📊</div>
                   {emptyText}
@@ -87,10 +108,19 @@ export function Table<T extends Record<string, any>>({
                 <tr
                   key={rowIndex}
                   className={`
-                    hover:bg-gray-50 transition-colors
+                    transition-colors border-b
                     ${onRowClick ? "cursor-pointer" : ""}
                     ${rowClassName ? rowClassName(record) : ""}
                   `}
+                  style={{ 
+                    borderBottomColor: "#E29C44"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(226, 156, 68, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F7F7F5";
+                  }}
                   onClick={() => onRowClick?.(record)}
                 >
                   {columns.map((column, colIndex) => {
@@ -102,13 +132,14 @@ export function Table<T extends Record<string, any>>({
                     return (
                       <td
                         key={colIndex}
-                        className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
                           column.align === "center"
                             ? "text-center"
                             : column.align === "right"
                             ? "text-right"
                             : "text-left"
                         }`}
+                        style={{ color: "#443639" }}
                       >
                         {content}
                       </td>
