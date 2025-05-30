@@ -11,6 +11,7 @@ import { unidadMedidaService } from "../services";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloManufacturadoRequestDTO } from "../types/productos/ArticuloManufacturadoRequestDTO";
 import type { UnidadMedidaDTO } from "../services";
+import { ProductoDetallesModal } from "../components/productos/ProductoDetallesModal";
 
 export const Productos: React.FC = () => {
   const {
@@ -30,7 +31,11 @@ export const Productos: React.FC = () => {
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState<
+    ArticuloManufacturadoResponseDTO | undefined
+  >();
+  const [viewingProducto, setViewingProducto] = useState<
     ArticuloManufacturadoResponseDTO | undefined
   >();
   const [operationLoading, setOperationLoading] = useState(false);
@@ -77,6 +82,18 @@ export const Productos: React.FC = () => {
   };
 
   const handleEdit = (producto: ArticuloManufacturadoResponseDTO) => {
+    setEditingProducto(producto);
+    setModalOpen(true);
+  };
+
+  const handleViewDetails = (producto: ArticuloManufacturadoResponseDTO) => {
+    setViewingProducto(producto);
+    setDetallesModalOpen(true);
+  };
+
+  const handleEditFromDetails = (
+    producto: ArticuloManufacturadoResponseDTO
+  ) => {
     setEditingProducto(producto);
     setModalOpen(true);
   };
@@ -132,6 +149,11 @@ export const Productos: React.FC = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditingProducto(undefined);
+  };
+
+  const closeDetallesModal = () => {
+    setDetallesModalOpen(false);
+    setViewingProducto(undefined);
   };
 
   const closeAlert = () => {
@@ -232,6 +254,7 @@ export const Productos: React.FC = () => {
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onViewDetails={handleViewDetails}
       />
 
       {/* Modal de Producto */}
@@ -244,6 +267,14 @@ export const Productos: React.FC = () => {
         ingredientes={ingredientesParaElaborar}
         onSubmit={handleSubmit}
         loading={operationLoading}
+      />
+
+      {/* Modal de Detalles */}
+      <ProductoDetallesModal
+        isOpen={detallesModalOpen}
+        onClose={closeDetallesModal}
+        producto={viewingProducto}
+        onEdit={handleEditFromDetails}
       />
     </div>
   );

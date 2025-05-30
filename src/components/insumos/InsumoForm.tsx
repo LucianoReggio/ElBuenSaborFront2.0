@@ -6,6 +6,7 @@ import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
 import { Button } from "../common/Button";
 import type { UnidadMedidaDTO } from "../../services";
+import { CategoriaSelector } from "../common/CategoriaSelector";
 
 interface InsumoFormProps {
   insumo?: ArticuloInsumoResponseDTO;
@@ -124,16 +125,11 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
           error={errors.denominacion}
         />
 
-        <Select
-          label="Categoría"
-          name="idCategoria"
+        <CategoriaSelector
+          categorias={categorias}
           value={formData.idCategoria}
           onChange={(value) => updateField("idCategoria", value)}
-          options={categoriasDisponibles.map((cat) => ({
-            value: cat.idCategoria,
-            label: cat.denominacion,
-          }))}
-          placeholder="Seleccione una categoría"
+          label="Categoría"
           required
           error={errors.idCategoria}
         />
