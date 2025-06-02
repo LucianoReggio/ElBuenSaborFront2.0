@@ -6,13 +6,14 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import Categorias from "./pages/Categorias";
-import Insumos from "./pages/Insumos";
-import Productos from "./pages/Productos";
-import StockControl from "./pages/StockControl";
-import Footer from "./components/layout/Footer";
-import Header from "./components/layout/Header";
+import Dashboard from "./admin/pages/Dashboard";
+import Categorias from "./admin/pages/Categorias";
+import Insumos from "./admin/pages/Insumos";
+import Productos from "./admin/pages/Productos";
+import StockControl from "./admin/pages/StockControl";
+import Footer from "./admin/components/layout/Footer";
+import Header from "./admin/components/layout/Header";
+import Menu from './client/pages/Menu';
 
 // Componente para el elemento de navegación activo
 const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({
@@ -36,8 +37,8 @@ const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({
   );
 };
 
-// Componente de Layout Principal
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Componente de Layout para Admin
+const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <>
       <Header />
@@ -48,7 +49,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="text-xs font-semibold text-[#99AAB3] uppercase tracking-wide mb-4 px-2">
               Menú Principal
             </div>
-            <NavLink to="/">
+            <NavLink to="/admin">
               <svg
                 className="w-5 h-5 mr-3 transition-colors duration-200"
                 fill="none"
@@ -70,7 +71,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Dashboard
             </NavLink>
-            <NavLink to="/categorias">
+            <NavLink to="/admin/categorias">
               <svg
                 className="w-5 h-5 mr-3 transition-colors duration-200"
                 fill="none"
@@ -86,7 +87,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Rubros
             </NavLink>
-            <NavLink to="/insumos">
+            <NavLink to="/admin/insumos">
               <svg
                 className="w-5 h-5 mr-3 transition-colors duration-200"
                 fill="none"
@@ -102,7 +103,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Ingredientes
             </NavLink>
-            <NavLink to="/productos">
+            <NavLink to="/admin/productos">
               <svg
                 className="w-5 h-5 mr-3 transition-colors duration-200"
                 fill="none"
@@ -118,7 +119,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Productos
             </NavLink>
-            <NavLink to="/stock">
+            <NavLink to="/admin/stock">
               <svg
                 className="w-5 h-5 mr-3 transition-colors duration-200"
                 fill="none"
@@ -134,6 +135,31 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Control Stock
             </NavLink>
+            
+            {/* Separador y enlace al menú cliente */}
+            <div className="border-t border-[#99AAB3] border-opacity-30 my-4"></div>
+            <div className="text-xs font-semibold text-[#99AAB3] uppercase tracking-wide mb-4 px-2">
+              Vista Cliente
+            </div>
+            <Link
+              to="/menu"
+              className="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-[#99AAB3] hover:text-[#F7F7F5] hover:bg-[#99AAB3] hover:bg-opacity-10"
+            >
+              <svg
+                className="w-5 h-5 mr-3 transition-colors duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              Ver Menú Cliente
+            </Link>
           </div>
         </nav>
 
@@ -142,7 +168,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="p-8 max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
+      <Footer />
     </>
+  );
+};
+
+// Componente de Layout para Cliente (sin sidebar ni header admin)
+const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <div className="min-h-screen">
+      {children}
+      {/* Puedes agregar un footer específico para cliente aquí si lo necesitas */}
+    </div>
   );
 };
 
@@ -150,17 +187,74 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/categorias" element={<Categorias />} />
-          <Route path="/insumos" element={<Insumos />} />
-          <Route path="/productos" element={<Productos />} />
-          <Route path="/stock" element={<StockControl />} />
-          {/* Ruta 404 */}
-          <Route
-            path="*"
-            element={
+      <Routes>
+        {/* Rutas de Cliente */}
+        <Route 
+          path="/menu" 
+          element={
+            <ClientLayout>
+              <Menu />
+            </ClientLayout>
+          } 
+        />
+        
+        {/* Ruta raíz redirige a admin */}
+        <Route 
+          path="/" 
+          element={
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          } 
+        />
+        
+        {/* Rutas de Admin */}
+        <Route 
+          path="/admin" 
+          element={
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          } 
+        />
+        <Route 
+          path="/admin/categorias" 
+          element={
+            <AdminLayout>
+              <Categorias />
+            </AdminLayout>
+          } 
+        />
+        <Route 
+          path="/admin/insumos" 
+          element={
+            <AdminLayout>
+              <Insumos />
+            </AdminLayout>
+          } 
+        />
+        <Route 
+          path="/admin/productos" 
+          element={
+            <AdminLayout>
+              <Productos />
+            </AdminLayout>
+          } 
+        />
+        <Route 
+          path="/admin/stock" 
+          element={
+            <AdminLayout>
+              <StockControl />
+            </AdminLayout>
+          } 
+        />
+        
+        {/* Ruta 404 */}
+        <Route
+          path="*"
+          element={
+            <AdminLayout>
               <div className="bg-white p-8 rounded-lg shadow-sm text-center border border-[#99AAB3] border-opacity-20">
                 <h2 className="text-2xl font-bold text-[#CD6C50] mb-4">
                   Página no encontrada
@@ -169,7 +263,7 @@ function App() {
                   La página que buscas no existe.
                 </p>
                 <Link
-                  to="/"
+                  to="/admin"
                   className="inline-flex items-center px-6 py-3 bg-[#CD6C50] text-white rounded-md hover:bg-[#E29C44] transition-all duration-200 shadow-sm font-medium"
                 >
                   <svg
@@ -188,11 +282,10 @@ function App() {
                   Volver al Dashboard
                 </Link>
               </div>
-            }
-          />
-        </Routes>
-      </Layout>
-      <Footer />
+            </AdminLayout>
+          }
+        />
+      </Routes>
     </Router>
   );
 }
