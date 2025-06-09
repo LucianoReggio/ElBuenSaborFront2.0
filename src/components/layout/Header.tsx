@@ -1,65 +1,93 @@
 import React from 'react';
-import { ChevronDown, User } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
+import { useAuth } from '../../hooks/useAuth';
 
 const Header: React.FC = () => {
-  return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Left Section - Admin Dropdown */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-orange-600" />
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  // Rutas donde NO debe aparecer la navbar (por ejemplo, páginas administrativas)
+  const adminRoutes = ['/categorias', '/insumos', '/productos', '/stock'];
+  const isAdminRoute = adminRoutes.includes(location.pathname) || location.pathname === '/dashboard';
+  
+  // Si es una ruta administrativa, no mostrar la navbar pública
+  if (isAdminRoute) {
+    return (
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <button 
+                onClick={() => navigate('/')}
+                className="flex items-center hover:opacity-80 transition-opacity duration-200"
+              >
+                <img 
+                  src="/src/assets/logos/Logo-nabvar.png" 
+                  alt="El Buen Sabor - Logo" 
+                  className="h-12 w-auto"
+                />
+                <span className="ml-3 text-xl font-bold text-[#CD6C50]">Panel Administrativo</span>
+              </button>
+            </div>
+            
+            {isAuthenticated && user && (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700">
+                  Bienvenido, {user.nombre || user.email}
+                </span>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-all duration-200"
+                >
+                  Cerrar Sesión
+                </button>
               </div>
-              <span className="text-gray-700 font-medium">Admin</span>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </div>
-            <span className="text-gray-600 text-sm">Administrador</span>
+            )}
           </div>
-
-          {/* Center Section - Logo */}
-          <div className="flex-1 flex justify-center">
-            <div className="rounded-full flex items-center justify-center">
-              <img 
-                src="/src/assets/logos/Logo-nabvar.png" 
-                alt="Logo" 
-                className="w-16 h-16 object-contain" 
-              />
-            </div>
-          </div>
-
-          {/* Right Section - Navigation Menu */}
-          <nav className="flex items-center space-x-8">
-            <button 
-              type="button"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Listado de Pedidos
-            </button>
-            <button 
-              type="button"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Informes
-            </button>
-            <button 
-              type="button"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Usuarios
-            </button>
-            <button 
-              type="button"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Cocina
-            </button>
-          </nav>
         </div>
-      </div>
-    </header>
+      </header>
+    );
+  }
+
+  // Para rutas públicas, mostrar la navbar completa
+  const handleLogin = () => {
+    navigate('/login');
+  };
+
+  const handleRegister = () => {
+    navigate('/registro');
+  };
+
+  const handleHome = () => {
+    navigate('/');
+  };
+
+  const handleSearch = (query: string) => {
+    console.log('Buscar:', query);
+    // Aquí implementarías la lógica de búsqueda
+    // Por ejemplo: navigate(`/buscar?q=${encodeURIComponent(query)}`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
+    <Navbar
+      isAuthenticated={isAuthenticated}
+      user={user}
+      onLogin={handleLogin}
+      onRegister={handleRegister}
+      onLogout={handleLogout}
+      onHome={handleHome}
+      onSearch={handleSearch}
+    />
   );
 };
 

@@ -1,9 +1,8 @@
 import { apiClienteService } from './ApiClientService';
 import type{ ClienteRegisterDTO, ClienteResponseDTO } from '../types/clientes/Index';
 
-
 export class ClienteService {
-  private static readonly BASE_URL = '/api/clientes';
+  private static readonly BASE_URL = '/clientes'; // Cambié de '/api/clientes' a '/clientes'
 
   /**
    * Registra un nuevo cliente
@@ -68,17 +67,7 @@ export class ClienteService {
    * Manejo centralizado de errores
    */
   private static handleError(error: any): Error {
-    let message = 'Error en el servicio de clientes';
-    
-    if (error.response?.data) {
-      // Si el backend devuelve un mensaje específico
-      message = error.response.data.message || 
-               error.response.data.error || 
-               message;
-    } else if (error.message) {
-      message = error.message;
-    }
-    
-    return new Error(message);
+    // El error ya viene procesado desde ApiClienteService, simplemente lo retornamos
+    return error instanceof Error ? error : new Error('Error en el servicio de clientes');
   }
 }

@@ -1,9 +1,8 @@
 import { apiClienteService } from './ApiClientService';
 import type { LoginRequestDTO, LoginResponseDTO, UserInfo } from '../types/auth/index';
 
-
 export class AuthService {
-  private static readonly BASE_URL = '/api/auth';
+  private static readonly BASE_URL = '/auth'; // Cambié de '/api/auth' a '/auth' para evitar duplicar /api
   private static readonly TOKEN_KEY = 'auth_token';
   private static readonly USER_KEY = 'user_info';
 
@@ -16,11 +15,18 @@ export class AuthService {
       
       // Guardar token y datos del usuario en localStorage
       this.setToken(loginResponse.token);
-      this.setUserInfo({
+      
+      // Crear objeto UserInfo más completo
+      const userInfo: UserInfo = {
         email: loginResponse.email,
         rol: loginResponse.rol,
-        userId: loginResponse.userId
-      });
+        userId: loginResponse.userId,
+        // Si el backend devuelve estos campos, inclúyelos
+        nombre: (loginResponse as any).nombre || 'Usuario',
+        apellido: (loginResponse as any).apellido || ''
+      };
+      
+      this.setUserInfo(userInfo);
       
       return loginResponse;
     } catch (error: any) {
@@ -36,9 +42,9 @@ export class AuthService {
       const tokenToValidate = token || this.getToken();
       if (!tokenToValidate) return false;
 
-      // El token se agrega automáticamente en los headers por ApiClienteService
-      const response = await apiClienteService.post<boolean>(`${this.BASE_URL}/validate`, {});
-      return response;
+      // Cambié a GET que es más apropiado para validación
+      await apiClienteService.get<any>(`${this.BASE_URL}/validate`);
+      return true;
     } catch (error) {
       console.error('Error validating token:', error);
       return false;
@@ -111,9 +117,7 @@ export class AuthService {
    * Manejo centralizado de errores
    */
   private static handleError(error: any): Error {
-    const message = error.response?.data?.message || 
-                   error.response?.data?.error || 
-                   'Error al iniciar sesión';
-    return new Error(message);
+    // El error ya viene procesado desde ApiClienteService
+    return error instanceof Error ? error : new Error('Error al iniciar sesión');
   }
 }
