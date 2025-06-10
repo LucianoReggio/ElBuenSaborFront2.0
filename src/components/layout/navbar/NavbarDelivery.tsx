@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Truck, MapPin } from 'lucide-react';
+import { User, LogOut,  } from 'lucide-react';
 
 interface NavbarDeliveryProps {
   user?: {
@@ -21,7 +21,7 @@ export default function NavbarDelivery({
   onHome
 }: NavbarDeliveryProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,14 +44,7 @@ export default function NavbarDelivery({
           
           {/* Izquierda: Menú y Usuario */}
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-[#CD6C50] hover:bg-gray-50 rounded-md transition-colors duration-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+            
 
             {user && (
               <div className="relative" ref={userMenuRef}>
@@ -129,39 +122,8 @@ export default function NavbarDelivery({
           </div>
         </div>
 
-        {/* Menú Móvil */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white py-4">
-            {user && (
-              <div className="space-y-2">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <p className="font-medium text-gray-900">{user.nombre} {user.apellido}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <p className="text-xs text-green-600 font-semibold">Delivery</p>
-                </div>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <User className="mr-3 h-5 w-5" />
-                  Mi Perfil
-                </button>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <Truck className="mr-3 h-5 w-5" />
-                  Mis Entregas
-                </button>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <MapPin className="mr-3 h-5 w-5" />
-                  Rutas de Entrega
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg flex items-center"
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+
+        
       </div>
     </nav>
   );

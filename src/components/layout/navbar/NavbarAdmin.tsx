@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Settings, BarChart3, Users, Package, UtensilsCrossed } from 'lucide-react';
+import { User, LogOut, Settings, BarChart3, Users, Package, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface NavbarAdminProps {
@@ -22,9 +22,9 @@ export default function NavbarAdmin({
   onHome
 }: NavbarAdminProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const userMenuRef = useRef<HTMLDivElement>(null);
-const navigate = useNavigate();
+  const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -134,54 +134,14 @@ const navigate = useNavigate();
               <span className="hidden lg:block text-sm font-medium">Usuarios</span>
             </button>
             <button  onClick={() => navigate('/dashboard')} className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200">
-              <UtensilsCrossed className="h-4 w-4" />
+              <ChefHat className="h-4 w-4" />
               <span className="hidden lg:block text-sm font-medium">Cocina</span>
             </button>
             
           </div>
         </div>
 
-        {/* Menú Móvil */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white py-4">
-            {user && (
-              <div className="space-y-2">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <p className="font-medium text-gray-900">{user.nombre} {user.apellido}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <p className="text-xs text-purple-600 font-semibold">Administrador</p>
-                </div>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <User className="mr-3 h-5 w-5" />
-                  Mi Perfil
-                </button>
-                <button className="w-full text-left px-4 py-3 text-purple-700 hover:bg-purple-50 rounded-lg flex items-center">
-                  <BarChart3 className="mr-3 h-5 w-5" />
-                  Dashboard e Informes
-                </button>
-                <button className="w-full text-left px-4 py-3 text-blue-700 hover:bg-blue-50 rounded-lg flex items-center">
-                  <Users className="mr-3 h-5 w-5" />
-                  Gestión de Usuarios
-                </button>
-                <button className="w-full text-left px-4 py-3 text-green-700 hover:bg-green-50 rounded-lg flex items-center">
-                  <Package className="mr-3 h-5 w-5" />
-                  Gestión de Productos
-                </button>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <Settings className="mr-3 h-5 w-5" />
-                  Configuración del Sistema
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg flex items-center"
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+       
       </div>
     </nav>
   );

@@ -54,14 +54,7 @@ export default function NavbarCliente({
           
           {/* Izquierda: Menú y Carrito */}
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-[#CD6C50] hover:bg-gray-50 rounded-md transition-colors duration-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+           
 
             <button className="p-2 text-[#CD6C50] hover:bg-gray-50 rounded-md transition-colors duration-200 relative">
               <ShoppingCart className="h-6 w-6" />
@@ -195,33 +188,7 @@ export default function NavbarCliente({
               </div>
             </div>
 
-            {user && (
-              <div className="space-y-2">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <p className="font-medium text-gray-900">{user.nombre} {user.apellido}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                </div>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <User className="mr-3 h-5 w-5" />
-                  Mi Perfil
-                </button>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <ShoppingCart className="mr-3 h-5 w-5" />
-                  Mis Pedidos
-                </button>
-                <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
-                  <Settings className="mr-3 h-5 w-5" />
-                  Configuración
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg flex items-center"
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
+           
           </div>
         )}
       </div>
