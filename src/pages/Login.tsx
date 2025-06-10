@@ -16,13 +16,17 @@ const Login: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async (data: LoginRequestDTO) => {
-    try {
-      await login(data);
-      // El useEffect se encargará de la redirección
-    } catch (error) {
-      // Error is handled by useAuth hook
-    }
-  };
+  try {
+    console.log('🚀 Starting login...');
+    await login(data);
+    console.log('✅ Login completed successfully');
+    
+    // El useEffect se encargará de la redirección
+  } catch (error) {
+    console.error('❌ Login error:', error);
+    // Error is handled by useAuth hook
+  }
+};
 
   const handleSwitchToRegister = () => {
     navigate('/registro');

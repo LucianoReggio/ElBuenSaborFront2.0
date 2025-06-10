@@ -22,11 +22,11 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
     apellido: '',
     telefono: '',
     email: '',
-    fechaNacimiento: '',
+    fechaNacimiento: '', // Se asignará automáticamente si está vacío
     domicilio: {
       calle: '',
-      numero: 0,
-      cp: 0,
+      numero: 0, // Volver a number
+      cp: 0,     // Volver a number
       localidad: ''
     },
     password: '',
@@ -45,6 +45,16 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
     if (!formData.domicilio.calle.trim()) errors.direccion = 'La dirección es obligatoria';
     if (!formData.domicilio.localidad.trim()) errors.departamento = 'El departamento es obligatorio';
     
+    // Validar número de domicilio
+    if (!formData.domicilio.numero || formData.domicilio.numero <= 0) {
+      errors.numero = 'El número es obligatorio y debe ser mayor a 0';
+    }
+    
+    // Validar código postal
+    if (!formData.domicilio.cp || formData.domicilio.cp < 1000 || formData.domicilio.cp > 9999) {
+      errors.cp = 'Código postal inválido (debe estar entre 1000 y 9999)';
+    }
+    
     if (!formData.telefono.trim()) {
       errors.telefono = 'El teléfono es obligatorio';
     } else if (!/^[0-9]{10,15}$/.test(formData.telefono)) {
@@ -59,10 +69,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
 
     if (!formData.password) {
       errors.password = 'La contraseña es obligatoria';
-    } else if (formData.password.length < 8) {
-      errors.password = 'La contraseña debe tener al menos 8 caracteres';
-    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.password)) {
-      errors.password = 'La contraseña debe contener al menos 1 mayúscula, 1 minúscula, 1 número y 1 símbolo';
+    } else if (formData.password.length < 6) { // Más flexible
+      errors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -76,10 +84,12 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   const handleSubmit = async () => {
     if (validateForm()) {
       // Agregar fecha de nacimiento por defecto si no se proporciona
-      const dataToSubmit = {
+      const dataToSubmit: ClienteRegisterDTO = {
         ...formData,
         fechaNacimiento: formData.fechaNacimiento || '1990-01-01'
       };
+      
+      console.log('Datos a enviar:', dataToSubmit); // Para debug
       await onSubmit(dataToSubmit);
     }
   };
@@ -87,11 +97,18 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
+      
+      // Convertir a número si es numero o cp
+      let processedValue = value;
+      if (child === 'numero' || child === 'cp') {
+        processedValue = value === '' ? 0 : parseInt(value) || 0;
+      }
+      
       setFormData(prev => ({
         ...prev,
         [parent]: {
           ...(prev as any)[parent],
-          [child]: value
+          [child]: processedValue
         }
       }));
     } else {
@@ -152,7 +169,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
         <div>
           <input
             type="text"
-            placeholder="Dirección"
+            placeholder="Dirección (Calle)"
             value={formData.domicilio.calle}
             onChange={(e) => handleInputChange('domicilio.calle', e.target.value)}
             className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
@@ -164,11 +181,44 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
           )}
         </div>
 
-        {/* Departamento */}
+        {/* Número y Código Postal en una fila */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <input
+              type="number"
+              placeholder="Número"
+              value={formData.domicilio.numero || ''}
+              onChange={(e) => handleInputChange('domicilio.numero', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
+                validationErrors.numero ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {validationErrors.numero && (
+              <p className="mt-1 text-xs text-red-600">{validationErrors.numero}</p>
+            )}
+          </div>
+          
+          <div>
+            <input
+              type="number"
+              placeholder="C.P."
+              value={formData.domicilio.cp || ''}
+              onChange={(e) => handleInputChange('domicilio.cp', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
+                validationErrors.cp ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {validationErrors.cp && (
+              <p className="mt-1 text-xs text-red-600">{validationErrors.cp}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Localidad */}
         <div>
           <input
             type="text"
-            placeholder="Departamento"
+            placeholder="Localidad"
             value={formData.domicilio.localidad}
             onChange={(e) => handleInputChange('domicilio.localidad', e.target.value)}
             className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${

@@ -1,60 +1,47 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Navbar from './Navbar';
 import { useAuth } from '../../hooks/useAuth';
 
+// Importar todos los navbars
+import NavbarInvitado from './navbar/NavbarInvitado';
+import NavbarCliente from './navbar/NavbarCliente';
+import NavbarCajero from './navbar/NavbarCajero';
+import NavbarDelivery from './navbar/NavbarDelivery';
+import NavbarCocinero from './navbar/NavbarCocinero';
+import NavbarAdmin from './navbar/NavbarAdmin';
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, refreshAuth } = useAuth();
+// Debug: log cuando cambie el estado de autenticación
+useEffect(() => {
+  console.log('🔄 Header - Auth state changed:', { 
+    isAuthenticated, 
+    userRole: user?.rol,
+    pathname: location.pathname 
+  });
+}, [isAuthenticated, user, location.pathname]);
+  // Efecto para detectar cambios en la autenticación y forzar re-render
+  useEffect(() => {
+    // Re-verificar autenticación cuando cambia la ruta
+    refreshAuth();
+  }, [location.pathname]);
 
-  // Rutas donde NO debe aparecer la navbar (por ejemplo, páginas administrativas)
-  const adminRoutes = ['/categorias', '/insumos', '/productos', '/stock'];
-  const isAdminRoute = adminRoutes.includes(location.pathname) || location.pathname === '/dashboard';
-  
-  // Si es una ruta administrativa, no mostrar la navbar pública
-  if (isAdminRoute) {
-    return (
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <button 
-                onClick={() => navigate('/')}
-                className="flex items-center hover:opacity-80 transition-opacity duration-200"
-              >
-                <img 
-                  src="/src/assets/logos/Logo-nabvar.png" 
-                  alt="El Buen Sabor - Logo" 
-                  className="h-12 w-auto"
-                />
-                <span className="ml-3 text-xl font-bold text-[#CD6C50]">Panel Administrativo</span>
-              </button>
-            </div>
-            
-            {isAuthenticated && user && (
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-700">
-                  Bienvenido, {user.nombre || user.email}
-                </span>
-                <button
-                  onClick={() => {
-                    logout();
-                    navigate('/');
-                  }}
-                  className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-all duration-200"
-                >
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-    );
+  // Efecto para debug - remover en producción
+  useEffect(() => {
+    console.log('Header - Auth status changed:', { isAuthenticated, user: user?.rol });
+  }, [isAuthenticated, user]);
+
+  // Rutas donde NO debe aparecer ninguna navbar (páginas especiales)
+  const noNavbarRoutes = ['/login', '/registro'];
+  const shouldShowNavbar = !noNavbarRoutes.includes(location.pathname);
+
+  // Si no debe mostrar navbar, retornar null
+  if (!shouldShowNavbar) {
+    return null;
   }
 
-  // Para rutas públicas, mostrar la navbar completa
+  // Funciones comunes para todos los navbars
   const handleLogin = () => {
     navigate('/login');
   };
@@ -69,8 +56,8 @@ const Header: React.FC = () => {
 
   const handleSearch = (query: string) => {
     console.log('Buscar:', query);
-    // Aquí implementarías la lógica de búsqueda
-    // Por ejemplo: navigate(`/buscar?q=${encodeURIComponent(query)}`);
+    // Implementar lógica de búsqueda
+    // navigate(`/buscar?q=${encodeURIComponent(query)}`);
   };
 
   const handleLogout = () => {
@@ -78,16 +65,78 @@ const Header: React.FC = () => {
     navigate('/');
   };
 
+  // Determinar qué navbar mostrar según el estado de autenticación y rol
+  const renderNavbar = () => {
+    // Si no está autenticado, mostrar navbar de invitado
+    if (!isAuthenticated || !user) {
+      return (
+        <NavbarInvitado
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onHome={handleHome}
+          onSearch={handleSearch}
+        />
+      );
+    }
+
+    // Si está autenticado, mostrar navbar según el rol
+    const userRole = user.rol?.toUpperCase();
+
+    switch (userRole) {
+      case 'ADMINISTRADOR':
+      case 'ADMIN':
+        return (
+          <NavbarAdmin
+            user={user}
+            onLogout={handleLogout}
+            onHome={handleHome}
+          />
+        );
+
+      case 'CAJERO':
+        return (
+          <NavbarCajero
+            user={user}
+            onLogout={handleLogout}
+            onHome={handleHome}
+          />
+        );
+
+      case 'DELIVERY':
+        return (
+          <NavbarDelivery
+            user={user}
+            onLogout={handleLogout}
+            onHome={handleHome}
+          />
+        );
+
+      case 'COCINERO':
+        return (
+          <NavbarCocinero
+            user={user}
+            onLogout={handleLogout}
+            onHome={handleHome}
+          />
+        );
+
+      case 'CLIENTE':
+      default:
+        return (
+          <NavbarCliente
+            user={user}
+            onLogout={handleLogout}
+            onHome={handleHome}
+            onSearch={handleSearch}
+          />
+        );
+    }
+  };
+
   return (
-    <Navbar
-      isAuthenticated={isAuthenticated}
-      user={user}
-      onLogin={handleLogin}
-      onRegister={handleRegister}
-      onLogout={handleLogout}
-      onHome={handleHome}
-      onSearch={handleSearch}
-    />
+    <header>
+      {renderNavbar()}
+    </header>
   );
 };
 

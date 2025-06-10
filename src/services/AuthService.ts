@@ -2,9 +2,29 @@ import { apiClienteService } from './ApiClientService';
 import type { LoginRequestDTO, LoginResponseDTO, UserInfo } from '../types/auth/index';
 
 export class AuthService {
-  private static readonly BASE_URL = '/auth'; // Cambié de '/api/auth' a '/auth' para evitar duplicar /api
+  private static readonly BASE_URL = '/auth'; // Esto se combinará con /api del ApiClienteService
   private static readonly TOKEN_KEY = 'auth_token';
   private static readonly USER_KEY = 'user_info';
+
+  // Event listeners para cambios de autenticación
+  private static listeners: (() => void)[] = [];
+
+  /**
+   * Suscribirse a cambios de autenticación
+   */
+  static subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  /**
+   * Notificar cambios a todos los listeners
+   */
+  private static notifyListeners() {
+    this.listeners.forEach(listener => listener());
+  }
 
   /**
    * Realiza el login del usuario
@@ -42,12 +62,45 @@ export class AuthService {
       const tokenToValidate = token || this.getToken();
       if (!tokenToValidate) return false;
 
-      // Cambié a GET que es más apropiado para validación
-      await apiClienteService.get<any>(`${this.BASE_URL}/validate`);
-      return true;
+      // El token se envía automáticamente en el header por ApiClienteService
+      const response = await apiClienteService.get<{ valid?: boolean }>(`${this.BASE_URL}/validate`);
+      
+      // Si el backend devuelve un objeto con valid, úsalo; sino, considera true si no hay error
+      return response.valid !== false;
     } catch (error) {
       console.error('Error validating token:', error);
+      this.logout(); // Limpiar tokens inválidos
       return false;
+    }
+  }
+
+  /**
+   * Obtiene información del usuario actual desde el backend
+   */
+  static async getCurrentUser(): Promise<UserInfo | null> {
+    try {
+      const token = this.getToken();
+      if (!token) return null;
+
+      const response = await apiClienteService.get<any>(`${this.BASE_URL}/me`);
+      
+      if (response.valid) {
+        const userInfo: UserInfo = {
+          email: response.email,
+          rol: response.rol || this.getUserInfo()?.rol || 'CLIENTE',
+          userId: response.userId || this.getUserInfo()?.userId || 0,
+          nombre: response.nombre || 'Usuario',
+          apellido: response.apellido || ''
+        };
+        
+        this.setUserInfo(userInfo);
+        return userInfo;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
     }
   }
 
@@ -63,6 +116,7 @@ export class AuthService {
    */
   static setToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
+    this.notifyListeners();
   }
 
   /**
@@ -78,6 +132,7 @@ export class AuthService {
    */
   static setUserInfo(userInfo: UserInfo): void {
     localStorage.setItem(this.USER_KEY, JSON.stringify(userInfo));
+    this.notifyListeners();
   }
 
   /**
@@ -95,6 +150,7 @@ export class AuthService {
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    this.notifyListeners();
   }
 
   /**

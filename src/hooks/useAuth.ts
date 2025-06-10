@@ -11,27 +11,46 @@ export const useAuth = () => {
 
   useEffect(() => {
     checkAuthStatus();
+  
+  // Suscribirse a cambios en AuthService
+  const unsubscribe = AuthService.subscribe(() => {
+    console.log('🔔 AuthService notified change, rechecking auth status');
+    checkAuthStatus();
+  });
+
+  return unsubscribe; // Cleanup
+
   }, []);
 
   const checkAuthStatus = async () => {
     setLoading(true);
-    const token = AuthService.getToken();
-    
-    if (token) {
-      const isValid = await AuthService.validateToken(token);
-      if (isValid) {
-        setIsAuthenticated(true);
-        setUser(AuthService.getUserInfo());
+    try {
+      const token = AuthService.getToken();
+      
+      if (token) {
+        const isValid = await AuthService.validateToken(token);
+        if (isValid) {
+          const userInfo = AuthService.getUserInfo();
+          setIsAuthenticated(true);
+          setUser(userInfo);
+        } else {
+          // Token inválido, limpiar todo
+          AuthService.logout();
+          setIsAuthenticated(false);
+          setUser(null);
+        }
       } else {
-        AuthService.logout();
         setIsAuthenticated(false);
         setUser(null);
       }
-    } else {
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      AuthService.logout();
       setIsAuthenticated(false);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const login = async (credentials: LoginRequestDTO): Promise<LoginResponseDTO> => {
@@ -39,6 +58,8 @@ export const useAuth = () => {
     setError(null);
     try {
       const response = await AuthService.login(credentials);
+      
+      // IMPORTANTE: Actualizar el estado inmediatamente después del login
       setIsAuthenticated(true);
       
       // Crear el objeto de usuario con los datos del response
@@ -46,15 +67,14 @@ export const useAuth = () => {
         email: response.email,
         userId: response.userId,
         rol: response.rol,
-        // Si el backend devuelve nombre y apellido, úsalos, sino valores por defecto
         nombre: response.nombre || 'Usuario',
         apellido: response.apellido || ''
       };
       
       setUser(userData);
+      
       return response;
     } catch (err: any) {
-      // El error ya viene procesado desde AuthService
       const errorMessage = err.message || 'Error al iniciar sesión';
       setError(errorMessage);
       throw err;
@@ -70,6 +90,11 @@ export const useAuth = () => {
     setError(null);
   };
 
+  // Función para forzar actualización del estado (útil en casos específicos)
+  const refreshAuth = async () => {
+    await checkAuthStatus();
+  };
+
   return {
     isAuthenticated,
     loading,
@@ -77,6 +102,7 @@ export const useAuth = () => {
     user,
     login,
     logout,
-    checkAuthStatus
+    checkAuthStatus,
+    refreshAuth // Nueva función
   };
 };
