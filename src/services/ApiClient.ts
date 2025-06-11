@@ -53,4 +53,5 @@ export class ApiClient {
   protected async deleteRequest<T>(url: string): Promise<T> {
     return this.request<T>(url, { method: "DELETE" });
   }
+  
 }
