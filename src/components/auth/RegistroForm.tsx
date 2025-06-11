@@ -36,6 +36,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
 
   const validateForm = (): boolean => {
     const errors: {[key: string]: string} = {};
@@ -49,7 +51,17 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
     if (!formData.domicilio.numero || formData.domicilio.numero <= 0) {
       errors.numero = 'El número es obligatorio y debe ser mayor a 0';
     }
-    
+    // Validar fecha de nacimiento
+    if (!formData.fechaNacimiento) {
+      errors.fechaNacimiento = 'La fecha de nacimiento es obligatoria';
+    } else {
+      const seleccionada = new Date(formData.fechaNacimiento);
+      const hoy = new Date();
+      if (seleccionada >= hoy) {
+        errors.fechaNacimiento = 'La fecha debe estar en el pasado';
+      }
+    }
+
     // Validar código postal
     if (!formData.domicilio.cp || formData.domicilio.cp < 1000 || formData.domicilio.cp > 9999) {
       errors.cp = 'Código postal inválido (debe estar entre 1000 y 9999)';
@@ -67,11 +79,12 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
       errors.email = 'El correo electrónico debe ser válido';
     }
 
-    if (!formData.password) {
-      errors.password = 'La contraseña es obligatoria';
-    } else if (formData.password.length < 6) { // Más flexible
-      errors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
+     if (!formData.password) {
+    errors.password = 'La contraseña es obligatoria';
+  } else if (!PASSWORD_REGEX.test(formData.password)) {
+    errors.password =
+      'Debe tener +8 Carcatares, 1 mayúscula, 1 minúscula, 1 número y 1 símbolo (@$!%*?&)';
+  }
 
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Las contraseñas no coinciden';
@@ -86,7 +99,6 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
       // Agregar fecha de nacimiento por defecto si no se proporciona
       const dataToSubmit: ClienteRegisterDTO = {
         ...formData,
-        fechaNacimiento: formData.fechaNacimiento || '1990-01-01'
       };
       
       console.log('Datos a enviar:', dataToSubmit); // Para debug
@@ -165,6 +177,30 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
           )}
         </div>
 
+          {/* Fecha de nacimiento */}
+          <div>
+            <input
+              type="date"
+              placeholder="Fecha de nacimiento"
+              value={formData.fechaNacimiento}
+              // Máx. hoy → evita que elijan fechas futuras
+              max={new Date().toISOString().split('T')[0]}
+              // Mín. 1900-01-01 → evita 1800, 1700, etc. (opcional)
+              min="1900-01-01"
+              onChange={(e) => handleInputChange('fechaNacimiento', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
+                validationErrors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {validationErrors.fechaNacimiento && (
+              <p className="mt-1 text-xs text-red-600">
+                {validationErrors.fechaNacimiento}
+              </p>
+            )}
+          </div>
+
+
+
         {/* Dirección */}
         <div>
           <input
@@ -180,6 +216,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             <p className="mt-1 text-xs text-red-600">{validationErrors.direccion}</p>
           )}
         </div>
+
+
 
         {/* Número y Código Postal en una fila */}
         <div className="grid grid-cols-2 gap-4">
