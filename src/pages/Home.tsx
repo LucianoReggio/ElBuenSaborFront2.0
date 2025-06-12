@@ -1,35 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Star, Clock, MapPin, Phone, Mail, Instagram, Facebook, Twitter } from 'lucide-react';
+import { useProductos } from '../hooks/useProductos';
+import { Star, Clock, MapPin, Phone, Mail } from 'lucide-react';
+import type { ArticuloManufacturadoResponseDTO } from '../types/productos/ArticuloManufacturadoResponseDTO';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { productos, loading } = useProductos();
+  
+  const [featuredProducts, setFeaturedProducts] = useState<ArticuloManufacturadoResponseDTO[]>([]);
 
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Hamburguesa Clásica",
-      description: "Carne jugosa, lechuga, tomate, cebolla y nuestra salsa especial",
-      price: "$2,500",
-      rating: 4.8
-    },
-    {
-      id: 2,
-      name: "Pizza Margherita",
-      description: "Masa artesanal, tomate, mozzarella y albahaca fresca",
-      price: "$3,200",
-      rating: 4.9
-    },
-    {
-      id: 3,
-      name: "Empanadas Criollas",
-      description: "Tradicionales empanadas argentinas con carne cortada a cuchillo",
-      price: "$800",
-      rating: 4.7
+  // Debug: verificar si la imagen se puede cargar
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => console.log('✅ Imagen cargada correctamente');
+    img.onerror = () => console.error('❌ Error al cargar la imagen desde /Header.jpg');
+    img.src = '/Header.jpg';
+  }, []);
+
+  // Procesar productos destacados cuando cambien los productos del hook
+  useEffect(() => {
+    if (productos.length > 0) {
+      // Seleccionar productos destacados
+      const destacados = productos
+        .filter(p => p.stockSuficiente) // Solo productos con stock
+        .sort((a, b) => b.cantidadVendida - a.cantidadVendida) // Ordenar por más vendidos
+        .slice(0, 3); // Tomar los primeros 3
+      
+      setFeaturedProducts(destacados);
     }
-  ];
+  }, [productos]);
 
   const handleOrderClick = () => {
     if (isAuthenticated) {
@@ -41,12 +43,50 @@ const Home: React.FC = () => {
     }
   };
 
+  // Función para obtener la imagen del producto
+  const getProductImage = (producto: ArticuloManufacturadoResponseDTO) => {
+    if (producto.imagenes && producto.imagenes.length > 0) {
+      return producto.imagenes[0].url;
+    }
+    return null;
+  };
+
+  // Función para generar un color basado en la categoría
+  const getCategoryColor = (categoriaId: number) => {
+    const colors = [
+      'from-orange-100 to-orange-200',
+      'from-blue-100 to-blue-200',
+      'from-green-100 to-green-200',
+      'from-purple-100 to-purple-200',
+      'from-red-100 to-red-200',
+      'from-yellow-100 to-yellow-200',
+    ];
+    return colors[categoriaId % colors.length];
+  };
+
+  // Función para generar rating basado en cantidadVendida (simulado)
+  const getProductRating = (cantidadVendida: number) => {
+    if (cantidadVendida >= 100) return 4.9;
+    if (cantidadVendida >= 50) return 4.7;
+    if (cantidadVendida >= 20) return 4.5;
+    if (cantidadVendida >= 10) return 4.3;
+    return 4.0;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#CD6C50] to-[#b85a42] text-white">
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <section className="relative text-white min-h-[500px]">
+        {/* Imagen de fondo */}
+        <img 
+          src="/Header.jpg" 
+          alt="Header background"
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        />
+        
+        {/* Overlay opcional - puedes comentar esta línea para quitar el overlay */}
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 z-20">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               ¡Bienvenido a El Buen Sabor!
@@ -88,39 +128,129 @@ const Home: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-white text-2xl font-bold">{product.name[0]}</span>
-                    </div>
-                    <p className="text-gray-600 text-sm">Imagen del producto</p>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-semibold text-gray-800">{product.name}</h3>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
+          {loading ? (
+            <div className="grid md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                    <div className="flex justify-between">
+                      <div className="h-8 w-20 bg-gray-200 rounded"></div>
+                      <div className="h-8 w-16 bg-gray-200 rounded"></div>
                     </div>
                   </div>
-                  <p className="text-gray-600 mb-4">{product.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-[#CD6C50]">{product.price}</span>
-                    <button
-                      onClick={handleOrderClick}
-                      className="bg-[#CD6C50] text-white px-4 py-2 rounded-lg hover:bg-[#b85a42] transition-colors duration-200"
-                    >
-                      Pedir
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">
+                No hay productos disponibles en este momento
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {featuredProducts.map((producto) => {
+                const imagenUrl = getProductImage(producto);
+                const rating = getProductRating(producto.cantidadVendida);
+                
+                return (
+                  <div key={producto.idArticulo} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                    <div className="h-48 relative overflow-hidden">
+                      {imagenUrl ? (
+                        <img 
+                          src={imagenUrl} 
+                          alt={producto.denominacion}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Si la imagen falla, mostrar placeholder
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`${imagenUrl ? 'hidden' : ''} w-full h-full bg-gradient-to-br ${getCategoryColor(producto.categoria.idCategoria)} flex items-center justify-center`}>
+                        <div className="text-center p-8">
+                          <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-white text-2xl font-bold">
+                              {producto.denominacion.charAt(0)}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm">
+                            {producto.categoria.denominacion}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Badge de disponibilidad */}
+                      <div className="absolute top-3 right-3">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          producto.stockSuficiente 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {producto.stockSuficiente ? 'Disponible' : 'Agotado'}
+                        </span>
+                      </div>
+
+                      {/* Badge de tiempo */}
+                      <div className="absolute bottom-3 left-3">
+                        <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-sm flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {producto.tiempoEstimadoEnMinutos} min
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-semibold text-gray-800 truncate">
+                          {producto.denominacion}
+                        </h3>
+                        <div className="flex items-center">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600 ml-1">{rating}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-600 mb-4 text-sm line-clamp-2">
+                        {producto.descripcion || `Delicioso ${producto.denominacion} preparado con ingredientes frescos`}
+                      </p>
+                      
+                      {/* Información adicional */}
+                      <div className="flex items-center text-xs text-gray-500 mb-4">
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                          {producto.categoria.denominacion}
+                        </span>
+                        <span className="ml-2">
+                          {producto.cantidadVendida} vendidos
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-[#CD6C50]">
+                          ${producto.precioVenta.toFixed(0)}
+                        </span>
+                        <button
+                          onClick={handleOrderClick}
+                          disabled={!producto.stockSuficiente}
+                          className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                            producto.stockSuficiente
+                              ? 'bg-[#CD6C50] text-white hover:bg-[#b85a42]'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {producto.stockSuficiente ? 'Pedir' : 'Agotado'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -218,8 +348,6 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
-
-     
     </div>
   );
 };
