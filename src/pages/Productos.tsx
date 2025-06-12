@@ -4,6 +4,7 @@ import { Alert } from "../components/common/Alert";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ProductosList } from "../components/productos/ProductosList";
 import { ProductoModal } from "../components/productos/ProductoModal";
+import { ProductoDetallesModal } from "../components/productos/ProductoDetallesModal";
 import { useProductos } from "../hooks/useProductos";
 import { useInsumos } from "../hooks/useInsumos";
 import { useCategorias } from "../hooks/useCategorias";
@@ -11,9 +12,18 @@ import { unidadMedidaService } from "../services";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloManufacturadoRequestDTO } from "../types/productos/ArticuloManufacturadoRequestDTO";
 import type { UnidadMedidaDTO } from "../services";
-import { ProductoDetallesModal } from "../components/productos/ProductoDetallesModal";
 
+/**
+ * Pantalla principal de gestión de productos manufacturados.
+ * Incluye:
+ *  - Listado con acciones CRUD
+ *  - Modal de creación/edición
+ *  - Modal de detalles
+ *  - Estadísticas rápidas
+ *  - Barra de búsqueda + filtros (categoría y rango de precio)
+ */
 export const Productos: React.FC = () => {
+  // Datos y acciones del hook de productos
   const {
     productos,
     loading,
@@ -23,13 +33,19 @@ export const Productos: React.FC = () => {
     deleteProducto,
   } = useProductos();
 
+  // Catálogo de insumos y categorías
   const { insumos } = useInsumos();
   const { categorias } = useCategorias();
 
-  // Estado para unidades de medida
+  // =============================
+  // Estado de unidades de medida
+  // =============================
   const [unidadesMedida, setUnidadesMedida] = useState<UnidadMedidaDTO[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
+  // =====================
+  // Estado UI (modales…)
+  // =====================
   const [modalOpen, setModalOpen] = useState(false);
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState<
@@ -44,7 +60,17 @@ export const Productos: React.FC = () => {
     message: string;
   } | null>(null);
 
-  // Cargar unidades de medida
+  // =====================
+  // Búsqueda y filtros
+  // =====================
+  const [search, setSearch] = useState("");
+  const [categoriaSel, setCategoriaSel] = useState<number | "all">("all");
+  const [precioMin, setPrecioMin] = useState<number | "">("");
+  const [precioMax, setPrecioMax] = useState<number | "">("");
+
+  // ----------------------------------------
+  // Traer unidades de medida desde la API
+  // ----------------------------------------
   useEffect(() => {
     const fetchUnidadesMedida = async () => {
       setLoadingUnidades(true);
@@ -65,8 +91,11 @@ export const Productos: React.FC = () => {
     fetchUnidadesMedida();
   }, []);
 
+  // ----------------------------------------
+  // Handlers CRUD y de UI
+  // ----------------------------------------
   const handleCreate = () => {
-    // Verificar que haya ingredientes disponibles
+    // Verificar que existan ingredientes elaborables
     const ingredientesParaElaborar = insumos.filter((i) => i.esParaElaborar);
     if (ingredientesParaElaborar.length === 0) {
       setAlert({
@@ -94,6 +123,7 @@ export const Productos: React.FC = () => {
   const handleEditFromDetails = (
     producto: ArticuloManufacturadoResponseDTO
   ) => {
+    setViewingProducto(undefined);
     setEditingProducto(producto);
     setModalOpen(true);
   };
@@ -115,9 +145,7 @@ export const Productos: React.FC = () => {
       setAlert({
         type: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : "Error al guardar el producto",
+          error instanceof Error ? error.message : "Error al guardar el producto",
       });
     } finally {
       setOperationLoading(false);
@@ -131,45 +159,45 @@ export const Productos: React.FC = () => {
 
     try {
       await deleteProducto(id);
-      setAlert({
-        type: "success",
-        message: "Producto eliminado correctamente",
-      });
+      setAlert({ type: "success", message: "Producto eliminado correctamente" });
     } catch (error) {
       setAlert({
         type: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : "Error al eliminar el producto",
+          error instanceof Error ? error.message : "Error al eliminar el producto",
       });
     }
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingProducto(undefined);
+  // ----------------------------------------
+  // Helpers de filtrado y estadísticas
+  // ----------------------------------------
+  const applyFilters = () => {
+    return productos
+      .filter((p) =>
+        p.denominacion.toLowerCase().includes(search.toLowerCase())
+      )
+      .filter((p) =>
+        categoriaSel === "all" ? true : p.categoria.idCategoria === categoriaSel
+      )
+      .filter((p) => (precioMin === "" ? true : p.precioVenta >= Number(precioMin)))
+      .filter((p) => (precioMax === "" ? true : p.precioVenta <= Number(precioMax)));
   };
 
-  const closeDetallesModal = () => {
-    setDetallesModalOpen(false);
-    setViewingProducto(undefined);
-  };
+  const productosFiltrados = applyFilters();
 
-  const closeAlert = () => {
-    setAlert(null);
-  };
-
-  // Calcular estadísticas
   const stats = {
-    total: productos.length,
-    disponibles: productos.filter((p) => p.stockSuficiente).length,
-    sinStock: productos.filter((p) => !p.stockSuficiente).length,
-    margenAlto: productos.filter((p) => p.margenGanancia >= 3).length,
+    total: productosFiltrados.length,
+    disponibles: productosFiltrados.filter((p) => p.stockSuficiente).length,
+    sinStock: productosFiltrados.filter((p) => !p.stockSuficiente).length,
+    margenAlto: productosFiltrados.filter((p) => p.margenGanancia >= 3).length,
   };
 
   const ingredientesParaElaborar = insumos.filter((i) => i.esParaElaborar);
 
+  // ----------------------------------------
+  // Spinners de carga
+  // ----------------------------------------
   if (loading || loadingUnidades) {
     return (
       <div className="p-6">
@@ -179,14 +207,15 @@ export const Productos: React.FC = () => {
     );
   }
 
+  // ----------------------------------------
+  // Render principal
+  // ----------------------------------------
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Gestión de Productos
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Productos</h1>
           <p className="text-gray-600 mt-1">
             Administre los productos manufacturados y sus recetas
           </p>
@@ -194,17 +223,17 @@ export const Productos: React.FC = () => {
         <Button onClick={handleCreate}>Nuevo Producto</Button>
       </div>
 
-      {/* Alert */}
+      {/* Alert general */}
       {alert && (
-        <Alert type={alert.type} message={alert.message} onClose={closeAlert} />
+        <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
       )}
 
-      {/* Error */}
+      {/* Error de carga */}
       {error && (
         <Alert type="error" title="Error al cargar datos" message={error} />
       )}
 
-      {/* Alertas de ingredientes */}
+      {/* Alert sin ingredientes */}
       {ingredientesParaElaborar.length === 0 && (
         <Alert
           type="warning"
@@ -213,33 +242,79 @@ export const Productos: React.FC = () => {
         />
       )}
 
-      {/* Stats */}
+      {/* Búsqueda y filtros */}
+      <div className="bg-white p-4 rounded-lg shadow space-y-4 md:space-y-0 md:grid md:grid-cols-4 md:gap-4">
+        {/* Búsqueda */}
+        <input
+          type="text"
+          placeholder="Buscar producto"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border px-3 py-2 rounded-lg"
+        />
+
+        {/* Categoría */}
+        <select
+          value={categoriaSel}
+          onChange={(e) =>
+            setCategoriaSel(
+              e.target.value === "all" ? "all" : Number(e.target.value)
+            )
+          }
+          className="w-full border px-3 py-2 rounded-lg"
+        >
+          <option value="all">Todas las categorías</option>
+          {categorias.map((cat) => (
+            <option key={cat.idCategoria} value={cat.idCategoria}>
+              {cat.denominacion}
+            </option>
+          ))}
+        </select>
+
+        {/* Precio mínimo */}
+        <input
+          type="number"
+          placeholder="Precio mín."
+          value={precioMin}
+          onChange={(e) =>
+            setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          className="w-full border px-3 py-2 rounded-lg"
+        />
+
+        {/* Precio máximo */}
+        <input
+          type="number"
+          placeholder="Precio máx."
+          value={precioMax}
+          onChange={(e) =>
+            setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          className="w-full border px-3 py-2 rounded-lg"
+        />
+      </div>
+
+      {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
           <div className="text-sm text-gray-600">Total Productos</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-green-600">
-            {stats.disponibles}
-          </div>
+          <div className="text-2xl font-bold text-green-600">{stats.disponibles}</div>
           <div className="text-sm text-gray-600">Stock Disponible</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-red-600">
-            {stats.sinStock}
-          </div>
+          <div className="text-2xl font-bold text-red-600">{stats.sinStock}</div>
           <div className="text-sm text-gray-600">Sin Stock</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-purple-600">
-            {stats.margenAlto}
-          </div>
+          <div className="text-2xl font-bold text-purple-600">{stats.margenAlto}</div>
           <div className="text-sm text-gray-600">Margen Alto (3x+)</div>
         </div>
       </div>
 
-      {/* Alertas de Stock */}
+      {/* Alerta de sin stock */}
       {stats.sinStock > 0 && (
         <Alert
           type="warning"
@@ -248,19 +323,22 @@ export const Productos: React.FC = () => {
         />
       )}
 
-      {/* Table */}
+      {/* Tabla de productos */}
       <ProductosList
-        productos={productos}
+        productos={productosFiltrados}
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
       />
 
-      {/* Modal de Producto */}
+      {/* Modal de creación / edición */}
       <ProductoModal
         isOpen={modalOpen}
-        onClose={closeModal}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingProducto(undefined);
+        }}
         producto={editingProducto}
         categorias={categorias}
         unidadesMedida={unidadesMedida}
@@ -269,10 +347,13 @@ export const Productos: React.FC = () => {
         loading={operationLoading}
       />
 
-      {/* Modal de Detalles */}
+      {/* Modal de detalles */}
       <ProductoDetallesModal
         isOpen={detallesModalOpen}
-        onClose={closeDetallesModal}
+        onClose={() => {
+          setDetallesModalOpen(false);
+          setViewingProducto(undefined);
+        }}
         producto={viewingProducto}
         onEdit={handleEditFromDetails}
       />
