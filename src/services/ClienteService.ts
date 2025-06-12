@@ -1,73 +1,40 @@
-import { apiClienteService } from './ApiClientService';
-import type{ ClienteRegisterDTO, ClienteResponseDTO } from '../types/clientes/Index';
+import { AuthService } from "./AuthService";
+import type { ClienteRegisterDTO } from "../types/clientes/Index";
 
 export class ClienteService {
-  private static readonly BASE_URL = '/clientes'; // Cambié de '/api/clientes' a '/clientes'
-
   /**
-   * Registra un nuevo cliente
+   * Registra un nuevo cliente usando Auth0
    */
-  static async register(clienteData: ClienteRegisterDTO): Promise<ClienteResponseDTO> {
+  static async registerCliente(data: ClienteRegisterDTO): Promise<void> {
     try {
-      const response = await apiClienteService.post<ClienteResponseDTO>(`${this.BASE_URL}/register`, clienteData);
-      return response;
+      // Registrar en Auth0
+      await AuthService.register({
+        email: data.email,
+        password: data.password,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        telefono: data.telefono,
+        fechaNacimiento: data.fechaNacimiento,
+        domicilio: data.domicilio,
+      });
+
+      console.log("Cliente registrado exitosamente en Auth0");
     } catch (error: any) {
-      throw this.handleError(error);
+      console.error("Error registrando cliente:", error);
+      throw new Error(this.getErrorMessage(error));
     }
   }
 
   /**
-   * Obtiene todos los clientes (requiere autenticación de admin)
+   * Obtener mensaje de error legible
    */
-  static async getAll(): Promise<ClienteResponseDTO[]> {
-    try {
-      const response = await apiClienteService.get<ClienteResponseDTO[]>(this.BASE_URL);
-      return response;
-    } catch (error: any) {
-      throw this.handleError(error);
+  private static getErrorMessage(error: any): string {
+    if (error.message?.includes("user_exists")) {
+      return "Ya existe un usuario con este email";
     }
-  }
-
-  /**
-   * Obtiene un cliente por ID
-   */
-  static async getById(id: number): Promise<ClienteResponseDTO> {
-    try {
-      const response = await apiClienteService.get<ClienteResponseDTO>(`${this.BASE_URL}/${id}`);
-      return response;
-    } catch (error: any) {
-      throw this.handleError(error);
+    if (error.message?.includes("password")) {
+      return "La contraseña no cumple con los requisitos mínimos";
     }
-  }
-
-  /**
-   * Actualiza un cliente
-   */
-  static async update(id: number, clienteData: ClienteResponseDTO): Promise<ClienteResponseDTO> {
-    try {
-      const response = await apiClienteService.put<ClienteResponseDTO>(`${this.BASE_URL}/${id}`, clienteData);
-      return response;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Elimina un cliente
-   */
-  static async delete(id: number): Promise<void> {
-    try {
-      await apiClienteService.deleteRequest<void>(`${this.BASE_URL}/${id}`);
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Manejo centralizado de errores
-   */
-  private static handleError(error: any): Error {
-    // El error ya viene procesado desde ApiClienteService, simplemente lo retornamos
-    return error instanceof Error ? error : new Error('Error en el servicio de clientes');
+    return error.message || "Error al registrar el usuario";
   }
 }
