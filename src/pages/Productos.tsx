@@ -13,15 +13,6 @@ import type { ArticuloManufacturadoResponseDTO } from "../types/productos/Articu
 import type { ArticuloManufacturadoRequestDTO } from "../types/productos/ArticuloManufacturadoRequestDTO";
 import type { UnidadMedidaDTO } from "../services";
 
-/**
- * Pantalla principal de gestión de productos manufacturados.
- * Incluye:
- *  - Listado con acciones CRUD
- *  - Modal de creación/edición
- *  - Modal de detalles
- *  - Estadísticas rápidas
- *  - Barra de búsqueda + filtros (categoría y rango de precio)
- */
 export const Productos: React.FC = () => {
   // Datos y acciones del hook de productos
   const {
@@ -37,40 +28,28 @@ export const Productos: React.FC = () => {
   const { insumos } = useInsumos();
   const { categorias } = useCategorias();
 
-  // =============================
   // Estado de unidades de medida
-  // =============================
   const [unidadesMedida, setUnidadesMedida] = useState<UnidadMedidaDTO[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
-  // =====================
-  // Estado UI (modales…)
-  // =====================
+  // Estado UI (modales, alertas…)
   const [modalOpen, setModalOpen] = useState(false);
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
-  const [editingProducto, setEditingProducto] = useState<
-    ArticuloManufacturadoResponseDTO | undefined
-  >();
-  const [viewingProducto, setViewingProducto] = useState<
-    ArticuloManufacturadoResponseDTO | undefined
-  >();
+  const [editingProducto, setEditingProducto] = useState<ArticuloManufacturadoResponseDTO | undefined>();
+  const [viewingProducto, setViewingProducto] = useState<ArticuloManufacturadoResponseDTO | undefined>();
   const [operationLoading, setOperationLoading] = useState(false);
   const [alert, setAlert] = useState<{
     type: "success" | "error" | "warning";
     message: string;
   } | null>(null);
 
-  // =====================
   // Búsqueda y filtros
-  // =====================
   const [search, setSearch] = useState("");
   const [categoriaSel, setCategoriaSel] = useState<number | "all">("all");
   const [precioMin, setPrecioMin] = useState<number | "">("");
   const [precioMax, setPrecioMax] = useState<number | "">("");
 
-  // ----------------------------------------
   // Traer unidades de medida desde la API
-  // ----------------------------------------
   useEffect(() => {
     const fetchUnidadesMedida = async () => {
       setLoadingUnidades(true);
@@ -91,9 +70,7 @@ export const Productos: React.FC = () => {
     fetchUnidadesMedida();
   }, []);
 
-  // ----------------------------------------
   // Handlers CRUD y de UI
-  // ----------------------------------------
   const handleCreate = () => {
     // Verificar que existan ingredientes elaborables
     const ingredientesParaElaborar = insumos.filter((i) => i.esParaElaborar);
@@ -169,9 +146,7 @@ export const Productos: React.FC = () => {
     }
   };
 
-  // ----------------------------------------
   // Helpers de filtrado y estadísticas
-  // ----------------------------------------
   const applyFilters = () => {
     return productos
       .filter((p) =>
@@ -186,6 +161,14 @@ export const Productos: React.FC = () => {
 
   const productosFiltrados = applyFilters();
 
+  // ** SOLO CATEGORÍAS PRESENTES EN PRODUCTOS FILTRADOS **
+  const categoriasConProductos = [
+    ...new Set(productosFiltrados.map((p) => p.categoria.idCategoria)),
+  ];
+  const categoriasFiltradas = categorias.filter(cat =>
+    categoriasConProductos.includes(cat.idCategoria)
+  );
+
   const stats = {
     total: productosFiltrados.length,
     disponibles: productosFiltrados.filter((p) => p.stockSuficiente).length,
@@ -195,9 +178,7 @@ export const Productos: React.FC = () => {
 
   const ingredientesParaElaborar = insumos.filter((i) => i.esParaElaborar);
 
-  // ----------------------------------------
   // Spinners de carga
-  // ----------------------------------------
   if (loading || loadingUnidades) {
     return (
       <div className="p-6">
@@ -207,9 +188,7 @@ export const Productos: React.FC = () => {
     );
   }
 
-  // ----------------------------------------
   // Render principal
-  // ----------------------------------------
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -264,7 +243,7 @@ export const Productos: React.FC = () => {
           className="w-full border px-3 py-2 rounded-lg"
         >
           <option value="all">Todas las categorías</option>
-          {categorias.map((cat) => (
+          {categoriasFiltradas.map((cat) => (
             <option key={cat.idCategoria} value={cat.idCategoria}>
               {cat.denominacion}
             </option>
