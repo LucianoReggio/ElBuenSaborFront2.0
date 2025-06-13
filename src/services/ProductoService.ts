@@ -64,4 +64,5 @@ export class ProductoService extends ApiClient {
       cantidadMaximaPreparable: number;
     }>(`${this.endpoint}/${id}/stock`);
   }
+  
 }

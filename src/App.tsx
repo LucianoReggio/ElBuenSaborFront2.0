@@ -16,6 +16,8 @@ import Header from "./components/layout/Header";
 import RegistroPage from "./pages/Registro";
 import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
+import ProductoDetalle from './pages/ProductoDetalle';
+
 
 // Componente para el elemento de navegación activo
 const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({
@@ -177,6 +179,11 @@ function App() {
         <Route path="/home" element={
           <PublicLayout>
             <Home />
+          </PublicLayout>
+        } />
+        <Route path="/productos/:id" element={
+          <PublicLayout>
+            <ProductoDetalle />
           </PublicLayout>
         } />
         <Route path="/registro" element={

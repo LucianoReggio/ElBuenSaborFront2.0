@@ -99,6 +99,7 @@ const Home: React.FC = () => {
                 Hola {user.nombre || user.email}, ¿qué se te antoja hoy?
               </p>
             )}
+           
             <button
               onClick={handleOrderClick}
               className="bg-white text-[#CD6C50] px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-lg"
@@ -233,6 +234,13 @@ const Home: React.FC = () => {
                         <span className="text-2xl font-bold text-[#CD6C50]">
                           ${producto.precioVenta.toFixed(0)}
                         </span>
+                         <button
+                        onClick={() => navigate(`/productos/${productos[0].idArticulo}`)}
+                        className="px-4 py-2 rounded-lg border border-[#CD6C50] text-[#CD6C50] font-semibold hover:bg-[#f5ebe8] transition-colors duration-200 ml-2"
+                      >
+                        Detalle
+                      </button>
+
                         <button
                           onClick={handleOrderClick}
                           disabled={!producto.stockSuficiente}
