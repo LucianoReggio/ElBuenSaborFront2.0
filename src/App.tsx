@@ -17,6 +17,7 @@ import RegistroPage from "./pages/Registro";
 import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
 import ProductoDetalle from './pages/ProductoDetalle';
+import Catalogo from "./pages/Catalogo";
 
 
 // Componente para el elemento de navegación activo
@@ -179,6 +180,11 @@ function App() {
         <Route path="/home" element={
           <PublicLayout>
             <Home />
+          </PublicLayout>
+        } />
+        <Route path="/catalogo" element={
+          <PublicLayout>
+            <Catalogo />
           </PublicLayout>
         } />
         <Route path="/productos/:id" element={
