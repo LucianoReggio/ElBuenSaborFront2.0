@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProductoService } from "../services/ProductoService";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
-import { Star, Clock } from "lucide-react";
+import { Star, Clock, ShoppingCart } from "lucide-react";
+import CarritoModal from "../components/cart/CarritoModal";
 
 const productoService = new ProductoService();
 
@@ -10,6 +11,13 @@ const Catalogo: React.FC = () => {
   const [productos, setProductos] = useState<ArticuloManufacturadoResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
+
+  // Por ahora, items del carrito mockeados (luego será un estado real)
+  const [itemsCarrito, setItemsCarrito] = useState<
+    { id: number; nombre: string; cantidad: number; precio: number }[]
+  >([]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +38,34 @@ const Catalogo: React.FC = () => {
     if (cantidadVendida >= 20) return 4.5;
     if (cantidadVendida >= 10) return 4.3;
     return 4.0;
+  };
+
+  // Handler cuando se hace click en "Pedir"
+  const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
+    // Por ahora, solo abrir carrito y simular agregar
+    // En la lógica real, podrías sumar la cantidad si ya está
+    setItemsCarrito((itemsPrev) => {
+      const existe = itemsPrev.find((item) => item.id === producto.idArticulo);
+      if (existe) {
+        // Sumar uno
+        return itemsPrev.map((item) =>
+          item.id === producto.idArticulo
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        );
+      }
+      // Si no existe, agregar nuevo
+      return [
+        ...itemsPrev,
+        {
+          id: producto.idArticulo,
+          nombre: producto.denominacion,
+          cantidad: 1,
+          precio: producto.precioVenta,
+        },
+      ];
+    });
+    setCarritoAbierto(true);
   };
 
   return (
@@ -114,9 +150,7 @@ const Catalogo: React.FC = () => {
                     </span>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => {
-                          // Aquí podrías agregar al carrito
-                        }}
+                        onClick={() => handleOrderClick(producto)}
                         disabled={!producto.stockSuficiente}
                         className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
                           producto.stockSuficiente
@@ -140,6 +174,27 @@ const Catalogo: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Carrito Modal y botón flotante */}
+      <CarritoModal
+        abierto={carritoAbierto}
+        onCerrar={() => setCarritoAbierto(false)}
+        items={itemsCarrito}
+      />
+
+      <button
+        onClick={() => setCarritoAbierto(true)}
+        className="fixed bottom-8 right-8 z-50 bg-[#CD6C50] hover:bg-[#b85a42] text-white p-4 rounded-full shadow-2xl flex items-center gap-2 transition"
+        style={{ boxShadow: "0 4px 24px rgba(205,108,80,.25)" }}
+        title="Ver carrito"
+      >
+        <ShoppingCart className="w-7 h-7" />
+        {itemsCarrito.length > 0 && (
+          <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
+            {itemsCarrito.reduce((acc, item) => acc + item.cantidad, 0)}
+          </span>
+        )}
+      </button>
     </div>
   );
 };

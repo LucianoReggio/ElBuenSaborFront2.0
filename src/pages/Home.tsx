@@ -2,17 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useProductos } from '../hooks/useProductos';
-import { Star, Clock, MapPin, Phone, Mail } from 'lucide-react';
+import { Star, Clock, MapPin, Phone, Mail, ShoppingCart } from 'lucide-react';
+import CarritoModal from '../components/cart/CarritoModal';
 import type { ArticuloManufacturadoResponseDTO } from '../types/productos/ArticuloManufacturadoResponseDTO';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { productos, loading } = useProductos();
-  
-  const [featuredProducts, setFeaturedProducts] = useState<ArticuloManufacturadoResponseDTO[]>([]);
 
-  // Debug: verificar si la imagen se puede cargar
+  const [featuredProducts, setFeaturedProducts] = useState<ArticuloManufacturadoResponseDTO[]>([]);
+  
+  // Carrito
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [itemsCarrito, setItemsCarrito] = useState<
+    { id: number; nombre: string; cantidad: number; precio: number }[]
+  >([]);
+
+  // Debug imagen header
   useEffect(() => {
     const img = new Image();
     img.onload = () => console.log('✅ Imagen cargada correctamente');
@@ -20,38 +27,22 @@ const Home: React.FC = () => {
     img.src = '/Header.jpg';
   }, []);
 
-  // Procesar productos destacados cuando cambien los productos del hook
+  // Productos destacados
   useEffect(() => {
     if (productos.length > 0) {
-      // Seleccionar productos destacados
       const destacados = productos
-        .filter(p => p.stockSuficiente) // Solo productos con stock
-        .sort((a, b) => b.cantidadVendida - a.cantidadVendida) // Ordenar por más vendidos
-        .slice(0, 3); // Tomar los primeros 3
-      
+        .filter(p => p.stockSuficiente)
+        .sort((a, b) => b.cantidadVendida - a.cantidadVendida)
+        .slice(0, 3);
       setFeaturedProducts(destacados);
     }
   }, [productos]);
 
-  const handleOrderClick = () => {
-    if (isAuthenticated) {
-      // Si está autenticado, ir al catálogo o carrito
-      navigate('/catalogo');
-    } else {
-      // Si no está autenticado, mostrar modal de login
-      navigate('/login');
-    }
-  };
+  // Imagen producto
+  const getProductImage = (producto: ArticuloManufacturadoResponseDTO) =>
+    producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0].url : null;
 
-  // Función para obtener la imagen del producto
-  const getProductImage = (producto: ArticuloManufacturadoResponseDTO) => {
-    if (producto.imagenes && producto.imagenes.length > 0) {
-      return producto.imagenes[0].url;
-    }
-    return null;
-  };
-
-  // Función para generar un color basado en la categoría
+  // Color por categoría
   const getCategoryColor = (categoriaId: number) => {
     const colors = [
       'from-orange-100 to-orange-200',
@@ -64,7 +55,7 @@ const Home: React.FC = () => {
     return colors[categoriaId % colors.length];
   };
 
-  // Función para generar rating basado en cantidadVendida (simulado)
+  // Rating
   const getProductRating = (cantidadVendida: number) => {
     if (cantidadVendida >= 100) return 4.9;
     if (cantidadVendida >= 50) return 4.7;
@@ -73,19 +64,40 @@ const Home: React.FC = () => {
     return 4.0;
   };
 
+  // Agregar producto al carrito y abrir modal
+  const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
+    if (!producto.stockSuficiente) return;
+    setItemsCarrito((itemsPrev) => {
+      const existe = itemsPrev.find((item) => item.id === producto.idArticulo);
+      if (existe) {
+        return itemsPrev.map((item) =>
+          item.id === producto.idArticulo
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        );
+      }
+      return [
+        ...itemsPrev,
+        {
+          id: producto.idArticulo,
+          nombre: producto.denominacion,
+          cantidad: 1,
+          precio: producto.precioVenta,
+        },
+      ];
+    });
+    setCarritoAbierto(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="relative text-white min-h-[500px]">
-        {/* Imagen de fondo */}
         <img 
           src="/Header.jpg" 
           alt="Header background"
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
-        
-        {/* Overlay opcional - puedes comentar esta línea para quitar el overlay */}
-        
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 z-20">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -99,17 +111,15 @@ const Home: React.FC = () => {
                 Hola {user.nombre || user.email}, ¿qué se te antoja hoy?
               </p>
             )}
-           
+            {/* Puedes dejar esto como acceso directo al catálogo */}
             <button
-              onClick={handleOrderClick}
+              onClick={() => navigate('/catalogo')}
               className="bg-white text-[#CD6C50] px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-lg"
             >
               {isAuthenticated ? 'Ver Menú' : 'Pedir Ahora'}
             </button>
           </div>
         </div>
-        
-        {/* Decorative wave */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 fill-gray-50">
             <path d="M0,60 C300,120 900,0 1200,60 L1200,120 L0,120 Z"></path>
@@ -166,7 +176,6 @@ const Home: React.FC = () => {
                           alt={producto.denominacion}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            // Si la imagen falla, mostrar placeholder
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling?.classList.remove('hidden');
                           }}
@@ -184,8 +193,6 @@ const Home: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      
-                      {/* Badge de disponibilidad */}
                       <div className="absolute top-3 right-3">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           producto.stockSuficiente 
@@ -195,8 +202,6 @@ const Home: React.FC = () => {
                           {producto.stockSuficiente ? 'Disponible' : 'Agotado'}
                         </span>
                       </div>
-
-                      {/* Badge de tiempo */}
                       <div className="absolute bottom-3 left-3">
                         <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-sm flex items-center">
                           <Clock className="w-3 h-3 mr-1" />
@@ -204,7 +209,6 @@ const Home: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xl font-semibold text-gray-800 truncate">
@@ -215,12 +219,9 @@ const Home: React.FC = () => {
                           <span className="text-sm text-gray-600 ml-1">{rating}</span>
                         </div>
                       </div>
-                      
                       <p className="text-gray-600 mb-4 text-sm line-clamp-2">
                         {producto.descripcion || `Delicioso ${producto.denominacion} preparado con ingredientes frescos`}
                       </p>
-                      
-                      {/* Información adicional */}
                       <div className="flex items-center text-xs text-gray-500 mb-4">
                         <span className="bg-gray-100 px-2 py-1 rounded">
                           {producto.categoria.denominacion}
@@ -229,29 +230,29 @@ const Home: React.FC = () => {
                           {producto.cantidadVendida} vendidos
                         </span>
                       </div>
-                      
                       <div className="flex items-center justify-between">
                         <span className="text-2xl font-bold text-[#CD6C50]">
                           ${producto.precioVenta.toFixed(0)}
                         </span>
-                         <button
-                        onClick={() => navigate(`/productos/${productos[0].idArticulo}`)}
-                        className="px-4 py-2 rounded-lg border border-[#CD6C50] text-[#CD6C50] font-semibold hover:bg-[#f5ebe8] transition-colors duration-200 ml-2"
-                      >
-                        Detalle
-                      </button>
-
-                        <button
-                          onClick={handleOrderClick}
-                          disabled={!producto.stockSuficiente}
-                          className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                            producto.stockSuficiente
-                              ? 'bg-[#CD6C50] text-white hover:bg-[#b85a42]'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
-                        >
-                          {producto.stockSuficiente ? 'Pedir' : 'Agotado'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleOrderClick(producto)}
+                            disabled={!producto.stockSuficiente}
+                            className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                              producto.stockSuficiente
+                                ? 'bg-[#CD6C50] text-white hover:bg-[#b85a42]'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {producto.stockSuficiente ? 'Pedir' : 'Agotado'}
+                          </button>
+                          <button
+                            onClick={() => navigate(`/productos/${producto.idArticulo}`)}
+                            className="px-4 py-2 rounded-lg border border-[#CD6C50] text-[#CD6C50] font-semibold hover:bg-[#f5ebe8] transition-colors duration-200"
+                          >
+                            Detalle
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -356,6 +357,28 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Carrito Modal */}
+      <CarritoModal
+        abierto={carritoAbierto}
+        onCerrar={() => setCarritoAbierto(false)}
+        items={itemsCarrito}
+      />
+
+      {/* Botón flotante carrito */}
+      <button
+        onClick={() => setCarritoAbierto(true)}
+        className="fixed bottom-8 right-8 z-50 bg-[#CD6C50] hover:bg-[#b85a42] text-white p-4 rounded-full shadow-2xl flex items-center gap-2 transition"
+        style={{ boxShadow: "0 4px 24px rgba(205,108,80,.25)" }}
+        title="Ver carrito"
+      >
+        <ShoppingCart className="w-7 h-7" />
+        {itemsCarrito.length > 0 && (
+          <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
+            {itemsCarrito.reduce((acc, item) => acc + item.cantidad, 0)}
+          </span>
+        )}
+      </button>
     </div>
   );
 };
