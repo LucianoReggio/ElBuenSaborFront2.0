@@ -30,10 +30,10 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       width: "15%",
       render: (_, record: ArticuloManufacturadoResponseDTO) => (
         <span>
-          {record.categoria.esSubcategoria
-            ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
-            : record.categoria.denominacion}
-        </span>
+            {record.categoria.denominacionCategoriaPadre
+              ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
+              : record.categoria.denominacion}
+      </span>
       ),
     },
     {
