@@ -42,7 +42,7 @@ export const ProductoDetallesModal: React.FC<ProductoDetallesModalProps> = ({
                 Categoría:
               </span>
               <p className="text-gray-900">
-                {producto.categoria.esSubcategoria
+                {producto.categoria.denominacionCategoriaPadre
                   ? `${producto.categoria.denominacionCategoriaPadre} → ${producto.categoria.denominacion}`
                   : producto.categoria.denominacion}
               </p>
