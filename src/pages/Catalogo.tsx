@@ -166,9 +166,7 @@ const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
               </div>
             );
           })}
-            <button onClick={probarService} className="bg-blue-500 text-white p-2 rounded m-4">
-  Probar Service
-</button>
+           
         </div>
       )}
 
