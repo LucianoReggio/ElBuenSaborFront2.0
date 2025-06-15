@@ -1,12 +1,19 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
-import { useAuth } from '../hooks/useAuth';
+import { useHybridAuth } from '../hooks/useHybridAuth';
 import type { LoginRequestDTO } from '../types/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loading, error, isAuthenticated } = useAuth();
+  const { 
+    loginLocal, 
+    loginAuth0, 
+    loading: localLoading, 
+    auth0Loading,
+    error, 
+    isAuthenticated 
+  } = useHybridAuth();
 
   // Si ya está autenticado, redirigir al home
   useEffect(() => {
@@ -16,25 +23,33 @@ const Login: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async (data: LoginRequestDTO) => {
-  try {
-    console.log('🚀 Starting login...');
-    await login(data);
-    console.log('✅ Login completed successfully');
-    
-    // El useEffect se encargará de la redirección
-  } catch (error) {
-    console.error('❌ Login error:', error);
-    // Error is handled by useAuth hook
-  }
-};
+    try {
+      console.log('🚀 Starting local login...');
+      await loginLocal(data);
+      console.log('✅ Local login completed successfully');
+      
+      // El useEffect se encargará de la redirección
+    } catch (error) {
+      console.error('❌ Local login error:', error);
+      // Error is handled by useHybridAuth hook
+    }
+  };
+
+  const handleAuth0Login = async () => {
+    try {
+      console.log('🚀 Starting Auth0 login...');
+      await loginAuth0();
+      console.log('✅ Auth0 login completed successfully');
+      
+      // El useEffect se encargará de la redirección
+    } catch (error) {
+      console.error('❌ Auth0 login error:', error);
+      // Error is handled by useHybridAuth hook
+    }
+  };
 
   const handleSwitchToRegister = () => {
     navigate('/registro');
-  };
-
-  const handleGoogleLogin = () => {
-    // TODO: Implementar autenticación con Google
-    console.log('Google auth not implemented yet');
   };
 
   return (
@@ -71,8 +86,9 @@ const Login: React.FC = () => {
             <LoginForm
               onSubmit={handleLogin}
               onSwitchToRegister={handleSwitchToRegister}
-              onGoogleLogin={handleGoogleLogin}
-              loading={loading}
+              onGoogleLogin={handleAuth0Login} // Usar Auth0 en lugar de Google directo
+              loading={localLoading}
+              auth0Loading={auth0Loading} // Pasar el loading específico de Auth0
               error={error || undefined}
             />
           </div>

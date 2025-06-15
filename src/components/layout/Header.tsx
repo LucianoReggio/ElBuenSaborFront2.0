@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useHybridAuth } from '../../hooks/useHybridAuth';
 
 // Importar todos los navbars
 import NavbarInvitado from './navbar/NavbarInvitado';
@@ -9,18 +9,45 @@ import NavbarCajero from './navbar/NavbarCajero';
 import NavbarDelivery from './navbar/NavbarDelivery';
 import NavbarCocinero from './navbar/NavbarCocinero';
 import NavbarAdmin from './navbar/NavbarAdmin';
+
+// Tipo que esperan los navbars
+interface NavbarUser {
+  nombre: string;
+  apellido: string;
+  email: string;
+  imagen?: {
+    url: string;
+    denominacion: string;
+  };
+}
+
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, logout, refreshAuth } = useAuth();
-// Debug: log cuando cambie el estado de autenticación
-useEffect(() => {
-  console.log('🔄 Header - Auth state changed:', { 
-    isAuthenticated, 
-    userRole: user?.rol,
-    pathname: location.pathname 
-  });
-}, [isAuthenticated, user, location.pathname]);
+  const { isAuthenticated, user, logout, refreshAuth } = useHybridAuth();
+
+  // 🔄 FUNCIÓN ADAPTADORA: Convierte HybridAuthUser a NavbarUser
+  const adaptUserForNavbar = (): NavbarUser | null => {
+    if (!user) return null;
+
+    return {
+      nombre: user.nombre || 'Usuario',
+      apellido: user.apellido || '',
+      email: user.email || 'Sin email',
+      imagen: user.imagen || undefined
+    };
+  };
+
+  // Debug: log cuando cambie el estado de autenticación
+  useEffect(() => {
+    console.log('🔄 Header - Auth state changed:', {
+      isAuthenticated,
+      userRole: user?.rol,
+      authProvider: user?.authProvider,
+      pathname: location.pathname
+    });
+  }, [isAuthenticated, user, location.pathname]);
+
   // Efecto para detectar cambios en la autenticación y forzar re-render
   useEffect(() => {
     // Re-verificar autenticación cuando cambia la ruta
@@ -29,7 +56,12 @@ useEffect(() => {
 
   // Efecto para debug - remover en producción
   useEffect(() => {
-    console.log('Header - Auth status changed:', { isAuthenticated, user: user?.rol });
+    console.log('🔍 Header - Auth details:', { 
+      isAuthenticated, 
+      userRole: user?.rol,
+      authProvider: user?.authProvider,
+      userEmail: user?.email 
+    });
   }, [isAuthenticated, user]);
 
   // Rutas donde NO debe aparecer ninguna navbar (páginas especiales)
@@ -69,6 +101,21 @@ useEffect(() => {
   const renderNavbar = () => {
     // Si no está autenticado, mostrar navbar de invitado
     if (!isAuthenticated || !user) {
+      console.log('📝 Showing guest navbar - not authenticated');
+      return (
+        <NavbarInvitado
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onHome={handleHome}
+          onSearch={handleSearch}
+        />
+      );
+    }
+
+    // Adaptar usuario para los navbars
+    const adaptedUser = adaptUserForNavbar();
+    if (!adaptedUser) {
+      console.log('❌ Could not adapt user for navbar');
       return (
         <NavbarInvitado
           onLogin={handleLogin}
@@ -81,13 +128,14 @@ useEffect(() => {
 
     // Si está autenticado, mostrar navbar según el rol
     const userRole = user.rol?.toUpperCase();
+    console.log('📝 Showing navbar for role:', userRole, 'from provider:', user.authProvider);
 
     switch (userRole) {
       case 'ADMINISTRADOR':
       case 'ADMIN':
         return (
           <NavbarAdmin
-            user={user}
+            user={adaptedUser}
             onLogout={handleLogout}
             onHome={handleHome}
           />
@@ -96,7 +144,7 @@ useEffect(() => {
       case 'CAJERO':
         return (
           <NavbarCajero
-            user={user}
+            user={adaptedUser}
             onLogout={handleLogout}
             onHome={handleHome}
           />
@@ -105,7 +153,7 @@ useEffect(() => {
       case 'DELIVERY':
         return (
           <NavbarDelivery
-            user={user}
+            user={adaptedUser}
             onLogout={handleLogout}
             onHome={handleHome}
           />
@@ -114,7 +162,7 @@ useEffect(() => {
       case 'COCINERO':
         return (
           <NavbarCocinero
-            user={user}
+            user={adaptedUser}
             onLogout={handleLogout}
             onHome={handleHome}
           />
@@ -124,7 +172,7 @@ useEffect(() => {
       default:
         return (
           <NavbarCliente
-            user={user}
+            user={adaptedUser}
             onLogout={handleLogout}
             onHome={handleHome}
             onSearch={handleSearch}

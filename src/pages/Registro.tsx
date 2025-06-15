@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RegistroForm } from '../components/auth/RegistroForm';
-import { useAuth } from '../hooks/useAuth';
+import { useHybridAuth } from '../hooks/useHybridAuth';
 import { useClientes } from '../hooks/useClientes';
 import type { ClienteRegisterDTO } from '../types/clientes/Index';
 
 const Registro: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const { registerCliente, loading, error } = useClientes();
+  const { isAuthenticated, loginAuth0, auth0Loading, error: authError } = useHybridAuth();
+  const { registerCliente, loading: registerLoading, error: registerError } = useClientes();
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Si ya está autenticado, redirigir al home
@@ -32,13 +32,21 @@ const Registro: React.FC = () => {
     }
   };
 
-  const handleSwitchToLogin = () => {
-    navigate('/login');
+  const handleAuth0Register = async () => {
+    try {
+      console.log('🚀 Starting Auth0 registration/login...');
+      await loginAuth0(); // Auth0 maneja tanto registro como login automáticamente
+      console.log('✅ Auth0 registration/login completed successfully');
+      
+      // El useEffect se encargará de la redirección
+    } catch (error) {
+      console.error('❌ Auth0 registration error:', error);
+      // Error is handled by useHybridAuth hook
+    }
   };
 
-  const handleGoogleRegister = () => {
-    // TODO: Implementar autenticación con Google
-    console.log('Google auth not implemented yet');
+  const handleSwitchToLogin = () => {
+    navigate('/login');
   };
 
   return (
@@ -82,9 +90,9 @@ const Registro: React.FC = () => {
             <RegistroForm
               onSubmit={handleRegister}
               onSwitchToLogin={handleSwitchToLogin}
-              onGoogleRegister={handleGoogleRegister}
-              loading={loading}
-              error={error || undefined}
+              onGoogleRegister={handleAuth0Register} // Usar Auth0 en lugar de Google directo
+              loading={registerLoading}
+              error={registerError || authError || undefined}
             />
           </div>
 

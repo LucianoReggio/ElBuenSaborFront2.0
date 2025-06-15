@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { RegistroForm } from './RegistroForm';
 import { LoginForm } from './LoginForm';
-import { useAuth } from '../../hooks/useAuth';
+import { useHybridAuth } from '../../hooks/useHybridAuth';
 import { useClientes } from '../../hooks/useClientes';
 import type { ClienteRegisterDTO } from '../../types/clientes/Index';
 import type { LoginRequestDTO } from '../../types/auth';
@@ -22,7 +22,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccess
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const { login, loading: authLoading, error: authError } = useAuth();
+  
+  // Usar el nuevo hook híbrido en lugar del useAuth original
+  const { 
+    loginLocal, 
+    loginAuth0, 
+    loading: authLoading, 
+    error: authError,
+    auth0Loading 
+  } = useHybridAuth();
+  
   const { registerCliente, loading: registerLoading, error: registerError } = useClientes();
   const [successMessage, setSuccessMessage] = useState<string>('');
 
@@ -36,7 +45,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLogin = async (data: LoginRequestDTO) => {
     try {
-      await login(data);
+      await loginLocal(data); // Usar loginLocal del hook híbrido
       setSuccessMessage('¡Inicio de sesión exitoso!');
       
       // Pequeño delay para mostrar el mensaje de éxito
@@ -45,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onSuccess?.();
       }, 1000);
     } catch (error) {
-      // Error is handled by useAuth hook
+      // Error is handled by useHybridAuth hook
       console.error('Login error:', error);
     }
   };
@@ -66,15 +75,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleGoogleAuth = () => {
-    // TODO: Implementar autenticación con Google
-    console.log('Google auth not implemented yet');
+  const handleAuth0Login = async () => {
+    try {
+      console.log('🚀 Iniciando login con Auth0...');
+      await loginAuth0();
+      setSuccessMessage('¡Inicio de sesión con Auth0 exitoso!');
+      
+      // Pequeño delay para mostrar el mensaje de éxito
+      setTimeout(() => {
+        onClose();
+        onSuccess?.();
+      }, 1000);
+    } catch (error) {
+      console.error('Auth0 login error:', error);
+      // El error ya se maneja en useHybridAuth
+    }
   };
 
   const handleClose = () => {
     setSuccessMessage('');
     onClose();
   };
+
+  // Determinar si está cargando (local o Auth0)
+  const isLoading = authLoading || registerLoading || auth0Loading;
 
   return (
     <Modal 
@@ -103,7 +127,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               setMode('login');
               setSuccessMessage('');
             }}
-            onGoogleRegister={handleGoogleAuth}
+            onGoogleRegister={handleAuth0Login} // Auth0 maneja tanto login como registro
             loading={registerLoading}
             error={registerError || undefined}
           />
@@ -114,8 +138,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               setMode('register');
               setSuccessMessage('');
             }}
-            onGoogleLogin={handleGoogleAuth}
-            loading={authLoading}
+            onGoogleLogin={handleAuth0Login} // Usar Auth0 en lugar de Google directo
+            loading={isLoading}
             error={authError || undefined}
           />
         )}
