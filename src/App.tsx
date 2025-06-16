@@ -18,6 +18,8 @@ import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
 import ProductoDetalle from './pages/ProductoDetalle';
 import Catalogo from "./pages/Catalogo";
+import { CarritoProvider } from './context/CarritoContext';
+import MisPedidos from "./pages/MisPedidos";
 
 
 // Componente para el elemento de navegación activo
@@ -169,102 +171,109 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 // Componente principal de la App
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Rutas públicas */}
-        <Route path="/" element={
+    <CarritoProvider>
+      <Router>
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/" element={
+            <PublicLayout>
+              <Home />
+            </PublicLayout>
+          } />
+          <Route path="/home" element={
+            <PublicLayout>
+              <Home />
+            </PublicLayout>
+          } />
+          <Route path="/catalogo" element={
+            <PublicLayout>
+              <Catalogo />
+            </PublicLayout>
+          } />
+          <Route path="/productos/:id" element={
+            <PublicLayout>
+              <ProductoDetalle />
+            </PublicLayout>
+          } />
+          <Route path="/registro" element={
+            <PublicLayout>
+              <RegistroPage />
+            </PublicLayout>
+          } />
+          <Route path="/login" element={
+            <PublicLayout>
+              <LoginPage />
+            </PublicLayout>
+            
+          } />
+          <Route path="/mis-pedidos" element={
           <PublicLayout>
-            <Home />
+            <MisPedidos />
           </PublicLayout>
-        } />
-        <Route path="/home" element={
-          <PublicLayout>
-            <Home />
-          </PublicLayout>
-        } />
-        <Route path="/catalogo" element={
-          <PublicLayout>
-            <Catalogo />
-          </PublicLayout>
-        } />
-        <Route path="/productos/:id" element={
-          <PublicLayout>
-            <ProductoDetalle />
-          </PublicLayout>
-        } />
-        <Route path="/registro" element={
-          <PublicLayout>
-            <RegistroPage />
-          </PublicLayout>
-        } />
-        <Route path="/login" element={
-          <PublicLayout>
-            <LoginPage />
-          </PublicLayout>
-        } />
+          } />
 
-        {/* Rutas administrativas */}
-        <Route path="/dashboard" element={
-          <AdminLayout>
-            <Dashboard />
-          </AdminLayout>
-        } />
-        <Route path="/categorias" element={
-          <AdminLayout>
-            <Categorias />
-          </AdminLayout>
-        } />
-        <Route path="/insumos" element={
-          <AdminLayout>
-            <Insumos />
-          </AdminLayout>
-        } />
-        <Route path="/productos" element={
-          <AdminLayout>
-            <Productos />
-          </AdminLayout>
-        } />
-        <Route path="/stock" element={
-          <AdminLayout>
-            <StockControl />
-          </AdminLayout>
-        } />
-        
-        {/* Ruta 404 */}
-        <Route path="*" element={
-          <PublicLayout>
-            <div className="bg-white p-8 rounded-lg shadow-sm text-center border border-[#99AAB3] border-opacity-20 m-8">
-              <h2 className="text-2xl font-bold text-[#CD6C50] mb-4">
-                Página no encontrada
-              </h2>
-              <p className="text-[#99AAB3] mb-6">
-                La página que buscas no existe.
-              </p>
-              <Link
-                to="/"
-                className="inline-flex items-center px-6 py-3 bg-[#CD6C50] text-white rounded-md hover:bg-[#E29C44] transition-all duration-200 shadow-sm font-medium"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          {/* Rutas administrativas */}
+          <Route path="/dashboard" element={
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          } />
+          <Route path="/categorias" element={
+            <AdminLayout>
+              <Categorias />
+            </AdminLayout>
+          } />
+          <Route path="/insumos" element={
+            <AdminLayout>
+              <Insumos />
+            </AdminLayout>
+          } />
+          <Route path="/productos" element={
+            <AdminLayout>
+              <Productos />
+            </AdminLayout>
+          } />
+          <Route path="/stock" element={
+            <AdminLayout>
+              <StockControl />
+            </AdminLayout>
+          } />
+          
+          {/* Ruta 404 */}
+          <Route path="*" element={
+            <PublicLayout>
+              <div className="bg-white p-8 rounded-lg shadow-sm text-center border border-[#99AAB3] border-opacity-20 m-8">
+                <h2 className="text-2xl font-bold text-[#CD6C50] mb-4">
+                  Página no encontrada
+                </h2>
+                <p className="text-[#99AAB3] mb-6">
+                  La página que buscas no existe.
+                </p>
+                <Link
+                  to="/"
+                  className="inline-flex items-center px-6 py-3 bg-[#CD6C50] text-white rounded-md hover:bg-[#E29C44] transition-all duration-200 shadow-sm font-medium"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
-                Volver al Home
-              </Link>
-            </div>
-          </PublicLayout>
-        } />
-      </Routes>
-    </Router>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  Volver al Home
+                </Link>
+              </div>
+            </PublicLayout>
+          } />
+        </Routes>
+      </Router>
+    </CarritoProvider>
   );
 }
-
 export default App;
