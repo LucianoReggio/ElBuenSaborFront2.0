@@ -5,19 +5,17 @@ import { useProductos } from '../hooks/useProductos';
 import { Star, Clock, MapPin, Phone, Mail, ShoppingCart } from 'lucide-react';
 import CarritoModal from '../components/cart/CarritoModal';
 import type { ArticuloManufacturadoResponseDTO } from '../types/productos/ArticuloManufacturadoResponseDTO';
-
+import { useCarritoContext } from '../context/CarritoContext';
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { productos, loading } = useProductos();
 
   const [featuredProducts, setFeaturedProducts] = useState<ArticuloManufacturadoResponseDTO[]>([]);
-  
-  // Carrito
   const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [itemsCarrito, setItemsCarrito] = useState<
-    { id: number; nombre: string; cantidad: number; precio: number }[]
-  >([]);
+const carrito = useCarritoContext();
+  // Carrito
+
 
   // Debug imagen header
   useEffect(() => {
@@ -65,29 +63,10 @@ const Home: React.FC = () => {
   };
 
   // Agregar producto al carrito y abrir modal
-  const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
-    if (!producto.stockSuficiente) return;
-    setItemsCarrito((itemsPrev) => {
-      const existe = itemsPrev.find((item) => item.id === producto.idArticulo);
-      if (existe) {
-        return itemsPrev.map((item) =>
-          item.id === producto.idArticulo
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      }
-      return [
-        ...itemsPrev,
-        {
-          id: producto.idArticulo,
-          nombre: producto.denominacion,
-          cantidad: 1,
-          precio: producto.precioVenta,
-        },
-      ];
-    });
-    setCarritoAbierto(true);
-  };
+ const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
+  carrito.agregarItem(producto);
+  setCarritoAbierto(true);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -359,11 +338,11 @@ const Home: React.FC = () => {
       </section>
 
       {/* Carrito Modal */}
-      <CarritoModal
-        abierto={carritoAbierto}
-        onCerrar={() => setCarritoAbierto(false)}
-        items={itemsCarrito}
-      />
+  <CarritoModal
+  abierto={carritoAbierto}
+  onCerrar={() => setCarritoAbierto(false)}
+ 
+/>
 
       {/* Botón flotante carrito */}
       <button
@@ -373,11 +352,10 @@ const Home: React.FC = () => {
         title="Ver carrito"
       >
         <ShoppingCart className="w-7 h-7" />
-        {itemsCarrito.length > 0 && (
-          <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
-            {itemsCarrito.reduce((acc, item) => acc + item.cantidad, 0)}
-          </span>
-        )}
+       {carrito.cantidadTotal > 0 && (
+  <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
+    {carrito.cantidadTotal}
+  </span>)}
       </button>
     </div>
   );

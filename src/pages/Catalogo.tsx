@@ -4,7 +4,9 @@ import { ProductoService } from "../services/ProductoService";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import { Star, Clock, ShoppingCart } from "lucide-react";
 import CarritoModal from "../components/cart/CarritoModal";
+import { PedidoService } from '../services/PedidoServices';
 
+import { useCarritoContext } from "../context/CarritoContext";
 const productoService = new ProductoService();
 
 const Catalogo: React.FC = () => {
@@ -12,11 +14,23 @@ const Catalogo: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const carrito  = useCarritoContext();
+
+  // Dentro del componente:
+const pedidoService = new PedidoService();
+
+const probarService = async () => {
+  try {
+    const pedidos = await pedidoService.getAllPedidos();
+    console.log('✅ Service funcionando, pedidos:', pedidos);
+  } catch (error) {
+    console.log('⚠️ Error esperado (probablemente sin datos):', error);
+  }
+};
+
 
   // Por ahora, items del carrito mockeados (luego será un estado real)
-  const [itemsCarrito, setItemsCarrito] = useState<
-    { id: number; nombre: string; cantidad: number; precio: number }[]
-  >([]);
+
 
   const navigate = useNavigate();
 
@@ -41,32 +55,11 @@ const Catalogo: React.FC = () => {
   };
 
   // Handler cuando se hace click en "Pedir"
-  const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
-    // Por ahora, solo abrir carrito y simular agregar
-    // En la lógica real, podrías sumar la cantidad si ya está
-    setItemsCarrito((itemsPrev) => {
-      const existe = itemsPrev.find((item) => item.id === producto.idArticulo);
-      if (existe) {
-        // Sumar uno
-        return itemsPrev.map((item) =>
-          item.id === producto.idArticulo
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      }
-      // Si no existe, agregar nuevo
-      return [
-        ...itemsPrev,
-        {
-          id: producto.idArticulo,
-          nombre: producto.denominacion,
-          cantidad: 1,
-          precio: producto.precioVenta,
-        },
-      ];
-    });
-    setCarritoAbierto(true);
-  };
+const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
+  carrito.agregarItem(producto);
+  setCarritoAbierto(true);
+};
+
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -169,9 +162,13 @@ const Catalogo: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              
               </div>
             );
           })}
+            <button onClick={probarService} className="bg-blue-500 text-white p-2 rounded m-4">
+  Probar Service
+</button>
         </div>
       )}
 
@@ -179,7 +176,7 @@ const Catalogo: React.FC = () => {
       <CarritoModal
         abierto={carritoAbierto}
         onCerrar={() => setCarritoAbierto(false)}
-        items={itemsCarrito}
+        
       />
 
       <button
@@ -189,10 +186,10 @@ const Catalogo: React.FC = () => {
         title="Ver carrito"
       >
         <ShoppingCart className="w-7 h-7" />
-        {itemsCarrito.length > 0 && (
-          <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
-            {itemsCarrito.reduce((acc, item) => acc + item.cantidad, 0)}
-          </span>
+        {carrito.cantidadTotal > 0 && (
+  <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
+    {carrito.cantidadTotal}
+  </span>
         )}
       </button>
     </div>
