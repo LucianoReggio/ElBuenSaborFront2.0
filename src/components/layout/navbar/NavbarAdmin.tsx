@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, LogOut, Settings, BarChart3, Users, Package, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from "react-router-dom";
 
 interface NavbarAdminProps {
   user?: {
@@ -131,7 +132,7 @@ export default function NavbarAdmin({
             </button>
             <button className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200">
               <Users className="h-4 w-4" />
-              <span className="hidden lg:block text-sm font-medium">Usuarios</span>
+              <Link to="/usuarios" className="hidden lg:block text-sm font-medium">Usuarios</Link>
             </button>
             <button  onClick={() => navigate('/dashboard')} className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200">
               <ChefHat className="h-4 w-4" />
