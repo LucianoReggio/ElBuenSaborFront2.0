@@ -18,6 +18,7 @@ import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
 import ProductoDetalle from './pages/ProductoDetalle';
 import Catalogo from "./pages/Catalogo";
+import Usuarios from "./pages/Usuarios";
 
 
 // Componente para el elemento de navegación activo
@@ -227,6 +228,11 @@ function App() {
         <Route path="/stock" element={
           <AdminLayout>
             <StockControl />
+          </AdminLayout>
+        } />
+        <Route path="/usuarios" element={
+          <AdminLayout>
+            <Usuarios />
           </AdminLayout>
         } />
         
