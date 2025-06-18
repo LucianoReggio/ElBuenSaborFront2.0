@@ -9,23 +9,49 @@ import NavbarCajero from './navbar/NavbarCajero';
 import NavbarDelivery from './navbar/NavbarDelivery';
 import NavbarCocinero from './navbar/NavbarCocinero';
 import NavbarAdmin from './navbar/NavbarAdmin';
+
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, logout, refreshAuth } = useAuth();
-// Debug: log cuando cambie el estado de autenticación
-useEffect(() => {
-  console.log('🔄 Header - Auth state changed:', { 
-    isAuthenticated, 
-    userRole: user?.rol,
-    pathname: location.pathname 
-  });
-}, [isAuthenticated, user, location.pathname]);
+
+  // Debug: log cuando cambie el estado de autenticación
+  useEffect(() => {
+    console.log('🔄 Header - Auth state changed:', {
+      isAuthenticated,
+      userRole: user?.rol,
+      pathname: location.pathname
+    });
+  }, [isAuthenticated, user, location.pathname]);
+
   // Efecto para detectar cambios en la autenticación y forzar re-render
   useEffect(() => {
     // Re-verificar autenticación cuando cambia la ruta
     refreshAuth();
   }, [location.pathname]);
+
+  // Efecto para redirección automática según rol
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRole = user.rol?.toUpperCase();
+      const currentPath = location.pathname;
+
+      // Redirección automática para usuarios DELIVERY
+      if (userRole === 'DELIVERY') {
+        // Solo redirigir si no está ya en una ruta de delivery
+        if (!currentPath.startsWith('/delivery')) {
+          console.log('🚚 Redirigiendo usuario delivery a dashboard');
+          navigate('/delivery');
+        }
+      }
+      
+      // Aquí puedes agregar más redirecciones automáticas para otros roles si es necesario
+      // Por ejemplo:
+      // if (userRole === 'ADMINISTRADOR' && currentPath === '/') {
+      //   navigate('/dashboard');
+      // }
+    }
+  }, [isAuthenticated, user, location.pathname, navigate]);
 
   // Efecto para debug - remover en producción
   useEffect(() => {
@@ -51,7 +77,12 @@ useEffect(() => {
   };
 
   const handleHome = () => {
-    navigate('/');
+    // Para usuarios delivery, el "home" es el dashboard de delivery
+    if (isAuthenticated && user?.rol?.toUpperCase() === 'DELIVERY') {
+      navigate('/delivery');
+    } else {
+      navigate('/');
+    }
   };
 
   const handleSearch = (query: string) => {

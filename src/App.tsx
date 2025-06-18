@@ -20,6 +20,7 @@ import ProductoDetalle from './pages/ProductoDetalle';
 import Catalogo from "./pages/Catalogo";
 import { CarritoProvider } from './context/CarritoContext';
 import MisPedidos from "./pages/MisPedidos";
+import DeliveryDashboard from "./pages/DeliveryDashboard";
 
 
 // Componente para el elemento de navegación activo
@@ -204,12 +205,11 @@ function App() {
             <PublicLayout>
               <LoginPage />
             </PublicLayout>
-            
           } />
           <Route path="/mis-pedidos" element={
-          <PublicLayout>
-            <MisPedidos />
-          </PublicLayout>
+            <PublicLayout>
+              <MisPedidos />
+            </PublicLayout>
           } />
 
           {/* Rutas administrativas */}
@@ -237,6 +237,13 @@ function App() {
             <AdminLayout>
               <StockControl />
             </AdminLayout>
+          } />
+
+          {/* Rutas de Delivery */}
+          <Route path="/delivery" element={
+            <PublicLayout>
+              <DeliveryDashboard />
+            </PublicLayout>
           } />
           
           {/* Ruta 404 */}
@@ -276,4 +283,5 @@ function App() {
     </CarritoProvider>
   );
 }
+
 export default App;

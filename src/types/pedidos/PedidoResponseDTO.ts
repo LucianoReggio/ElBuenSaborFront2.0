@@ -6,7 +6,7 @@ export interface PedidoResponseDTO {
   fecha: string; // ISO string
   horaEstimadaFinalizacion: string; // time string "HH:mm:ss"
   total: number;
-  estado: 'PREPARACION' | 'PENDIENTE' | 'CANCELADO' | 'RECHAZADO' | 'ENTREGADO';
+  estado: 'PREPARACION' | 'PENDIENTE' | 'CANCELADO' | 'LISTO' | 'ENTREGADO';
   tipoEnvio: 'DELIVERY' | 'TAKE_AWAY';
   
   // Información del cliente
@@ -24,4 +24,6 @@ export interface PedidoResponseDTO {
   // Información adicional
   tiempoEstimadoTotal: number; // en minutos
   stockSuficiente: boolean;
+
+  observaciones?: string; // opcional
 }

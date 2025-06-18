@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ClienteService } from '../services/ClienteService';
 import type { ClienteRegisterDTO } from '../types/clientes/ClienteRegisterDTO';
 import type { ClienteResponseDTO } from '../types/clientes/ClienteResponseDTO';

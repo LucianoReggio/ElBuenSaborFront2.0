@@ -33,7 +33,8 @@ export interface UseCarritoReturn {
 export const useCarrito = (): UseCarritoReturn => {
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [datosEntrega, setDatosEntrega] = useState<DatosEntrega>({
-    tipoEnvio: 'TAKE_AWAY'
+    tipoEnvio: 'TAKE_AWAY',
+    observaciones: ''
   });
 
   // ==================== CÁLCULOS AUTOMÁTICOS ====================
@@ -159,7 +160,8 @@ export const useCarrito = (): UseCarritoReturn => {
 
   const limpiarCarrito = useCallback(() => {
     setItems([]);
-    setDatosEntrega({ tipoEnvio: 'TAKE_AWAY' });
+    setDatosEntrega({ tipoEnvio: 'TAKE_AWAY', observaciones: '' });
+
     console.log('🧹 Carrito limpiado');
   }, []);
 
