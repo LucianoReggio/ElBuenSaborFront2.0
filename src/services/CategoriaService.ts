@@ -1,47 +1,104 @@
 import type { CategoriaRequestDTO } from "../types/categorias/CategoriaRequestDTO";
 import type { CategoriaResponseDTO } from "../types/categorias/CategoriaResponseDTO";
-import { ApiClient } from "./ApiClient";
+import { apiClienteService } from "./ApiClienteService";
 
-export class CategoriaService extends ApiClient {
+/**
+ * Servicio para operaciones CRUD de categorías
+ * Usa apiClienteService que maneja automáticamente los tokens de Auth0
+ */
+export class CategoriaService {
   private readonly endpoint = "/categorias";
 
   async getAll(): Promise<CategoriaResponseDTO[]> {
-    return this.get<CategoriaResponseDTO[]>(this.endpoint);
+    try {
+      return await apiClienteService.get<CategoriaResponseDTO[]>(this.endpoint);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async getById(id: number): Promise<CategoriaResponseDTO> {
-    return this.get<CategoriaResponseDTO>(`${this.endpoint}/${id}`);
+    try {
+      return await apiClienteService.get<CategoriaResponseDTO>(
+        `${this.endpoint}/${id}`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async create(data: CategoriaRequestDTO): Promise<CategoriaResponseDTO> {
-    return this.post<CategoriaResponseDTO>(this.endpoint, data);
+    try {
+      return await apiClienteService.post<CategoriaResponseDTO>(
+        this.endpoint,
+        data
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async update(
     id: number,
     data: CategoriaRequestDTO
   ): Promise<CategoriaResponseDTO> {
-    return this.put<CategoriaResponseDTO>(`${this.endpoint}/${id}`, data);
+    try {
+      return await apiClienteService.put<CategoriaResponseDTO>(
+        `${this.endpoint}/${id}`,
+        data
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async delete(id: number): Promise<void> {
-    return this.deleteRequest<void>(`${this.endpoint}/${id}`);
+    try {
+      await apiClienteService.deleteRequest<void>(`${this.endpoint}/${id}`);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   // Métodos específicos para categorías
   async getCategoriasIngredientes(): Promise<CategoriaResponseDTO[]> {
-    return this.get<CategoriaResponseDTO[]>(`${this.endpoint}/ingredientes`);
+    try {
+      return await apiClienteService.get<CategoriaResponseDTO[]>(
+        `${this.endpoint}/ingredientes`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async getCategoriasProductos(): Promise<CategoriaResponseDTO[]> {
-    return this.get<CategoriaResponseDTO[]>(`${this.endpoint}/productos`);
+    try {
+      return await apiClienteService.get<CategoriaResponseDTO[]>(
+        `${this.endpoint}/productos`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async getSubcategorias(
     idCategoriaPadre: number
   ): Promise<CategoriaResponseDTO[]> {
-    return this.get<CategoriaResponseDTO[]>(
-      `${this.endpoint}/${idCategoriaPadre}/subcategorias`
-    );
+    try {
+      return await apiClienteService.get<CategoriaResponseDTO[]>(
+        `${this.endpoint}/${idCategoriaPadre}/subcategorias`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Manejo centralizado de errores
+   */
+  private handleError(error: any): Error {
+    return error instanceof Error
+      ? error
+      : new Error("Error en el servicio de categorías");
   }
 }

@@ -1,28 +1,19 @@
-import { apiClienteService } from './ApiClientService';
-import type{ ClienteRegisterDTO, ClienteResponseDTO } from '../types/clientes/Index';
+import { apiClienteService } from "./ApiClienteService";
+import type { ClienteResponseDTO } from "../types/clientes/Index";
 
+/**
+ * Servicio para operaciones CRUD de clientes
+ * El registro ahora se maneja en AuthService con Auth0
+ */
 export class ClienteService {
-  private static readonly BASE_URL = '/clientes'; // Cambié de '/api/clientes' a '/clientes'
+  private static readonly BASE_URL = "/clientes";
 
   /**
-   * Registra un nuevo cliente
-   */
-  static async register(clienteData: ClienteRegisterDTO): Promise<ClienteResponseDTO> {
-    try {
-      const response = await apiClienteService.post<ClienteResponseDTO>(`${this.BASE_URL}/register`, clienteData);
-      return response;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Obtiene todos los clientes (requiere autenticación de admin)
+   * Obtiene todos los clientes (requiere rol ADMIN)
    */
   static async getAll(): Promise<ClienteResponseDTO[]> {
     try {
-      const response = await apiClienteService.get<ClienteResponseDTO[]>(this.BASE_URL);
-      return response;
+      return await apiClienteService.get<ClienteResponseDTO[]>(this.BASE_URL);
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -33,27 +24,62 @@ export class ClienteService {
    */
   static async getById(id: number): Promise<ClienteResponseDTO> {
     try {
-      const response = await apiClienteService.get<ClienteResponseDTO>(`${this.BASE_URL}/${id}`);
-      return response;
+      return await apiClienteService.get<ClienteResponseDTO>(
+        `${this.BASE_URL}/${id}`
+      );
     } catch (error: any) {
       throw this.handleError(error);
     }
   }
 
   /**
-   * Actualiza un cliente
+   * Obtiene el perfil del cliente autenticado actual
    */
-  static async update(id: number, clienteData: ClienteResponseDTO): Promise<ClienteResponseDTO> {
+  static async getMyProfile(): Promise<ClienteResponseDTO> {
     try {
-      const response = await apiClienteService.put<ClienteResponseDTO>(`${this.BASE_URL}/${id}`, clienteData);
-      return response;
+      return await apiClienteService.get<ClienteResponseDTO>(
+        `${this.BASE_URL}/perfil`
+      );
     } catch (error: any) {
       throw this.handleError(error);
     }
   }
 
   /**
-   * Elimina un cliente
+   * Actualiza un cliente específico (requiere permisos)
+   */
+  static async update(
+    id: number,
+    clienteData: ClienteResponseDTO
+  ): Promise<ClienteResponseDTO> {
+    try {
+      return await apiClienteService.put<ClienteResponseDTO>(
+        `${this.BASE_URL}/${id}`,
+        clienteData
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Actualiza el perfil del cliente autenticado
+   */
+  static async updateMyProfile(
+    clienteData: ClienteResponseDTO
+  ): Promise<ClienteResponseDTO> {
+    try {
+      return await apiClienteService.put<ClienteResponseDTO>(
+        `${this.BASE_URL}/perfil`,
+        clienteData
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Elimina un cliente (requiere rol ADMIN)
    */
   static async delete(id: number): Promise<void> {
     try {
@@ -64,10 +90,22 @@ export class ClienteService {
   }
 
   /**
+   * Elimina el perfil del cliente autenticado
+   */
+  static async deleteMyProfile(): Promise<void> {
+    try {
+      await apiClienteService.deleteRequest<void>(`${this.BASE_URL}/perfil`);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Manejo centralizado de errores
    */
   private static handleError(error: any): Error {
-    // El error ya viene procesado desde ApiClienteService, simplemente lo retornamos
-    return error instanceof Error ? error : new Error('Error en el servicio de clientes');
+    return error instanceof Error
+      ? error
+      : new Error("Error en el servicio de clientes");
   }
 }

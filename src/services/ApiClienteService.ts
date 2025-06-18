@@ -1,45 +1,57 @@
 export class ApiClienteService {
   private baseUrl: string;
+  private auth0: any; // Instancia de Auth0
 
   constructor(baseUrl: string = "http://localhost:8080/api") {
     this.baseUrl = baseUrl;
   }
 
-  private getAuthHeaders(): Record<string, string> {
+  /**
+   * Configura la instancia de Auth0
+   */
+  setAuth0Instance(auth0Instance: any) {
+    this.auth0 = auth0Instance;
+  }
+
+  private async getAuthHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    // Agregar token de autenticación si existe
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    try {
+      // Intentar obtener token de Auth0
+      if (this.auth0 && this.auth0.isAuthenticated) {
+        const token = await this.auth0.getAccessTokenSilently();
+        headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.warn("No se pudo obtener token de Auth0:", error);
+      // Para endpoints públicos, continuar sin token
     }
 
     return headers;
   }
 
   private async request<T>(url: string, options?: RequestInit): Promise<T> {
+    const authHeaders = await this.getAuthHeaders();
+
     const response = await fetch(`${this.baseUrl}${url}`, {
       headers: {
-        ...this.getAuthHeaders(),
+        ...authHeaders,
         ...options?.headers,
       },
       ...options,
     });
 
     if (!response.ok) {
-      // Manejar errores de autenticación
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_info');
-        // Opcionalmente redirigir al login
-        window.location.href = '/login';
+      // Para errores 401/403, Auth0 manejará la redirección automáticamente
+      if (response.status === 401 || response.status === 403) {
+        console.warn("Error de autenticación/autorización");
       }
 
       const errorBody = await response.text();
       let errorMessage = `Error ${response.status}: ${response.statusText}`;
-      
+
       try {
         const errorJson = JSON.parse(errorBody);
         errorMessage = errorJson.message || errorJson.error || errorMessage;

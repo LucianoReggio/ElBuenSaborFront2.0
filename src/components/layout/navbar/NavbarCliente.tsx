@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, User, LogOut, Settings, ShoppingCart } from 'lucide-react';
-import CarritoModal from '../../cart/CarritoModal';
-// Asegúrate de que la ruta sea correcta
+import React, { useState, useEffect, useRef } from "react";
+import { Search, User, LogOut, Settings, ShoppingCart } from "lucide-react";
+import CarritoModal from "../../cart/CarritoModal";
 
 interface CarritoItem {
   id: number;
@@ -15,6 +14,7 @@ interface NavbarClienteProps {
     nombre: string;
     apellido: string;
     email: string;
+    rol?: string; // ← AGREGAR ROL
     imagen?: {
       url: string;
       denominacion: string;
@@ -23,35 +23,57 @@ interface NavbarClienteProps {
   onLogout?: () => void;
   onSearch?: (query: string) => void;
   onHome?: () => void;
-  carritoItems?: CarritoItem[]; // Items del carrito
-  cantidadCarrito?: number; // Cantidad total de items
+  carritoItems?: CarritoItem[];
+  cantidadCarrito?: number;
 }
 
-export default function NavbarCliente({ 
-  user, 
-  onLogout, 
+export default function NavbarCliente({
+  user,
+  onLogout,
   onSearch,
   onHome,
   carritoItems = [],
-  cantidadCarrito = 0
+  cantidadCarrito = 0,
 }: NavbarClienteProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCarritoModalOpen, setIsCarritoModalOpen] = useState(false); // Estado del modal
+  const [isCarritoModalOpen, setIsCarritoModalOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  
+
+  // NUEVA: Función para formatear el rol
+  const formatRole = (role?: string) => {
+    if (!role) return "Cliente";
+
+    switch (role.toUpperCase()) {
+      case "ADMIN":
+      case "ADMINISTRADOR":
+        return "Administrador";
+      case "CAJERO":
+        return "Cajero";
+      case "DELIVERY":
+        return "Delivery";
+      case "COCINERO":
+        return "Cocinero";
+      case "CLIENTE":
+      default:
+        return "Cliente";
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -75,10 +97,9 @@ export default function NavbarCliente({
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            
             {/* Izquierda: Menú y Carrito */}
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={handleCarritoClick}
                 className="p-2 text-[#CD6C50] hover:bg-gray-50 rounded-md transition-colors duration-200 relative"
               >
@@ -98,18 +119,24 @@ export default function NavbarCliente({
                   >
                     <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                       {user.imagen?.url ? (
-                        <img 
-                          src={user.imagen.url} 
-                          alt={`${user.nombre} ${user.apellido}`} 
+                        <img
+                          src={user.imagen.url}
+                          alt={`${user.nombre} ${user.apellido}`}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <User className="w-5 h-5 text-gray-500" />
                       )}
                     </div>
-                    <span className="hidden md:block text-sm font-medium text-gray-700">
-                      {user.nombre} {user.apellido}
-                    </span>
+                    <div className="hidden md:block text-left">
+                      <div className="text-sm font-medium text-gray-700">
+                        {user.nombre} {user.apellido}
+                      </div>
+                      {/* NUEVO: Mostrar rol debajo del nombre */}
+                      <div className="text-xs text-[#CD6C50] font-medium">
+                        {formatRole(user.rol)}
+                      </div>
+                    </div>
                   </button>
 
                   {isUserMenuOpen && (
@@ -119,14 +146,20 @@ export default function NavbarCliente({
                           {user.nombre} {user.apellido}
                         </p>
                         <p className="text-sm text-gray-500">{user.email}</p>
+                        {/* NUEVO: Mostrar rol en el dropdown también */}
+                        <p className="text-xs text-[#CD6C50] font-medium mt-1">
+                          {formatRole(user.rol)}
+                        </p>
                       </div>
                       <div className="py-1">
                         <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                           <User className="mr-3 h-4 w-4" />
                           Mi Perfil
                         </button>
-                        <button 
-                          onClick={() => window.location.href = '/mis-pedidos'}
+                        <button
+                          onClick={() =>
+                            (window.location.href = "/mis-pedidos")
+                          }
                           className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                         >
                           <ShoppingCart className="mr-3 h-4 w-4" />
@@ -156,13 +189,13 @@ export default function NavbarCliente({
 
             {/* Centro: Logo */}
             <div className="flex items-center justify-center">
-              <button 
-                onClick={onHome || (() => window.location.href = '/')}
+              <button
+                onClick={onHome || (() => (window.location.href = "/"))}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
               >
-                <img 
-                  src="/src/assets/logos/Logo-nabvar.png" 
-                  alt="El Buen Sabor - Logo" 
+                <img
+                  src="/src/assets/logos/Logo-nabvar.png"
+                  alt="El Buen Sabor - Logo"
                   className="h-12 w-auto"
                 />
               </button>
@@ -175,7 +208,7 @@ export default function NavbarCliente({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch(e)}
                   placeholder="¿Qué se te antoja?"
                   className="w-80 pl-4 pr-12 py-2 border border-[#CD6C50] rounded-full focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400"
                 />
@@ -205,7 +238,7 @@ export default function NavbarCliente({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                    onKeyPress={(e) => e.key === "Enter" && handleSearch(e)}
                     placeholder="¿Qué se te antoja?"
                     className="w-full pl-4 pr-12 py-3 border border-[#CD6C50] rounded-full focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent text-gray-700 placeholder-gray-400"
                   />
@@ -226,7 +259,6 @@ export default function NavbarCliente({
       <CarritoModal
         abierto={isCarritoModalOpen}
         onCerrar={handleCerrarCarrito}
-        
       />
     </>
   );
