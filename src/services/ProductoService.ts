@@ -18,6 +18,14 @@ export class ProductoService extends ApiClient {
   ): Promise<ArticuloManufacturadoResponseDTO> {
     return this.post<ArticuloManufacturadoResponseDTO>(this.endpoint, data);
   }
+  
+   async desactivar(id: number): Promise<void> {
+    return this.deleteRequest<void>(`${this.endpoint}/${id}/desactivar`);
+  }
+
+  async activar(id: number): Promise<void> {
+    return this.put<void>(`${this.endpoint}/${id}/activar`);
+  }
 
   async update(
     id: number,

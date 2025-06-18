@@ -14,7 +14,7 @@ interface CarritoModalProps {
 }
 
 const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar, items }) => {
-  const total = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  // const total = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
 
   if (!abierto) return null;
 
@@ -53,7 +53,7 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar, items })
         <div className="mt-6 border-t pt-4">
           <div className="flex justify-between text-lg font-semibold mb-4">
             <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+            {/* <span>${total.toFixed(2)}</span> */}
           </div>
           <button
             className={`w-full py-3 rounded-lg font-semibold ${
