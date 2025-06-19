@@ -281,9 +281,6 @@ if (user?.rol === 'DELIVERY') {
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abrir un Pull Request
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
 ## 👥 Equipo de Desarrollo
 
