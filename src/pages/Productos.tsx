@@ -22,7 +22,6 @@ export const Productos: React.FC = () => {
     updateProducto,
     desactivarProducto,
     activarProducto,
-
   } = useProductos();
 
   const { insumos } = useInsumos();
@@ -41,15 +40,19 @@ export const Productos: React.FC = () => {
     message: string;
   } | null>(null);
 
+  // Filtros de búsqueda
   const [searchInput, setSearchInput] = useState("");
   const [categoriaInput, setCategoriaInput] = useState<number | "all">("all");
   const [precioMinInput, setPrecioMinInput] = useState<number | "">("");
   const [precioMaxInput, setPrecioMaxInput] = useState<number | "">("");
+  const [estadoInput, setEstadoInput] = useState<"all" | "activos" | "eliminados">("all");
 
+  // Filtros aplicados
   const [search, setSearch] = useState("");
   const [categoriaSel, setCategoriaSel] = useState<number | "all">("all");
   const [precioMin, setPrecioMin] = useState<number | "">("");
   const [precioMax, setPrecioMax] = useState<number | "">("");
+  const [estadoSel, setEstadoSel] = useState<"all" | "activos" | "eliminados">("all");
 
   useEffect(() => {
     const fetchUnidadesMedida = async () => {
@@ -128,21 +131,12 @@ export const Productos: React.FC = () => {
     }
   };
 
+  // No usás handleDelete para baja lógica, pero lo dejo por si después hacés borrado real
   const handleDelete = async (id: number) => {
     if (!window.confirm("¿Está seguro de que desea eliminar este producto?")) {
       return;
     }
-
-    try {
-      await deleteProducto(id);
-      setAlert({ type: "success", message: "Producto eliminado correctamente" });
-    } catch (error) {
-      setAlert({
-        type: "error",
-        message:
-          error instanceof Error ? error.message : "Error al eliminar el producto",
-      });
-    }
+    // lógica opcional si alguna vez querés un delete "físico"
   };
 
   const applyFilters = () => {
@@ -152,7 +146,14 @@ export const Productos: React.FC = () => {
         categoriaSel === "all" ? true : p.categoria.idCategoria === categoriaSel
       )
       .filter((p) => (precioMin === "" ? true : p.precioVenta >= Number(precioMin)))
-      .filter((p) => (precioMax === "" ? true : p.precioVenta <= Number(precioMax)));
+      .filter((p) => (precioMax === "" ? true : p.precioVenta <= Number(precioMax)))
+      .filter((p) =>
+        estadoSel === "all"
+          ? true
+          : estadoSel === "activos"
+          ? !p.eliminado
+          : p.eliminado
+      );
   };
 
   const productosFiltrados = applyFilters();
@@ -217,8 +218,9 @@ export const Productos: React.FC = () => {
           setCategoriaSel(categoriaInput);
           setPrecioMin(precioMinInput);
           setPrecioMax(precioMaxInput);
+          setEstadoSel(estadoInput); // <--- Aplica el filtro de estado
         }}
-        className="bg-white p-4 rounded-lg shadow grid grid-cols-1 md:grid-cols-5 gap-4 items-end"
+        className="bg-white p-4 rounded-lg shadow grid grid-cols-1 md:grid-cols-6 gap-4 items-end"
       >
         <input
           type="text"
@@ -263,6 +265,17 @@ export const Productos: React.FC = () => {
           className="w-full border px-3 py-2 rounded-lg"
         />
 
+        {/* --- FILTRO DE ESTADO --- */}
+        <select
+          value={estadoInput}
+          onChange={e => setEstadoInput(e.target.value as "all" | "activos" | "eliminados")}
+          className="w-full border px-3 py-2 rounded-lg"
+        >
+          <option value="all">Activos/Eliminados</option>
+          <option value="activos">Solo Activos</option>
+          <option value="eliminados">Solo Eliminados</option>
+        </select>
+
         <button
           type="submit"
           className="text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 cursor-pointer"
@@ -303,8 +316,8 @@ export const Productos: React.FC = () => {
         productos={productosFiltrados}
         loading={loading}
         onEdit={handleEdit}
-        desactivarProducto={desactivarProducto}  // <--- Agregá esto
-        activarProducto={activarProducto}        // <--- Agregá esto
+        desactivarProducto={desactivarProducto}
+        activarProducto={activarProducto}
         onViewDetails={handleViewDetails}
       />
 
