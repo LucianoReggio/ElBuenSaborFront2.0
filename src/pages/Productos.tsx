@@ -20,7 +20,9 @@ export const Productos: React.FC = () => {
     error,
     createProducto,
     updateProducto,
-    deleteProducto,
+    desactivarProducto,
+    activarProducto,
+
   } = useProductos();
 
   const { insumos } = useInsumos();
@@ -301,7 +303,8 @@ export const Productos: React.FC = () => {
         productos={productosFiltrados}
         loading={loading}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        desactivarProducto={desactivarProducto}  // <--- Agregá esto
+        activarProducto={activarProducto}        // <--- Agregá esto
         onViewDetails={handleViewDetails}
       />
 
