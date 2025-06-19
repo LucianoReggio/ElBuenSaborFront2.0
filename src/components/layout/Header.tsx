@@ -89,7 +89,12 @@ const Header: React.FC = () => {
   };
 
   const handleHome = () => {
-    navigate("/");
+    // Para usuarios delivery, el "home" es el dashboard de delivery
+    if (isAuthenticated && user?.rol?.toUpperCase() === "DELIVERY") {
+      navigate("/delivery");
+    } else {
+      navigate("/");
+    }
   };
 
   const handleSearch = (query: string) => {

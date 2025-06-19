@@ -22,6 +22,7 @@ import ProductoDetalle from "./pages/ProductoDetalle";
 import Catalogo from "./pages/Catalogo";
 import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
+import DeliveryDashboard from "./pages/DeliveryDashboard";
 
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
@@ -329,6 +330,16 @@ function App() {
               <AdminLayout>
                 <StockControl />
               </AdminLayout>
+            }
+          />
+
+          {/* Rutas de Delivery */}
+          <Route
+            path="/delivery"
+            element={
+              <PublicLayout>
+                <DeliveryDashboard />
+              </PublicLayout>
             }
           />
 

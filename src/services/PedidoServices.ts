@@ -204,6 +204,19 @@ export class PedidoService {
     }
   }
 
+  async getPedidosListos(): Promise<PedidoResponseDTO[]> {
+    try {
+      const response = await apiClienteService.get<PedidoResponseDTO[]>(
+        "/pedidos/listos"
+      );
+      console.log("🍽️ Pedidos listos:", response.length);
+      return response;
+    } catch (error) {
+      console.error("❌ Error al obtener pedidos listos:", error);
+      throw error;
+    }
+  }
+
   async getPedidosListosParaEntrega(): Promise<PedidoResponseDTO[]> {
     try {
       const response = await apiClienteService.get<PedidoResponseDTO[]>(
@@ -214,6 +227,19 @@ export class PedidoService {
     } catch (error: any) {
       console.error("❌ Error al obtener pedidos listos:", error);
       throw this.handleError(error);
+    }
+  }
+
+  async getPedidosListosParaRetiro(): Promise<PedidoResponseDTO[]> {
+    try {
+      const response = await apiClienteService.get<PedidoResponseDTO[]>(
+        "/pedidos/listos-para-retiro"
+      );
+      console.log("📦 Pedidos listos para retiro:", response.length);
+      return response;
+    } catch (error) {
+      console.error("❌ Error al obtener pedidos listos para retiro:", error);
+      throw error;
     }
   }
 
@@ -248,9 +274,9 @@ export class PedidoService {
     const estados = {
       PENDIENTE: { texto: "Pendiente", color: "yellow", icono: "⏳" },
       PREPARACION: { texto: "En Preparación", color: "blue", icono: "👨‍🍳" },
+      LISTO: { texto: "Listo", color: "green", icono: "🍽️" },
       ENTREGADO: { texto: "Entregado", color: "green", icono: "✅" },
       CANCELADO: { texto: "Cancelado", color: "red", icono: "❌" },
-      RECHAZADO: { texto: "Rechazado", color: "red", icono: "🚫" },
     };
 
     return (

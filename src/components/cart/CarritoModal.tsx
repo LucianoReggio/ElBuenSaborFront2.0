@@ -1,8 +1,9 @@
 // src/components/cart/CarritoModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingCart, Clock, Truck, Store } from 'lucide-react';
 import { useCarritoContext } from '../../context/CarritoContext';
 import CheckoutModal from './CheckoutModal';
+
 interface CarritoModalProps {
   abierto: boolean;
   onCerrar: () => void;
@@ -12,30 +13,50 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
   const carrito = useCarritoContext();
   const [observaciones, setObservaciones] = useState('');
   const [checkoutAbierto, setCheckoutAbierto] = useState(false);
+
+  // Sincronizar observaciones con el contexto
+  useEffect(() => {
+    setObservaciones(carrito.datosEntrega.observaciones || '');
+  }, [carrito.datosEntrega.observaciones]);
+
   if (!abierto) return null;
 
   const handleFinalizarCompra = () => {
-  if (carrito.estaVacio) {
-    alert('El carrito está vacío');
-    return;
-  }
-  
-  // Abrir modal de checkout
-  setCheckoutAbierto(true);
-};
+    if (carrito.estaVacio) {
+      alert('El carrito está vacío');
+      return;
+    }
+    
+    // Asegurar que las observaciones estén guardadas antes de abrir checkout
+    carrito.setDatosEntrega({
+      ...carrito.datosEntrega,
+      observaciones
+    });
+    
+    // Abrir modal de checkout
+    setCheckoutAbierto(true);
+  };
 
-// Función para manejar éxito del pedido:
-const handlePedidoExitoso = () => {
-  alert('¡Pedido creado exitosamente! Puedes verlo en "Mis Pedidos"');
-  onCerrar(); // Cerrar el carrito también
-};
-
+  // Función para manejar éxito del pedido:
+  const handlePedidoExitoso = () => {
+    alert('¡Pedido creado exitosamente! Puedes verlo en "Mis Pedidos"');
+    onCerrar(); // Cerrar el carrito también
+  };
 
   const handleTipoEnvioChange = (tipoEnvio: 'DELIVERY' | 'TAKE_AWAY') => {
     carrito.setDatosEntrega({
       ...carrito.datosEntrega,
       tipoEnvio,
-      observaciones
+      observaciones // ← Incluir observaciones actuales
+    });
+  };
+
+  // Manejar cambio de observaciones y actualizar contexto
+  const handleObservacionesChange = (value: string) => {
+    setObservaciones(value);
+    carrito.setDatosEntrega({
+      ...carrito.datosEntrega,
+      observaciones: value
     });
   };
 
@@ -193,11 +214,17 @@ const handlePedidoExitoso = () => {
               </label>
               <textarea
                 value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
+                onChange={(e) => handleObservacionesChange(e.target.value)}
                 placeholder="Ej: Sin cebolla, extra queso..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent resize-none"
                 rows={2}
               />
+              {/* Debug - Remover en producción */}
+              {observaciones && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ✓ Observaciones guardadas: "{observaciones}"
+                </p>
+              )}
             </div>
 
             {/* Resumen de totales */}

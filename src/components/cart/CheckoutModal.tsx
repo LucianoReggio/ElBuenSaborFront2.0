@@ -8,7 +8,6 @@ import { ClienteService } from '../../services/ClienteService';
 import type { PedidoRequestDTO } from '../../types/pedidos/PedidoRequestDTO';
 import type { ClienteResponseDTO } from '../../types/clientes/ClienteResponseDTO';
 
-
 const pedidoService = new PedidoService();
 
 interface CheckoutModalProps {
@@ -24,43 +23,63 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
   const [loading, setLoading] = useState(false);
   const [loadingDomicilios, setLoadingDomicilios] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [idSucursal] = useState(1); // Por ahora usamos sucursal fija
-  const [observaciones, setObservaciones] = useState('');
+  const [idSucursal] = useState(1);
   const [domicilios, setDomicilios] = useState<ClienteResponseDTO['domicilios']>([]);
   const [domicilioSeleccionado, setDomicilioSeleccionado] = useState<number | null>(null);
+  
+  // ✅ USAR observaciones del contexto del carrito
+  const observaciones = carrito.datosEntrega.observaciones || '';
 
-  // Cargar domicilios cuando se abre el modal
-  useEffect(() => {
-    if (abierto && user?.userId) {
-      cargarDomicilios();
-    }
-  }, [abierto, user?.userId]);
+  // ✅ Función para actualizar observaciones en el contexto
+  const handleObservacionesChange = (value: string) => {
+    carrito.setDatosEntrega({
+      ...carrito.datosEntrega,
+      observaciones: value
+    });
+  };
 
   const cargarDomicilios = async () => {
     try {
       setLoadingDomicilios(true);
       console.log('🏠 Cargando domicilios para usuario:', user?.userId);
       
-      // Obtener información completa del cliente usando método estático
       const cliente = await ClienteService.getById(user!.userId);
       console.log('👤 Cliente completo:', cliente);
-    console.log('🏠 Domicilios del cliente:', cliente.domicilios);
+      console.log('🏠 Domicilios del cliente:', cliente.domicilios);
+      
       if (cliente.domicilios && cliente.domicilios.length > 0) {
         setDomicilios(cliente.domicilios);
-        // Seleccionar el primer domicilio por defecto
-        setDomicilioSeleccionado(cliente.domicilios[0].idDomicilio || 1);
         console.log('🏠 Domicilios cargados:', cliente.domicilios.length);
+        console.log('🏠 Domicilios details:', cliente.domicilios.map((d, index) => ({
+          index: index,
+          id: d.idDomicilio || 'SIN_ID',
+          direccion: `${d.calle} ${d.numero}`,
+          localidad: d.localidad,
+          objetoCompleto: d
+        })));
       } else {
         console.log('🏠 Usuario sin domicilios registrados');
         setDomicilios([]);
       }
     } catch (err) {
       console.error('❌ Error al cargar domicilios:', err);
-      // No mostramos error aquí, solo log
     } finally {
       setLoadingDomicilios(false);
     }
   };
+
+  useEffect(() => {
+    if (abierto && user?.userId) {
+      cargarDomicilios();
+    }
+  }, [abierto, user?.userId]);
+
+  // ✅ ELIMINAR este useEffect que reseteaba las observaciones
+  // useEffect(() => {
+  //   if (!abierto) {
+  //     setObservaciones('');
+  //   }
+  // }, [abierto]);
 
   if (!abierto) return null;
 
@@ -69,7 +88,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
       setLoading(true);
       setError(null);
 
-      // Validaciones
+      // Validaciones básicas
       if (!isAuthenticated || !user?.userId) {
         setError('Debes iniciar sesión para realizar un pedido');
         return;
@@ -97,23 +116,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
         idCliente: user.userId,
         idSucursal: idSucursal,
         tipoEnvio: carrito.datosEntrega.tipoEnvio,
-        // Incluir domicilio si es delivery y está seleccionado
-        ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado && { 
+        // SOLO incluir domicilio si es delivery Y está seleccionado
+        ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? { 
           idDomicilio: domicilioSeleccionado 
-        }),
+        } : {}),
         detalles: carrito.items.map(item => ({
           idArticulo: item.id,
           cantidad: item.cantidad
         })),
-        observaciones: observaciones
+        // Incluir observaciones si hay alguna
+        ...(observaciones.trim() ? { observaciones: observaciones.trim() } : {})
       };
 
-      console.log('🛒 Creando pedido:', pedidoRequest);
+      // 🚨 LOGS IMPORTANTES PARA DEBUG
+      console.log('🛒 PEDIDO REQUEST COMPLETO:', JSON.stringify(pedidoRequest, null, 2));
+      console.log('📝 Observaciones enviadas:', `"${observaciones}"`);
+      console.log('🏠 ID Domicilio enviado:', domicilioSeleccionado);
+      console.log('🏠 Domicilio seleccionado object:', domicilios.find((d, i) => (d.idDomicilio || i + 1) === domicilioSeleccionado));
+      console.log('🚚 Tipo de envío:', carrito.datosEntrega.tipoEnvio);
+      console.log('👤 ID Cliente:', user.userId);
 
       // Crear el pedido
       const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
       
       console.log('✅ Pedido creado exitosamente:', pedidoCreado);
+      console.log('📝 Observaciones en respuesta:', pedidoCreado.observaciones);
 
       // Limpiar carrito
       carrito.limpiarCarrito();
@@ -162,6 +189,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
             </div>
           )}
 
+          {/* DEBUG INFO - Remover en producción */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
+            <strong>🐛 DEBUG:</strong>
+            <br />Observaciones: "{observaciones}"
+            <br />Domicilio: {domicilioSeleccionado || 'Sin seleccionar'}
+            <br />Tipo: {carrito.datosEntrega.tipoEnvio}
+          </div>
+
           {/* Información del cliente */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-3">
@@ -209,15 +244,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
                     <div className="relative">
                       <select
                         value={domicilioSeleccionado || ''}
-                        onChange={(e) => setDomicilioSeleccionado(Number(e.target.value))}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const nuevoId = value ? Number(value) : null;
+                          console.log('🏠 Cambiando domicilio de', domicilioSeleccionado, 'a:', nuevoId);
+                          setDomicilioSeleccionado(nuevoId);
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent appearance-none bg-white"
                       >
                         <option value="">Selecciona una dirección</option>
-                        {domicilios.map((domicilio, index) => (
-                          <option key={domicilio.idDomicilio || index} value={domicilio.idDomicilio || index + 1}>
-                            {domicilio.calle} {domicilio.numero}, {domicilio.localidad} - CP {domicilio.cp}
-                          </option>
-                        ))}
+                        {domicilios.map((domicilio, index) => {
+                          // Usar idDomicilio si existe, sino usar el índice + 1
+                          const valorOption = domicilio.idDomicilio || (index + 1);
+                          return (
+                            <option key={index} value={valorOption}>
+                              {domicilio.calle} {domicilio.numero}, {domicilio.localidad} - CP {domicilio.cp}
+                            </option>
+                          );
+                        })}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
@@ -226,7 +270,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
                     {domicilioSeleccionado && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
                         {(() => {
-                          const domicilio = domicilios.find(d => (d.idDomicilio || domicilios.indexOf(d) + 1) === domicilioSeleccionado);
+                          const domicilio = domicilios.find((d, index) => {
+                            const idABuscar = d.idDomicilio || (index + 1);
+                            return idABuscar === domicilioSeleccionado;
+                          });
                           return domicilio ? (
                             <p className="text-green-700 text-sm">
                               📍 <strong>Entregar en:</strong> {domicilio.calle} {domicilio.numero}, {domicilio.localidad} - CP {domicilio.cp}
@@ -278,11 +325,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
             </label>
             <textarea
               value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              placeholder="Ej: Sin cebolla, extra queso..."
+              onChange={(e) => handleObservacionesChange(e.target.value)}
+              placeholder="Ej: Sin cebolla, extra queso, tocar timbre del 2do piso..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent resize-none"
               rows={3}
             />
+            {observaciones.trim() && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ "{observaciones.trim()}"
+              </p>
+            )}
           </div>
 
           {/* Tiempo estimado */}
