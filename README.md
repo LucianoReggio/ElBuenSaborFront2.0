@@ -281,10 +281,17 @@ if (user?.rol === 'DELIVERY') {
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abrir un Pull Request
 
+👥 Equipo de Desarrollo
+Este proyecto está siendo desarrollado por:
 
-## 👥 Equipo de Desarrollo
+Franco Garay - @FrancoGarayBenitez
+Luciano Reggio - @LucianoReggio
+Octavio Ragusa - @Octavio1993
+Matias Picón - @Pykon26
+Pedro Giorlando - @PedroGiorlando
 
-Desarrollado como proyecto académico para la gestión completa de un restaurant con sistema de delivery.
+📞 Contacto
+Para consultas sobre el proyecto, puedes contactar a cualquier miembro del equipo de desarrollo a través de sus perfiles de GitHub.
 
 ---
 
