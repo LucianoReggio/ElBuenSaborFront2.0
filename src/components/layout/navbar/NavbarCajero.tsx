@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { User, LogOut } from "lucide-react";
+import { RefreshPermissionsButton } from "../../common/RefreshPermissionsButton";
 
 interface NavbarCajeroProps {
   user?: {
@@ -15,25 +16,28 @@ interface NavbarCajeroProps {
   onHome?: () => void;
 }
 
-export default function NavbarCajero({ 
-  user, 
-  onLogout, 
-  onHome
+export default function NavbarCajero({
+  user,
+  onLogout,
+  onHome,
 }: NavbarCajeroProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  
+
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -41,11 +45,8 @@ export default function NavbarCajero({
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          
           {/* Izquierda: Menú y Usuario */}
           <div className="flex items-center space-x-4">
-            
-
             {user && (
               <div className="relative" ref={userMenuRef}>
                 <button
@@ -54,9 +55,9 @@ export default function NavbarCajero({
                 >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                     {user.imagen?.url ? (
-                      <img 
-                        src={user.imagen.url} 
-                        alt={`${user.nombre} ${user.apellido}`} 
+                      <img
+                        src={user.imagen.url}
+                        alt={`${user.nombre} ${user.apellido}`}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -75,13 +76,16 @@ export default function NavbarCajero({
                         {user.nombre} {user.apellido}
                       </p>
                       <p className="text-sm text-gray-500">{user.email}</p>
-                      <p className="text-xs text-blue-600 font-semibold">Cajero</p>
+                      <p className="text-xs text-blue-600 font-semibold">
+                        Cajero
+                      </p>
                     </div>
                     <div className="py-1">
                       <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                         <User className="mr-3 h-4 w-4" />
                         Mi Perfil
                       </button>
+                      <RefreshPermissionsButton onLogout={onLogout} />
                       <div className="border-t border-gray-200 my-1"></div>
                       <button
                         onClick={() => {
@@ -102,13 +106,13 @@ export default function NavbarCajero({
 
           {/* Centro: Logo */}
           <div className="flex items-center justify-center">
-            <button 
-              onClick={onHome || (() => window.location.href = '/')}
+            <button
+              onClick={onHome || (() => (window.location.href = "/"))}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
             >
-              <img 
-                src="/src/assets/logos/Logo-nabvar.png" 
-                alt="El Buen Sabor - Logo" 
+              <img
+                src="/src/assets/logos/Logo-nabvar.png"
+                alt="El Buen Sabor - Logo"
                 className="h-12 w-auto"
               />
             </button>
@@ -121,8 +125,6 @@ export default function NavbarCajero({
             </span>
           </div>
         </div>
-
-       
       </div>
     </nav>
   );

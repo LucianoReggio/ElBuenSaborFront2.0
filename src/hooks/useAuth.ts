@@ -76,20 +76,46 @@ export const useAuth = () => {
             console.log("🔍 Data quality comparison:", {
               newDataIsValid,
               currentDataIsValid,
-              newUser: { nombre: newUser.nombre, apellido: newUser.apellido },
+              newUser: {
+                nombre: newUser.nombre,
+                apellido: newUser.apellido,
+                rol: newUser.rol,
+              },
               currentUser: currentUser
-                ? { nombre: currentUser.nombre, apellido: currentUser.apellido }
+                ? {
+                    nombre: currentUser.nombre,
+                    apellido: currentUser.apellido,
+                    rol: currentUser.rol,
+                  }
                 : null,
             });
 
             // Actualizar si los nuevos datos son válidos O si no hay datos actuales válidos
-            if (newDataIsValid || !currentDataIsValid) {
+            // O si el rol ha cambiado
+            const roleChanged = currentUser?.rol !== newUser.rol;
+
+            if (newDataIsValid || !currentDataIsValid || roleChanged) {
               console.log("🔄 Updating backendUser with new data");
+              if (roleChanged) {
+                console.log(
+                  `🔄 Role updated: ${currentUser?.rol} → ${newUser.rol}`
+                );
+              }
               setBackendUser(newUser);
 
               // Disparar evento de actualización
               setTimeout(() => {
                 window.dispatchEvent(new Event("userProfileUpdated"));
+                if (roleChanged) {
+                  window.dispatchEvent(
+                    new CustomEvent("roleUpdated", {
+                      detail: {
+                        oldRole: currentUser?.rol,
+                        newRole: newUser.rol,
+                      },
+                    })
+                  );
+                }
               }, 50);
             } else {
               console.log("✅ Keeping current data (better quality)");
@@ -122,7 +148,7 @@ export const useAuth = () => {
     // Evitar llamadas múltiples con un pequeño delay
     const timeoutId = setTimeout(syncWithBackend, 100);
     return () => clearTimeout(timeoutId);
-  }, [auth0IsAuthenticated, auth0User, backendSynced, syncError]); // REMOVED backendUser from dependencies
+  }, [auth0IsAuthenticated, auth0User, backendSynced, syncError]);
 
   // NUEVO: Efecto para permitir re-sync cuando el usuario navega después del registro
   useEffect(() => {
@@ -141,7 +167,57 @@ export const useAuth = () => {
         setBackendSynced(false); // Esto permitirá que el useEffect anterior se ejecute
       }
     }
-  }, [location.pathname]); // Ejecutar cuando cambie la ruta
+  }, [location.pathname]);
+
+  // Auto-refresh roles cada 30 minutos para detectar cambios
+  useEffect(() => {
+    if (!auth0IsAuthenticated || !backendSynced) return;
+
+    const interval = setInterval(async () => {
+      try {
+        console.log("🔄 Auto-checking for role updates...");
+
+        // Forzar nuevo token sin cache
+        const freshToken = await getAccessTokenSilently({
+          cacheMode: "off",
+        });
+
+        // Decodificar roles del token fresco
+        const payload = JSON.parse(atob(freshToken.split(".")[1]));
+        const freshRoles = payload["https://APIElBuenSabor/roles"] || [];
+
+        // Comparar con rol actual
+        const currentRole = backendUser?.usuario?.rol || backendUser?.rol;
+        const freshRole = freshRoles[0]?.toUpperCase();
+
+        if (freshRole && freshRole !== currentRole) {
+          console.log(
+            `🔄 Auto-detected role change: ${currentRole} → ${freshRole}`
+          );
+
+          // Forzar re-sync completo
+          setBackendSynced(false);
+          setSyncError(null);
+
+          // Notificar al usuario
+          window.dispatchEvent(
+            new CustomEvent("roleUpdated", {
+              detail: { oldRole: currentRole, newRole: freshRole },
+            })
+          );
+        }
+      } catch (error) {
+        console.warn("⚠️ Auto role check failed:", error);
+      }
+    }, 30 * 60 * 1000); // 30 minutos
+
+    return () => clearInterval(interval);
+  }, [
+    auth0IsAuthenticated,
+    backendSynced,
+    getAccessTokenSilently,
+    backendUser,
+  ]);
 
   /**
    * Login usando Auth0
@@ -329,6 +405,208 @@ export const useAuth = () => {
     }
   };
 
+  /**
+   * Forzar actualización de roles desde Auth0
+   * VERSIÓN CON TOKEN REFRESH AGRESIVO
+   */
+  const refreshRoles = async () => {
+    try {
+      console.log("🔄 Refreshing roles from Auth0...");
+
+      if (!auth0IsAuthenticated || !auth0User) {
+        throw new Error("Usuario no autenticado");
+      }
+
+      // PASO 1: Verificar estado actual primero
+      console.log("🔍 Checking current role state...");
+      try {
+        const currentState = await AuthService.getCurrentRoles();
+        console.log("🔍 Current state:", currentState);
+
+        if (currentState.rolesMatch) {
+          console.log(
+            "✅ Roles already match, checking if token needs refresh anyway..."
+          );
+        }
+      } catch (error) {
+        console.warn("⚠️ Could not check current state:", error);
+      }
+
+      // PASO 2: Forzar Auth0 a darnos un token COMPLETAMENTE nuevo
+      console.log("🔄 Forcing Auth0 to provide fresh token...");
+
+      let freshToken;
+      try {
+        // CRÍTICO: Usar todas las estrategias para forzar token fresco
+        freshToken = await getAccessTokenSilently({
+          cacheMode: "off", // No usar cache
+          authorizationParams: {
+            scope: "openid profile email",
+            audience: "https://APIElBuenSabor", // Forzar audience específica
+            prompt: "none", // Refresh silencioso pero forzado
+          },
+          timeoutInSeconds: 30,
+        });
+
+        console.log("✅ Fresh token obtained");
+      } catch (tokenError: any) {
+        console.warn("⚠️ First token attempt failed:", tokenError);
+
+        // ESTRATEGIA ALTERNATIVA: Si falla, intentar con diferentes parámetros
+        try {
+          console.log("🔄 Trying alternative token refresh...");
+          freshToken = await getAccessTokenSilently({
+            cacheMode: "off",
+            authorizationParams: {
+              scope: "openid profile email",
+            },
+            timeoutInSeconds: 30,
+          });
+          console.log("✅ Alternative token refresh successful");
+        } catch (secondError: any) {
+          console.error("❌ All token refresh attempts failed:", secondError);
+
+          // Si Auth0 no puede dar token fresco, necesitamos logout/login
+          if (
+            secondError.message?.includes("Login required") ||
+            secondError.error === "login_required"
+          ) {
+            return {
+              success: false,
+              requiresRelogin: true,
+              message:
+                "Auth0 requiere re-autenticación para aplicar cambios de rol.",
+            };
+          }
+
+          throw secondError;
+        }
+      }
+
+      // PASO 3: Verificar si el token fresco tiene roles diferentes
+      try {
+        console.log("🔍 Checking roles in fresh token...");
+
+        // Decodificar el token fresco para ver los roles
+        const payload = JSON.parse(atob(freshToken.split(".")[1]));
+        const freshRoles = payload["https://APIElBuenSabor/roles"] || [];
+        const freshRole = freshRoles[0]?.toUpperCase();
+
+        console.log("🔍 Fresh token roles:", freshRoles);
+        console.log("🔍 Fresh token primary role:", freshRole);
+
+        // Comparar con rol actual conocido
+        const currentRole = backendUser?.rol || backendUser?.usuario?.rol;
+        console.log("🔍 Current backend role:", currentRole);
+
+        if (freshRole && freshRole !== currentRole?.toUpperCase()) {
+          console.log(
+            `🎯 Role change detected in token: ${currentRole} → ${freshRole}`
+          );
+        } else {
+          console.log("ℹ️ No role change detected in fresh token");
+        }
+      } catch (decodeError) {
+        console.warn("⚠️ Could not decode fresh token:", decodeError);
+      }
+
+      // PASO 4: Llamar al backend con el token fresco
+      console.log("🔄 Calling backend with fresh token...");
+      try {
+        // Aquí necesitamos pasar el token fresco explícitamente al backend
+        const refreshResult = await AuthService.refreshRolesWithToken(
+          freshToken
+        );
+
+        if (refreshResult.success) {
+          console.log("✅ Backend refresh successful:", refreshResult);
+
+          if (
+            refreshResult.oldRole &&
+            refreshResult.newRole &&
+            refreshResult.oldRole !== refreshResult.newRole
+          ) {
+            // Forzar actualización del estado local
+            setBackendSynced(false);
+            setSyncError(null);
+
+            return {
+              success: true,
+              roleChanged: true,
+              oldRole: refreshResult.oldRole,
+              newRole: refreshResult.newRole,
+              message: "Rol actualizado exitosamente",
+            };
+          } else {
+            return {
+              success: true,
+              roleChanged: false,
+              message: refreshResult.message || "No hay cambios de rol",
+            };
+          }
+        } else {
+          throw new Error(refreshResult.message || "Backend refresh failed");
+        }
+      } catch (backendError: any) {
+        console.error("❌ Backend call failed:", backendError);
+
+        // Si el backend falla, al menos forzamos re-sync local
+        console.log("🔄 Forcing local re-sync due to backend error...");
+        setBackendSynced(false);
+        setSyncError(null);
+
+        return {
+          success: true,
+          roleChanged: true, // Asumimos cambio para forzar recarga
+          message: "Forzando actualización por token fresco obtenido",
+        };
+      }
+    } catch (error: any) {
+      console.error("❌ Complete refresh process failed:", error);
+
+      return {
+        success: false,
+        requiresRelogin: false,
+        message: error.message || "Error en proceso de actualización",
+      };
+    }
+  };
+
+  /**
+   * Debug: Verificar estado de roles actual
+   */
+  const debugRoles = async () => {
+    try {
+      const rolesInfo = await AuthService.getCurrentRoles();
+      console.log("🔍 Current roles debug info:", rolesInfo);
+      return rolesInfo;
+    } catch (error) {
+      console.error("❌ Error debugging roles:", error);
+      throw error;
+    }
+  };
+
+  /**
+   * Verificar si han pasado más de X horas desde el último token
+   * Para sugerir refresh automático
+   */
+  const shouldRefreshRoles = () => {
+    if (!backendUser || !backendUser.token) return false;
+
+    try {
+      // Decodificar JWT para ver cuándo fue emitido
+      const payload = JSON.parse(atob(backendUser.token.split(".")[1]));
+      const issuedAt = payload.iat * 1000; // Convertir a ms
+      const now = Date.now();
+      const hoursOld = (now - issuedAt) / (1000 * 60 * 60);
+
+      // Sugerir refresh si el token tiene más de 2 horas
+      return hoursOld > 2;
+    } catch (error) {
+      return false;
+    }
+  };
+
   // Estado combinado
   const isLoading =
     auth0IsLoading || (auth0IsAuthenticated && !backendSynced && !syncError);
@@ -357,6 +635,11 @@ export const useAuth = () => {
     registerCliente,
     getCurrentProfile,
     needsAdditionalData,
+
+    // Métodos de actualización de roles - AGREGADOS
+    refreshRoles,
+    shouldRefreshRoles,
+    debugRoles,
 
     // Método para refrescar sincronización
     refreshSync: () => setBackendSynced(false),

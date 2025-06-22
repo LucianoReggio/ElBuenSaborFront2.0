@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, User, LogOut, Settings, ShoppingCart } from "lucide-react";
+import { useAuth0 } from "@auth0/auth0-react";
+import {
+  Search,
+  User,
+  LogOut,
+  Settings,
+  ShoppingCart,
+  RefreshCw,
+} from "lucide-react";
 import CarritoModal from "../../cart/CarritoModal";
+import { useAuth } from "../../../hooks/useAuth"; // ← AGREGAR IMPORT
+import { RefreshPermissionsButton } from "../../common/RefreshPermissionsButton";
 
 interface CarritoItem {
   id: number;
@@ -14,7 +24,7 @@ interface NavbarClienteProps {
     nombre: string;
     apellido: string;
     email: string;
-    rol?: string; // ← AGREGAR ROL
+    rol?: string;
     imagen?: {
       url: string;
       denominacion: string;
@@ -39,7 +49,12 @@ export default function NavbarCliente({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCarritoModalOpen, setIsCarritoModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // ← NUEVO STATE
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // ← AGREGAR HOOK useAuth
+  const { getAccessTokenSilently } = useAuth0();
+  const { refreshRoles, shouldRefreshRoles } = useAuth();
 
   // NUEVA: Función para formatear el rol
   const formatRole = (role?: string) => {
@@ -58,6 +73,71 @@ export default function NavbarCliente({
       case "CLIENTE":
       default:
         return "Cliente";
+    }
+  };
+
+  // ← FUNCIÓN CON UX MEJORADA para mensajes más claros
+  const handleRefreshRoles = async () => {
+    try {
+      setIsRefreshing(true);
+      console.log("🔄 Actualizando permisos...");
+
+      const result = await refreshRoles();
+
+      if (result.success) {
+        if (result.roleChanged) {
+          // Rol cambió - notificar y recargar página
+          const message =
+            result.oldRole && result.newRole
+              ? `✅ ¡Rol actualizado!\n\n${result.oldRole} → ${result.newRole}\n\nLa página se recargará para aplicar los cambios.`
+              : `✅ Permisos actualizados.\n\nLa página se recargará para aplicar los cambios.`;
+
+          alert(message);
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          // No cambió - confirmación simple
+          alert("ℹ️ Tus permisos ya están actualizados.");
+        }
+      } else if (result.requiresRelogin) {
+        // Auth0 requiere re-autenticación (comportamiento normal para cambios de rol)
+        const shouldRelogin = window.confirm(
+          `🔄 Para aplicar cambios de rol, Auth0 requiere que hagas login nuevamente.\n\nEsto es normal por seguridad cuando se modifican permisos.\n\n¿Proceder con el login?`
+        );
+
+        if (shouldRelogin) {
+          // Mostrar mensaje de progreso antes del logout
+          alert("🔄 Redirigiendo a login para aplicar nuevos permisos...");
+          setTimeout(() => {
+            onLogout?.();
+          }, 500);
+        }
+      } else {
+        // Error que requiere retry
+        const shouldRetry = window.confirm(
+          `❌ ${
+            result.message || "Error actualizando permisos"
+          }\n\n¿Quieres intentar nuevamente?`
+        );
+
+        if (shouldRetry) {
+          setTimeout(() => handleRefreshRoles(), 1000);
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error refreshing roles:", error);
+
+      // Error inesperado
+      const shouldRelogin = window.confirm(
+        `❌ Error inesperado: ${
+          error.message || "Error desconocido"
+        }\n\n¿Quieres hacer login nuevamente para aplicar posibles cambios?`
+      );
+
+      if (shouldRelogin) {
+        onLogout?.();
+      }
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -135,12 +215,21 @@ export default function NavbarCliente({
                       {/* NUEVO: Mostrar rol debajo del nombre */}
                       <div className="text-xs text-[#CD6C50] font-medium">
                         {formatRole(user.rol)}
+                        {/* ← INDICADOR si necesita refresh */}
+                        {shouldRefreshRoles() && (
+                          <span
+                            className="ml-1 text-orange-500"
+                            title="Token antiguo, considera actualizar permisos"
+                          >
+                            ⚠️
+                          </span>
+                        )}
                       </div>
                     </div>
                   </button>
 
                   {isUserMenuOpen && (
-                    <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="px-4 py-3 border-b border-gray-200">
                         <p className="text-sm font-medium text-gray-900">
                           {user.nombre} {user.apellido}
@@ -149,6 +238,14 @@ export default function NavbarCliente({
                         {/* NUEVO: Mostrar rol en el dropdown también */}
                         <p className="text-xs text-[#CD6C50] font-medium mt-1">
                           {formatRole(user.rol)}
+                          {shouldRefreshRoles() && (
+                            <span
+                              className="ml-1 text-orange-500"
+                              title="Token antiguo"
+                            >
+                              ⚠️
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="py-1">
@@ -169,6 +266,10 @@ export default function NavbarCliente({
                           <Settings className="mr-3 h-4 w-4" />
                           Configuración
                         </button>
+                        {/* ← NUEVO BOTÓN DE REFRESH ROLES */}
+                        <div className="border-t border-gray-200 my-1"></div>
+                        <RefreshPermissionsButton onLogout={onLogout} />
+
                         <div className="border-t border-gray-200 my-1"></div>
                         <button
                           onClick={() => {

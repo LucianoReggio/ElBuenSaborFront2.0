@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useState } from "react";
+import { Search } from "lucide-react";
 
 interface NavbarInvitadoProps {
   onLogin?: () => void;
@@ -8,13 +8,13 @@ interface NavbarInvitadoProps {
   onHome?: () => void;
 }
 
-export default function NavbarInvitado({ 
-  onLogin, 
-  onRegister, 
+export default function NavbarInvitado({
+  onLogin,
+  onRegister,
   onSearch,
-  onHome
+  onHome,
 }: NavbarInvitadoProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -28,7 +28,6 @@ export default function NavbarInvitado({
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          
           {/* Izquierda: Botones de Autenticación */}
           <div className="flex items-center space-x-3">
             <button
@@ -47,13 +46,13 @@ export default function NavbarInvitado({
 
           {/* Centro: Logo */}
           <div className="flex items-center justify-center">
-            <button 
-              onClick={onHome || (() => window.location.href = '/')}
+            <button
+              onClick={onHome || (() => (window.location.href = "/"))}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
             >
-              <img 
-                src="/src/assets/logos/Logo-nabvar.png" 
-                alt="El Buen Sabor - Logo" 
+              <img
+                src="/src/assets/logos/Logo-nabvar.png"
+                alt="El Buen Sabor - Logo"
                 className="h-12 w-auto"
               />
             </button>
@@ -66,7 +65,7 @@ export default function NavbarInvitado({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                onKeyPress={(e) => e.key === "Enter" && handleSearch(e)}
                 placeholder="¿Qué se te antoja?"
                 className="w-80 pl-4 pr-12 py-2 border border-[#CD6C50] rounded-full focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400"
               />
@@ -96,7 +95,7 @@ export default function NavbarInvitado({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch(e)}
                   placeholder="¿Qué se te antoja?"
                   className="w-full pl-4 pr-12 py-3 border border-[#CD6C50] rounded-full focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent text-gray-700 placeholder-gray-400"
                 />
