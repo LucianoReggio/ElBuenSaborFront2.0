@@ -4,16 +4,60 @@ import type {
   ClienteResponseDTO,
 } from "../types/clientes/Index";
 
+// Tipos de respuesta que coinciden con el backend
+interface LoginResponse {
+  success: boolean;
+  data: any;
+  message: string;
+}
+
+interface RegisterResponse {
+  success: boolean;
+  data: ClienteResponseDTO;
+  message: string;
+}
+
+interface UserProfileResponse {
+  authenticated: boolean;
+  auth_provider?: string;
+  sub?: string;
+  email?: string;
+  name?: string;
+  roles?: any[];
+  token_type?: string;
+}
+
+interface TokenValidationResponse {
+  valid: boolean;
+  sub?: string;
+  auth_provider?: string;
+  token_type?: string;
+}
+
+interface RefreshRolesResponse {
+  success: boolean;
+  data?: {
+    oldRole?: string;
+    newRole?: string;
+    currentRole?: string;
+  };
+  message: string;
+}
+
 /**
  * Servicio de autenticación para Auth0
+ * Versión simplificada que coincide con el backend limpio
  */
 export class AuthService {
   /**
    * Procesa el login con Auth0 y sincroniza con el backend
    */
-  static async processAuth0Login(userData?: any): Promise<any> {
+  static async processAuth0Login(userData?: any): Promise<LoginResponse> {
     try {
-      const response = await apiClienteService.post("/auth0/login", userData);
+      const response = await apiClienteService.post<LoginResponse>(
+        "/auth0/login",
+        userData
+      );
       return response;
     } catch (error: any) {
       console.error("Error en login Auth0:", error);
@@ -28,13 +72,11 @@ export class AuthService {
     clienteData: ClienteRegisterDTO
   ): Promise<ClienteResponseDTO> {
     try {
-      const response = await apiClienteService.post<{
-        success: boolean;
-        cliente: ClienteResponseDTO;
-        message: string;
-      }>("/auth0/register", clienteData);
-
-      return response.cliente;
+      const response = await apiClienteService.post<RegisterResponse>(
+        "/auth0/register",
+        clienteData
+      );
+      return response.data;
     } catch (error: any) {
       console.error("Error en registro Auth0:", error);
       throw error;
@@ -48,16 +90,12 @@ export class AuthService {
     clienteData: ClienteRegisterDTO
   ): Promise<ClienteResponseDTO> {
     try {
-      const response = await apiClienteService.post<{
-        success: boolean;
-        cliente: ClienteResponseDTO;
-        message: string;
-      }>("/auth0/complete-profile", clienteData);
-
-      console.log("✅ Profile completion response:", response);
-
-      // Retornar el cliente directamente
-      return response.cliente;
+      const response = await apiClienteService.post<RegisterResponse>(
+        "/auth0/complete-profile",
+        clienteData
+      );
+      console.log("✅ Profile completion successful");
+      return response.data;
     } catch (error: any) {
       console.error("Error completing profile:", error);
       throw error;
@@ -67,9 +105,11 @@ export class AuthService {
   /**
    * Obtiene información del usuario actual desde Auth0
    */
-  static async getCurrentUser(): Promise<any> {
+  static async getCurrentUser(): Promise<UserProfileResponse> {
     try {
-      const response = await apiClienteService.get("/auth0/me");
+      const response = await apiClienteService.get<UserProfileResponse>(
+        "/auth0/me"
+      );
       return response;
     } catch (error: any) {
       console.error("Error obteniendo usuario actual:", error);
@@ -80,53 +120,39 @@ export class AuthService {
   /**
    * Valida el token actual de Auth0
    */
-  static async validateToken(): Promise<boolean> {
+  static async validateToken(): Promise<TokenValidationResponse> {
     try {
-      const response = await apiClienteService.get<{ valid: boolean }>(
+      const response = await apiClienteService.get<TokenValidationResponse>(
         "/auth0/validate"
       );
-      return response.valid;
-    } catch (error) {
+      return response;
+    } catch (error: any) {
       console.error("Error validando token:", error);
-      return false;
+      return { valid: false };
     }
   }
 
   /**
-   * Obtiene información de roles actual (para debugging)
+   * Fuerza la actualización de roles desde Auth0
    */
-  static async getCurrentRoles(): Promise<{
-    tokenRoles: any;
-    extractedRole: string;
-    dbRole: string;
-    rolesMatch: boolean;
-    userId: string;
-  }> {
+  static async refreshRoles(): Promise<RefreshRolesResponse> {
     try {
-      const response = await apiClienteService.get<{
-        tokenRoles: any;
-        extractedRole: string;
-        dbRole: string;
-        rolesMatch: boolean;
-        userId: string;
-      }>("/auth0/current-roles");
+      const response = await apiClienteService.post<RefreshRolesResponse>(
+        "/auth0/refresh-roles"
+      );
       return response;
     } catch (error: any) {
-      console.error("Error getting current roles:", error);
+      console.error("Error refreshing roles:", error);
       throw error;
     }
   }
 
   /**
-   * Fuerza la actualización de roles desde Auth0 con token específico
+   * Actualización de roles con token específico (para casos especiales)
    */
-  static async refreshRolesWithToken(token: string): Promise<{
-    success: boolean;
-    oldRole?: string;
-    newRole?: string;
-    currentRole?: string;
-    message: string;
-  }> {
+  static async refreshRolesWithToken(
+    token: string
+  ): Promise<RefreshRolesResponse> {
     try {
       const response = await fetch(
         "http://localhost:8080/api/auth0/refresh-roles",
@@ -140,40 +166,15 @@ export class AuthService {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Error desconocido" }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
-      const result = await response.json();
-      return result;
+      return await response.json();
     } catch (error: any) {
-      console.error("Error refreshing roles with explicit token:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Versión original que usa apiClienteService (token automático)
-   */
-  static async refreshRoles(): Promise<{
-    success: boolean;
-    oldRole?: string;
-    newRole?: string;
-    currentRole?: string;
-    message: string;
-  }> {
-    try {
-      const response = await apiClienteService.post<{
-        success: boolean;
-        oldRole?: string;
-        newRole?: string;
-        currentRole?: string;
-        message: string;
-      }>("/auth0/refresh-roles");
-
-      return response;
-    } catch (error: any) {
-      console.error("Error refreshing roles:", error);
+      console.error("Error refreshing roles with token:", error);
       throw error;
     }
   }

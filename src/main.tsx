@@ -13,22 +13,20 @@ const auth0Config = {
     audience: "https://APIElBuenSabor",
     scope: "openid profile email",
   },
-  // Configuración adicional
+  // Configuración adicional para optimizar Auth0
   cacheLocation: "localstorage" as const,
   useRefreshTokens: true,
+  useRefreshTokensFallback: false,
 
   // Callback para manejar redirección después del login
   onRedirectCallback: (appState?: any) => {
     console.log("🔄 Auth0 redirect callback:", appState);
-    // Si viene de registro, redirigir a completar datos
-    if (
-      appState?.targetUrl?.includes("registro") ||
-      appState?.returnTo?.includes("registro")
-    ) {
-      window.location.href = "/registro?step=complete";
-    } else {
-      window.location.href = appState?.returnTo || "/";
-    }
+
+    // Redirigir a la URL de destino o home
+    const targetUrl = appState?.targetUrl || appState?.returnTo || "/";
+
+    // Usar replace para evitar problemas de navegación
+    window.history.replaceState({}, document.title, targetUrl);
   },
 };
 
@@ -38,6 +36,10 @@ createRoot(document.getElementById("root")!).render(
       domain={auth0Config.domain}
       clientId={auth0Config.clientId}
       authorizationParams={auth0Config.authorizationParams}
+      cacheLocation={auth0Config.cacheLocation}
+      useRefreshTokens={auth0Config.useRefreshTokens}
+      useRefreshTokensFallback={auth0Config.useRefreshTokensFallback}
+      onRedirectCallback={auth0Config.onRedirectCallback}
     >
       <App />
     </Auth0Provider>

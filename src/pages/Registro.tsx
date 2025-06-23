@@ -4,7 +4,6 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { RegistroForm } from "../components/auth/RegistroForm";
 import { useAuth } from "../hooks/useAuth";
 import type { ClienteRegisterDTO } from "../types/clientes/Index";
-import { AuthService } from "../services/AuthService";
 
 const Registro: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +23,7 @@ const Registro: React.FC = () => {
     "auth0" | "additional-data"
   >("auth0");
 
-  // Verificar si viene de Auth0 después del registro o si necesita datos adicionales
+  // Verificar el paso de registro necesario
   useEffect(() => {
     const fromAuth0 = searchParams.get("step") === "complete";
 
@@ -33,17 +32,16 @@ const Registro: React.FC = () => {
       fromAuth0,
       needsAdditionalData: needsAdditionalData(),
       auth0User: auth0User?.email,
-      pathname: window.location.pathname,
     });
 
-    if (isAuthenticated && (fromAuth0 || needsAdditionalData())) {
-      // Usuario necesita completar datos adicionales
-      console.log("🔄 User needs to complete additional data");
-      setRegistrationStep("additional-data");
-    } else if (isAuthenticated && !needsAdditionalData()) {
-      // Usuario ya registrado completamente, redirigir al home
-      console.log("✅ User registration complete, redirecting to home");
-      navigate("/");
+    if (isAuthenticated) {
+      if (fromAuth0 || needsAdditionalData()) {
+        console.log("🔄 User needs to complete additional data");
+        setRegistrationStep("additional-data");
+      } else {
+        console.log("✅ User registration complete, redirecting to home");
+        navigate("/");
+      }
     }
   }, [isAuthenticated, needsAdditionalData, searchParams, navigate, auth0User]);
 
@@ -56,7 +54,6 @@ const Registro: React.FC = () => {
         },
         appState: {
           returnTo: "/registro?step=complete",
-          targetUrl: window.location.href,
         },
       });
     } catch (error) {
@@ -73,7 +70,6 @@ const Registro: React.FC = () => {
         },
         appState: {
           returnTo: "/registro?step=complete",
-          targetUrl: window.location.href,
         },
       });
     } catch (error) {
@@ -87,7 +83,6 @@ const Registro: React.FC = () => {
     try {
       console.log("🚀 Completing profile with additional data...");
 
-      // Usar el nuevo endpoint para completar perfil
       const completeData: ClienteRegisterDTO = {
         ...data,
         email: auth0User?.email || "",
@@ -95,19 +90,15 @@ const Registro: React.FC = () => {
         confirmPassword: "",
       };
 
-      // FIXED: Usar registerCliente del hook useAuth en lugar de AuthService directamente
-      const response = await registerCliente(completeData);
-
+      await registerCliente(completeData);
       setSuccessMessage("¡Perfil completado exitosamente! Redirigiendo...");
 
-      // INMEDIATO: Redirigir inmediatamente para forzar refresh completo
       setTimeout(() => {
         console.log("🔄 Redirecting to home after successful registration");
         navigate("/", { replace: true });
-      }, 500); // Reducir tiempo de espera
+      }, 1500);
     } catch (error) {
       console.error("❌ Profile completion error:", error);
-      // Error is handled by useAuth hook
     }
   };
 
@@ -115,7 +106,6 @@ const Registro: React.FC = () => {
     navigate("/login");
   };
 
-  // Mostrar loading si Auth0 está procesando
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

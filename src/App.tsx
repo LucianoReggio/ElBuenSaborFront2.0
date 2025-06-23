@@ -8,6 +8,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
+import { useAuth } from "./hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
@@ -62,6 +63,84 @@ const CallbackPage: React.FC = () => {
 
   // Si no hay loading ni error, redirigir al home
   return <Navigate to="/" replace />;
+};
+
+// Componente para proteger rutas administrativas
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  requiredRole?: string;
+  fallbackTo?: string;
+}> = ({ children, requiredRole = "ADMIN", fallbackTo = "/" }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CD6C50] mx-auto"></div>
+          <p className="mt-4 text-[#99AAB3]">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Obtener rol del usuario (compatibilidad con diferentes estructuras)
+  const userRole = (user as any)?.usuario?.rol || (user as any)?.rol;
+
+  if (requiredRole && userRole !== requiredRole) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center p-8">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+            <h2 className="text-yellow-800 font-semibold mb-2">
+              Acceso restringido
+            </h2>
+            <p className="text-yellow-600 text-sm mb-4">
+              No tienes permisos para acceder a esta sección.
+              <br />
+              <span className="text-xs">
+                Rol actual: {userRole || "No definido"}
+              </span>
+            </p>
+            <Link
+              to={fallbackTo}
+              className="inline-block px-4 py-2 bg-[#CD6C50] text-white rounded hover:bg-[#E29C44] transition-colors"
+            >
+              Volver
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Componente para rutas que requieren autenticación básica
+const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CD6C50] mx-auto"></div>
+          <p className="mt-4 text-[#99AAB3]">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 // Componente para el elemento de navegación activo
@@ -282,64 +361,80 @@ function App() {
               </PublicLayout>
             }
           />
+
+          {/* Rutas que requieren autenticación */}
           <Route
             path="/mis-pedidos"
             element={
-              <PublicLayout>
-                <MisPedidos />
-              </PublicLayout>
+              <AuthRoute>
+                <PublicLayout>
+                  <MisPedidos />
+                </PublicLayout>
+              </AuthRoute>
             }
           />
 
-          {/* Rutas administrativas */}
+          {/* Rutas administrativas (requieren rol ADMIN) */}
           <Route
             path="/dashboard"
             element={
-              <AdminLayout>
-                <Dashboard />
-              </AdminLayout>
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <Dashboard />
+                </AdminLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/categorias"
             element={
-              <AdminLayout>
-                <Categorias />
-              </AdminLayout>
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <Categorias />
+                </AdminLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/insumos"
             element={
-              <AdminLayout>
-                <Insumos />
-              </AdminLayout>
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <Insumos />
+                </AdminLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/productos"
             element={
-              <AdminLayout>
-                <Productos />
-              </AdminLayout>
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <Productos />
+                </AdminLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/stock"
             element={
-              <AdminLayout>
-                <StockControl />
-              </AdminLayout>
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <StockControl />
+                </AdminLayout>
+              </ProtectedRoute>
             }
           />
 
-          {/* Rutas de Delivery */}
+          {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route
             path="/delivery"
             element={
-              <PublicLayout>
-                <DeliveryDashboard />
-              </PublicLayout>
+              <ProtectedRoute requiredRole="DELIVERY" fallbackTo="/catalogo">
+                <PublicLayout>
+                  <DeliveryDashboard />
+                </PublicLayout>
+              </ProtectedRoute>
             }
           />
 

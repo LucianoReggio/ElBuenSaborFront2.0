@@ -8,7 +8,7 @@ const Login: React.FC = () => {
   const { login, loginWithGoogle, isLoading, error, isAuthenticated } =
     useAuth();
 
-  // Si ya está autenticado, redirigir al home
+  // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated) {
       console.log("✅ User already authenticated, redirecting to home");
@@ -19,7 +19,7 @@ const Login: React.FC = () => {
   const handleAuth0Login = async () => {
     try {
       console.log("🚀 Starting Auth0 login...");
-      await login(); // Esto redirige a Auth0
+      await login();
     } catch (error) {
       console.error("❌ Login error:", error);
     }
@@ -28,7 +28,7 @@ const Login: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       console.log("🚀 Starting Google login...");
-      await loginWithGoogle(); // Esto redirige a Auth0 con Google
+      await loginWithGoogle();
     } catch (error) {
       console.error("❌ Google login error:", error);
     }
@@ -38,7 +38,6 @@ const Login: React.FC = () => {
     navigate("/registro");
   };
 
-  // Mostrar loading si Auth0 está procesando
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

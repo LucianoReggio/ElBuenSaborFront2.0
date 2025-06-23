@@ -7,6 +7,13 @@ export class ApiClienteService {
   }
 
   /**
+   * Getter para obtener la baseUrl (para casos especiales)
+   */
+  get baseURL(): string {
+    return this.baseUrl;
+  }
+
+  /**
    * Configura la instancia de Auth0
    */
   setAuth0Instance(auth0Instance: any) {
@@ -54,7 +61,7 @@ export class ApiClienteService {
 
       try {
         const errorJson = JSON.parse(errorBody);
-        errorMessage = errorJson.message || errorJson.error || errorMessage;
+        errorMessage = errorJson.error || errorJson.message || errorMessage;
       } catch {
         errorMessage = errorBody || errorMessage;
       }
@@ -73,25 +80,25 @@ export class ApiClienteService {
     return response.json();
   }
 
-  public async get<T>(url: string): Promise<T> {
+  public async get<T = any>(url: string): Promise<T> {
     return this.request<T>(url, { method: "GET" });
   }
 
-  public async post<T>(url: string, data?: any): Promise<T> {
+  public async post<T = any>(url: string, data?: any): Promise<T> {
     return this.request<T>(url, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  public async put<T>(url: string, data?: any): Promise<T> {
+  public async put<T = any>(url: string, data?: any): Promise<T> {
     return this.request<T>(url, {
       method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  public async deleteRequest<T>(url: string): Promise<T> {
+  public async deleteRequest<T = any>(url: string): Promise<T> {
     return this.request<T>(url, { method: "DELETE" });
   }
 }

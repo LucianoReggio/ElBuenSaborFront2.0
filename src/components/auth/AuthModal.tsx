@@ -10,7 +10,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: "login" | "register";
-  onSuccess?: () => void; // Callback opcional cuando la autenticación es exitosa
+  onSuccess?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -19,20 +19,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = "login",
   onSuccess,
 }) => {
-  const [mode, setMode] = useState<"login" | "register" | "additional-data">(
-    initialMode
-  );
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+
   const {
     login,
     loginWithGoogle,
     registerCliente,
+    needsAdditionalData,
     isLoading,
     error,
     isAuthenticated,
     auth0User,
   } = useAuth();
-
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   // Reset del estado cuando se abre/cierra el modal
   useEffect(() => {
@@ -42,21 +41,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen, initialMode]);
 
-  // Cerrar modal automáticamente si el usuario se autentica
+  // Determinar si debe mostrar el formulario de datos adicionales
+  const showAdditionalDataForm = isAuthenticated && needsAdditionalData();
+
+  // Cerrar modal automáticamente si el usuario se autentica completamente
   useEffect(() => {
-    if (isAuthenticated && isOpen && mode !== "additional-data") {
+    if (isAuthenticated && isOpen && !showAdditionalDataForm) {
       setSuccessMessage("¡Autenticación exitosa!");
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         onClose();
         onSuccess?.();
-      }, 1000);
+      }, 1500);
+
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isOpen, mode, onClose, onSuccess]);
+  }, [isAuthenticated, isOpen, showAdditionalDataForm, onClose, onSuccess]);
 
   const handleAuth0Login = async () => {
     try {
-      await login(); // Esto redirige a Auth0, el modal se cerrará automáticamente
+      await login();
     } catch (error) {
       console.error("❌ Login error:", error);
     }
@@ -64,47 +68,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleGoogleLogin = async () => {
     try {
-      await loginWithGoogle(); // Esto redirige a Auth0 con Google
+      await loginWithGoogle();
     } catch (error) {
       console.error("❌ Google login error:", error);
     }
   };
 
-  const handleAuth0Register = async () => {
-    try {
-      await login(); // Auth0 maneja tanto login como registro
-    } catch (error) {
-      console.error("❌ Register error:", error);
-    }
-  };
-
-  const handleGoogleRegister = async () => {
-    try {
-      await loginWithGoogle(); // Registro con Google
-    } catch (error) {
-      console.error("❌ Google register error:", error);
-    }
-  };
-
-  const handleCompleteRegistration = async (
+  const handleCompleteProfile = async (
     data: Omit<ClienteRegisterDTO, "email" | "password" | "confirmPassword">
   ) => {
     try {
       const completeData: ClienteRegisterDTO = {
         ...data,
         email: auth0User?.email || "",
-        password: "", // No se usa con Auth0
-        confirmPassword: "", // No se usa con Auth0
+        password: "",
+        confirmPassword: "",
       };
 
       await registerCliente(completeData);
-
       setSuccessMessage("¡Registro completado exitosamente!");
 
       setTimeout(() => {
         onClose();
         onSuccess?.();
-      }, 1000);
+      }, 1500);
     } catch (error) {
       console.error("❌ Registration completion error:", error);
     }
@@ -115,26 +102,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  // Si el usuario está autenticado pero no ha completado su registro
-  const showAdditionalData =
-    isAuthenticated && auth0User && mode === "register";
+  const getModalTitle = () => {
+    if (showAdditionalDataForm) return "Completa tu registro";
+    return mode === "register" ? "Únete a nuestra familia" : "Iniciar Sesión";
+  };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={
-        showAdditionalData
-          ? "Completa tu registro"
-          : mode === "register"
-          ? "Únete a nuestra familia"
-          : "Iniciar Sesión"
-      }
-    >
+    <Modal isOpen={isOpen} onClose={handleClose} title={getModalTitle()}>
       <div className="relative">
         <button
           onClick={handleClose}
           className="absolute top-2 right-2 z-10 p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          aria-label="Cerrar modal"
         >
           <X className="h-5 w-5" />
         </button>
@@ -145,7 +124,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Mostrar loading durante autenticación */}
         {isLoading && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#CD6C50] mx-auto"></div>
@@ -153,29 +131,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Mostrar formularios solo si no está cargando */}
         {!isLoading && (
           <>
-            {mode === "register" ? (
+            {showAdditionalDataForm ? (
               <RegistroForm
-                onSubmit={handleCompleteRegistration}
-                onSwitchToLogin={() => {
-                  setMode("login");
-                  setSuccessMessage("");
-                }}
-                onAuth0Register={handleAuth0Register}
-                onGoogleRegister={handleGoogleRegister}
+                onSubmit={handleCompleteProfile}
+                onSwitchToLogin={() => setMode("login")}
+                onAuth0Register={handleAuth0Login}
+                onGoogleRegister={handleGoogleLogin}
                 loading={isLoading}
                 error={error || undefined}
                 userEmail={auth0User?.email}
-                showAdditionalData={showAdditionalData}
+                showAdditionalData={true}
+              />
+            ) : mode === "register" ? (
+              <RegistroForm
+                onSubmit={handleCompleteProfile}
+                onSwitchToLogin={() => setMode("login")}
+                onAuth0Register={handleAuth0Login}
+                onGoogleRegister={handleGoogleLogin}
+                loading={isLoading}
+                error={error || undefined}
+                showAdditionalData={false}
               />
             ) : (
               <LoginForm
-                onSwitchToRegister={() => {
-                  setMode("register");
-                  setSuccessMessage("");
-                }}
+                onSwitchToRegister={() => setMode("register")}
                 onAuth0Login={handleAuth0Login}
                 onGoogleLogin={handleGoogleLogin}
                 loading={isLoading}
