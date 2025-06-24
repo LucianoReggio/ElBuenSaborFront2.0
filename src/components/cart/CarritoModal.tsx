@@ -1,8 +1,8 @@
-// src/components/cart/CarritoModal.tsx
+// src/components/cart/CarritoModal.tsx - VERSIÓN MEJORADA CON DESCUENTOS
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingCart, Clock, Truck, Store } from 'lucide-react';
-import { useCarritoContext } from '../../context/CarritoContext';
-import CheckoutModal from './CheckoutModal';
+import { X, Plus, Minus, Trash2, ShoppingCart, Clock, Truck, Store, Tag, Calculator } from 'lucide-react';
+import { useCarritoMercadoPago } from '../../hooks/useCarritoMercadoPago';
+import CheckoutModalMercadoPago from './CheckoutModalMercadoPago';
 
 interface CarritoModalProps {
   abierto: boolean;
@@ -10,9 +10,10 @@ interface CarritoModalProps {
 }
 
 const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
-  const carrito = useCarritoContext();
+  const carrito = useCarritoMercadoPago(); // ✅ Usando el nuevo hook
   const [observaciones, setObservaciones] = useState('');
   const [checkoutAbierto, setCheckoutAbierto] = useState(false);
+  const [pedidoExitoso, setPedidoExitoso] = useState(false);
 
   // Sincronizar observaciones con el contexto
   useEffect(() => {
@@ -26,21 +27,32 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
       alert('El carrito está vacío');
       return;
     }
-    
+
     // Asegurar que las observaciones estén guardadas antes de abrir checkout
     carrito.setDatosEntrega({
       ...carrito.datosEntrega,
       observaciones
     });
-    
+
     // Abrir modal de checkout
     setCheckoutAbierto(true);
   };
 
-  // Función para manejar éxito del pedido:
-  const handlePedidoExitoso = () => {
+  const handlePedidoExitoso = (data?: any) => {
+    console.log('🎉 Pedido creado exitosamente:', data);
+    setPedidoExitoso(true);
+
+    // Mostrar mensaje de éxito
     alert('¡Pedido creado exitosamente! Puedes verlo en "Mis Pedidos"');
+
+    // Cerrar modales
+    setCheckoutAbierto(false);
     onCerrar(); // Cerrar el carrito también
+
+    // Reset estado de éxito después de un tiempo
+    setTimeout(() => {
+      setPedidoExitoso(false);
+    }, 3000);
   };
 
   const handleTipoEnvioChange = (tipoEnvio: 'DELIVERY' | 'TAKE_AWAY') => {
@@ -63,9 +75,9 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        
+
         {/* Header */}
-        <div className="flex items-center justify-between p-1 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <ShoppingCart className="w-6 h-6 text-[#CD6C50]" />
             <h2 className="text-2xl font-bold text-gray-800">Mi Carrito</h2>
@@ -100,15 +112,15 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
             </div>
           ) : (
             // Lista de productos
-            <div className="p-10 space-y-2">
+            <div className="p-6 space-y-3">
               {carrito.items.map((item) => (
                 <div key={item.id} className="flex items-center space-x-4 bg-gray-50 rounded-lg p-4">
-                  
+
                   {/* Imagen del producto */}
                   <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center flex-shrink-0">
                     {item.imagen ? (
-                      <img 
-                        src={item.imagen} 
+                      <img
+                        src={item.imagen}
                         alt={item.nombre}
                         className="w-full h-full object-cover rounded-lg"
                       />
@@ -139,11 +151,11 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
                     >
                       <Minus className="w-4 h-4 text-gray-600" />
                     </button>
-                    
+
                     <span className="font-semibold text-lg min-w-[2rem] text-center">
                       {item.cantidad}
                     </span>
-                    
+
                     <button
                       onClick={() => carrito.incrementarCantidad(item.id)}
                       className="w-8 h-8 rounded-full bg-[#CD6C50] hover:bg-[#b85a42] text-white flex items-center justify-center transition-colors duration-200"
@@ -173,36 +185,36 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
 
         {/* Footer - Solo si hay productos */}
         {!carrito.estaVacio && (
-          <div className="border-t border-gray-200 p-3 bg-gray-50">
-            
+          <div className="border-t border-gray-200 p-6 bg-gray-50">
+
             {/* Tipo de envío */}
             <div className="mb-6">
               <h3 className="font-semibold text-gray-800 mb-3">Tipo de entrega</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleTipoEnvioChange('TAKE_AWAY')}
-                  className={`p-1 rounded-lg border-2 transition-all duration-200 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                     carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY'
                       ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <Store className="w-4 h- mx-auto mb-2 text-[#CD6C50]" />
+                  <Store className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
                   <div className="text-sm font-medium">Retiro en local</div>
-                  <div className="text-xs text-gray-500">Gratis</div>
+                  <div className="text-xs text-green-600">✨ 10% descuento</div>
                 </button>
-                
+
                 <button
                   onClick={() => handleTipoEnvioChange('DELIVERY')}
-                  className={`p-2 rounded-lg border-2 transition-all duration-200 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                     carrito.datosEntrega.tipoEnvio === 'DELIVERY'
                       ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <Truck className="w-6 h-6 mx-auto mb-2 text-[#CD6C50]" />
+                  <Truck className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
                   <div className="text-sm font-medium">Delivery</div>
-                  <div className="text-xs text-gray-500">$200</div>
+                  <div className="text-xs text-gray-500">+$200</div>
                 </button>
               </div>
             </div>
@@ -219,38 +231,80 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent resize-none"
                 rows={2}
               />
-              {/* Debug - Remover en producción */}
-              {observaciones && (
-                <p className="text-xs text-gray-500 mt-1">
-                  ✓ Observaciones guardadas: "{observaciones}"
-                </p>
-              )}
             </div>
 
-            {/* Resumen de totales */}
-            <div className="space-y-2 mb-6">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>${carrito.subtotal.toFixed(0)}</span>
+            {/* 🎉 NUEVO: Resumen de totales con descuentos del backend */}
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <Calculator className="w-5 h-5 text-[#CD6C50]" />
+                <h3 className="font-semibold text-gray-800">Resumen del pedido</h3>
+                {carrito.cargandoTotales && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#CD6C50]"></div>
+                )}
               </div>
-              {carrito.costoEnvio > 0 && (
+
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
-                  <span>Envío</span>
-                  <span>${carrito.costoEnvio.toFixed(0)}</span>
+                  <span>Subtotal</span>
+                  <span>${carrito.subtotal.toFixed(0)}</span>
+                </div>
+
+                {/* 🎉 NUEVO: Mostrar descuento si aplica */}
+                {carrito.tieneDescuento && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center">
+                      <Tag className="w-3 h-3 mr-1" />
+                      Descuento retiro
+                    </span>
+                    <span>-${carrito.descuento.toFixed(0)}</span>
+                  </div>
+                )}
+
+                {carrito.costoEnvio > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span className="flex items-center">
+                      <Truck className="w-3 h-3 mr-1" />
+                      Envío
+                    </span>
+                    <span>+${carrito.costoEnvio.toFixed(0)}</span>
+                  </div>
+                )}
+
+                {carrito.tiempoEstimadoTotal > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span className="flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Tiempo estimado
+                    </span>
+                    <span>{carrito.tiempoEstimadoTotal} min</span>
+                  </div>
+                )}
+
+                <div className="border-t pt-2">
+                  <div className="flex justify-between text-xl font-bold text-gray-800">
+                    <span>Total</span>
+                    <span className="text-[#CD6C50]">${carrito.total.toFixed(0)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 🎉 NUEVO: Mostrar resumen del descuento */}
+              {carrito.resumenDescuento && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700 text-sm">
+                    ✨ {carrito.resumenDescuento}
+                  </p>
                 </div>
               )}
-              {carrito.tiempoEstimadoTotal > 0 && (
-                <div className="flex justify-between text-gray-600">
-                  <span>Tiempo estimado</span>
-                  <span>{carrito.tiempoEstimadoTotal} min</span>
+
+              {/* 🎉 NUEVO: Mostrar errores si los hay */}
+              {carrito.errorTotales && (
+                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-orange-700 text-sm">
+                    ⚠️ {carrito.errorTotales}
+                  </p>
                 </div>
               )}
-              <div className="border-t pt-2">
-                <div className="flex justify-between text-xl font-bold text-gray-800">
-                  <span>Total</span>
-                  <span className="text-[#CD6C50]">${carrito.total.toFixed(0)}</span>
-                </div>
-              </div>
             </div>
 
             {/* Botones de acción */}
@@ -271,7 +325,9 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
           </div>
         )}
       </div>
-      <CheckoutModal
+
+      {/* Modal de checkout */}
+      <CheckoutModalMercadoPago
         abierto={checkoutAbierto}
         onCerrar={() => setCheckoutAbierto(false)}
         onExito={handlePedidoExitoso}

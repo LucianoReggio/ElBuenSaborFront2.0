@@ -1,105 +1,127 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 // Importar todos los navbars
-import NavbarInvitado from './navbar/NavbarInvitado';
-import NavbarCliente from './navbar/NavbarCliente';
-import NavbarCajero from './navbar/NavbarCajero';
-import NavbarDelivery from './navbar/NavbarDelivery';
-import NavbarCocinero from './navbar/NavbarCocinero';
-import NavbarAdmin from './navbar/NavbarAdmin';
+import NavbarInvitado from "./navbar/NavbarInvitado";
+import NavbarCliente from "./navbar/NavbarCliente";
+import NavbarCajero from "./navbar/NavbarCajero";
+import NavbarDelivery from "./navbar/NavbarDelivery";
+import NavbarCocinero from "./navbar/NavbarCocinero";
+import NavbarAdmin from "./navbar/NavbarAdmin";
+
+interface UserData {
+  nombre: string;
+  apellido: string;
+  email: string;
+  rol?: string;
+  imagen?: {
+    url: string;
+    denominacion: string;
+  };
+}
+
+interface ExtendedUserData extends UserData {
+  telefono?: string;
+  fechaNacimiento?: string | null;
+  domicilios?: any[];
+}
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, logout, refreshAuth } = useAuth();
 
-  // Debug: log cuando cambie el estado de autenticación
+  // CRÍTICO: Todos los hooks deben ejecutarse ANTES de cualquier return
+  const { isAuthenticated, isLoading, user, backendUser, logout } = useAuth();
+  const [forceUpdate, setForceUpdate] = useState(false);
+
+  // Escuchar cambios del perfil de usuario
   useEffect(() => {
-    console.log('🔄 Header - Auth state changed:', {
-      isAuthenticated,
-      userRole: user?.rol,
-      pathname: location.pathname
-    });
-  }, [isAuthenticated, user, location.pathname]);
+    const handleProfileUpdate = () => {
+      setForceUpdate((prev) => !prev);
+    };
 
-  // Efecto para detectar cambios en la autenticación y forzar re-render
-  useEffect(() => {
-    // Re-verificar autenticación cuando cambia la ruta
-    refreshAuth();
-  }, [location.pathname]);
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () =>
+      window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+  }, []);
 
-  // Efecto para redirección automática según rol
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const userRole = user.rol?.toUpperCase();
-      const currentPath = location.pathname;
-
-      // Redirección automática para usuarios DELIVERY
-      if (userRole === 'DELIVERY') {
-        // Solo redirigir si no está ya en una ruta de delivery
-        if (!currentPath.startsWith('/delivery')) {
-          console.log('🚚 Redirigiendo usuario delivery a dashboard');
-          navigate('/delivery');
-        }
-      }
-      
-      // Aquí puedes agregar más redirecciones automáticas para otros roles si es necesario
-      // Por ejemplo:
-      // if (userRole === 'ADMINISTRADOR' && currentPath === '/') {
-      //   navigate('/dashboard');
-      // }
-    }
-  }, [isAuthenticated, user, location.pathname, navigate]);
-
-  // Efecto para debug - remover en producción
-  useEffect(() => {
-    console.log('Header - Auth status changed:', { isAuthenticated, user: user?.rol });
-  }, [isAuthenticated, user]);
-
-  // Rutas donde NO debe aparecer ninguna navbar (páginas especiales)
-  const noNavbarRoutes = ['/login', '/registro'];
+  // Rutas donde NO debe aparecer ninguna navbar
+  const noNavbarRoutes = ["/login", "/registro", "/callback"];
   const shouldShowNavbar = !noNavbarRoutes.includes(location.pathname);
 
-  // Si no debe mostrar navbar, retornar null
-  if (!shouldShowNavbar) {
-    return null;
-  }
-
-  // Funciones comunes para todos los navbars
-  const handleLogin = () => {
-    navigate('/login');
+  // Funciones helper (después de todos los hooks)
+  const handleLogin = () => navigate("/login");
+  const handleRegister = () => navigate("/registro");
+  const handleSearch = (query: string) => {
+    console.log("Buscar:", query);
+    // Implementar lógica de búsqueda si es necesario
   };
+  const handleLogout = () => logout();
 
-  const handleRegister = () => {
-    navigate('/registro');
+  // Función helper para obtener el rol del usuario
+  const getUserRole = (): string => {
+    return (
+      backendUser?.usuario?.rol ||
+      backendUser?.rol ||
+      "CLIENTE"
+    ).toUpperCase();
   };
 
   const handleHome = () => {
-    // Para usuarios delivery, el "home" es el dashboard de delivery
-    if (isAuthenticated && user?.rol?.toUpperCase() === 'DELIVERY') {
-      navigate('/delivery');
+    const userRole = getUserRole();
+    if (isAuthenticated && userRole === "DELIVERY") {
+      navigate("/delivery");
     } else {
-      navigate('/');
+      navigate("/");
     }
   };
 
-  const handleSearch = (query: string) => {
-    console.log('Buscar:', query);
-    // Implementar lógica de búsqueda
-    // navigate(`/buscar?q=${encodeURIComponent(query)}`);
+  // Función helper para crear datos de usuario optimizada
+  const createUserData = (): UserData => {
+    // Priorizar datos del backend si son válidos
+    if (
+      backendUser?.nombre &&
+      !backendUser.nombre.includes("@") &&
+      backendUser.nombre !== "Usuario"
+    ) {
+      return {
+        nombre: backendUser.nombre,
+        apellido: backendUser.apellido || "",
+        email: backendUser.email || (user as any)?.email || "",
+        rol: getUserRole(),
+        imagen: backendUser.imagen,
+      };
+    }
+
+    // Fallback a datos de Auth0
+    const auth0User = user as any; // Type assertion para acceder a propiedades de Auth0
+    return {
+      nombre:
+        auth0User?.given_name || auth0User?.name?.split(" ")[0] || "Usuario",
+      apellido:
+        auth0User?.family_name ||
+        auth0User?.name?.split(" ").slice(1).join(" ") ||
+        "",
+      email: auth0User?.email || "",
+      rol: getUserRole(),
+      imagen: undefined,
+    };
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  // Función helper para crear datos extendidos
+  const createExtendedUserData = (): ExtendedUserData => {
+    const baseData = createUserData();
+    return {
+      ...baseData,
+      telefono: backendUser?.telefono || "",
+      fechaNacimiento: backendUser?.fechaNacimiento || null,
+      domicilios: backendUser?.domicilios || [],
+    };
   };
 
-  // Determinar qué navbar mostrar según el estado de autenticación y rol
+  // Renderizar navbar según autenticación y rol
   const renderNavbar = () => {
-    // Si no está autenticado, mostrar navbar de invitado
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || (!backendUser && !user)) {
       return (
         <NavbarInvitado
           onLogin={handleLogin}
@@ -110,52 +132,48 @@ const Header: React.FC = () => {
       );
     }
 
-    // Si está autenticado, mostrar navbar según el rol
-    const userRole = user.rol?.toUpperCase();
+    const userData = createUserData();
+    const userRole = getUserRole();
 
     switch (userRole) {
-      case 'ADMINISTRADOR':
-      case 'ADMIN':
+      case "ADMINISTRADOR":
+      case "ADMIN":
         return (
           <NavbarAdmin
-            user={user}
+            user={userData}
             onLogout={handleLogout}
             onHome={handleHome}
           />
         );
-
-      case 'CAJERO':
+      case "CAJERO":
         return (
           <NavbarCajero
-            user={user}
+            user={userData}
             onLogout={handleLogout}
             onHome={handleHome}
           />
         );
-
-      case 'DELIVERY':
+      case "DELIVERY":
         return (
           <NavbarDelivery
-            user={user}
+            user={userData}
             onLogout={handleLogout}
             onHome={handleHome}
           />
         );
-
-      case 'COCINERO':
+      case "COCINERO":
         return (
           <NavbarCocinero
-            user={user}
+            user={userData}
             onLogout={handleLogout}
             onHome={handleHome}
           />
         );
-
-      case 'CLIENTE':
+      case "CLIENTE":
       default:
         return (
           <NavbarCliente
-            user={user}
+            user={createExtendedUserData()}
             onLogout={handleLogout}
             onHome={handleHome}
             onSearch={handleSearch}
@@ -164,11 +182,28 @@ const Header: React.FC = () => {
     }
   };
 
-  return (
-    <header>
-      {renderNavbar()}
-    </header>
-  );
+  // IMPORTANTE: Todos los returns condicionales deben estar AL FINAL
+  if (!shouldShowNavbar) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-center">
+            <div className="animate-pulse flex items-center space-x-4">
+              <div className="h-8 w-32 bg-gray-300 rounded"></div>
+              <div className="h-6 w-16 bg-gray-300 rounded"></div>
+              <div className="h-6 w-16 bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  return <header>{renderNavbar()}</header>;
 };
 
 export default Header;

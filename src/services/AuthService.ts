@@ -1,179 +1,181 @@
-import { apiClienteService } from './ApiClientService';
-import type { LoginRequestDTO, LoginResponseDTO, UserInfo } from '../types/auth/index';
+import { apiClienteService } from "./ApiClientService";
+import type {
+  ClienteRegisterDTO,
+  ClienteResponseDTO,
+} from "../types/clientes/Index";
 
+// Tipos de respuesta que coinciden con el backend
+interface LoginResponse {
+  success: boolean;
+  data: any;
+  message: string;
+}
+
+interface RegisterResponse {
+  success: boolean;
+  data: ClienteResponseDTO;
+  message: string;
+}
+
+interface UserProfileResponse {
+  authenticated: boolean;
+  auth_provider?: string;
+  sub?: string;
+  email?: string;
+  name?: string;
+  roles?: any[];
+  token_type?: string;
+}
+
+interface TokenValidationResponse {
+  valid: boolean;
+  sub?: string;
+  auth_provider?: string;
+  token_type?: string;
+}
+
+interface RefreshRolesResponse {
+  success: boolean;
+  data?: {
+    oldRole?: string;
+    newRole?: string;
+    currentRole?: string;
+  };
+  message: string;
+}
+
+/**
+ * Servicio de autenticación para Auth0
+ * Versión simplificada que coincide con el backend limpio
+ */
 export class AuthService {
-  private static readonly BASE_URL = '/auth'; // Esto se combinará con /api del ApiClienteService
-  private static readonly TOKEN_KEY = 'auth_token';
-  private static readonly USER_KEY = 'user_info';
-
-  // Event listeners para cambios de autenticación
-  private static listeners: (() => void)[] = [];
-
   /**
-   * Suscribirse a cambios de autenticación
+   * Procesa el login con Auth0 y sincroniza con el backend
    */
-  static subscribe(listener: () => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  /**
-   * Notificar cambios a todos los listeners
-   */
-  private static notifyListeners() {
-    this.listeners.forEach(listener => listener());
-  }
-
-  /**
-   * Realiza el login del usuario
-   */
-  static async login(credentials: LoginRequestDTO): Promise<LoginResponseDTO> {
+  static async processAuth0Login(userData?: any): Promise<LoginResponse> {
     try {
-      const loginResponse = await apiClienteService.post<LoginResponseDTO>(`${this.BASE_URL}/login`, credentials);
-      
-      // Guardar token y datos del usuario en localStorage
-      this.setToken(loginResponse.token);
-      
-      // Crear objeto UserInfo más completo
-      const userInfo: UserInfo = {
-        email: loginResponse.email,
-        rol: loginResponse.rol,
-        userId: loginResponse.userId,
-        // Si el backend devuelve estos campos, inclúyelos
-        nombre: (loginResponse as any).nombre || 'Usuario',
-        apellido: (loginResponse as any).apellido || ''
-      };
-      
-      this.setUserInfo(userInfo);
-      
-      return loginResponse;
+      const response = await apiClienteService.post<LoginResponse>(
+        "/auth0/login",
+        userData
+      );
+      return response;
     } catch (error: any) {
-      throw this.handleError(error);
+      console.error("Error en login Auth0:", error);
+      throw error;
     }
   }
 
   /**
-   * Valida el token actual
+   * Registra un cliente con datos adicionales después del login Auth0
    */
-  static async validateToken(token?: string): Promise<boolean> {
+  static async registerClienteAuth0(
+    clienteData: ClienteRegisterDTO
+  ): Promise<ClienteResponseDTO> {
     try {
-      const tokenToValidate = token || this.getToken();
-      if (!tokenToValidate) return false;
-
-      // El token se envía automáticamente en el header por ApiClienteService
-      const response = await apiClienteService.get<{ valid?: boolean }>(`${this.BASE_URL}/validate`);
-      
-      // Si el backend devuelve un objeto con valid, úsalo; sino, considera true si no hay error
-      return response.valid !== false;
-    } catch (error) {
-      console.error('Error validating token:', error);
-      this.logout(); // Limpiar tokens inválidos
-      return false;
+      const response = await apiClienteService.post<RegisterResponse>(
+        "/auth0/register",
+        clienteData
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error en registro Auth0:", error);
+      throw error;
     }
   }
 
   /**
-   * Obtiene información del usuario actual desde el backend
+   * Completa el perfil de un usuario ya autenticado con Auth0
    */
-  static async getCurrentUser(): Promise<UserInfo | null> {
+  static async completeProfile(
+    clienteData: ClienteRegisterDTO
+  ): Promise<ClienteResponseDTO> {
     try {
-      const token = this.getToken();
-      if (!token) return null;
+      const response = await apiClienteService.post<RegisterResponse>(
+        "/auth0/complete-profile",
+        clienteData
+      );
+      console.log("✅ Profile completion successful");
+      return response.data;
+    } catch (error: any) {
+      console.error("Error completing profile:", error);
+      throw error;
+    }
+  }
 
-      const response = await apiClienteService.get<any>(`${this.BASE_URL}/me`);
-      
-      if (response.valid) {
-        const userInfo: UserInfo = {
-          email: response.email,
-          rol: response.rol || this.getUserInfo()?.rol || 'CLIENTE',
-          userId: response.userId || this.getUserInfo()?.userId || 0,
-          nombre: response.nombre || 'Usuario',
-          apellido: response.apellido || ''
-        };
-        
-        this.setUserInfo(userInfo);
-        return userInfo;
+  /**
+   * Obtiene información del usuario actual desde Auth0
+   */
+  static async getCurrentUser(): Promise<UserProfileResponse> {
+    try {
+      const response = await apiClienteService.get<UserProfileResponse>(
+        "/auth0/me"
+      );
+      return response;
+    } catch (error: any) {
+      console.error("Error obteniendo usuario actual:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Valida el token actual de Auth0
+   */
+  static async validateToken(): Promise<TokenValidationResponse> {
+    try {
+      const response = await apiClienteService.get<TokenValidationResponse>(
+        "/auth0/validate"
+      );
+      return response;
+    } catch (error: any) {
+      console.error("Error validando token:", error);
+      return { valid: false };
+    }
+  }
+
+  /**
+   * Fuerza la actualización de roles desde Auth0
+   */
+  static async refreshRoles(): Promise<RefreshRolesResponse> {
+    try {
+      const response = await apiClienteService.post<RefreshRolesResponse>(
+        "/auth0/refresh-roles"
+      );
+      return response;
+    } catch (error: any) {
+      console.error("Error refreshing roles:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualización de roles con token específico (para casos especiales)
+   */
+  static async refreshRolesWithToken(
+    token: string
+  ): Promise<RefreshRolesResponse> {
+    try {
+      const response = await fetch(
+        "http://localhost:8080/api/auth0/refresh-roles",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Error desconocido" }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("Error refreshing roles with token:", error);
+      throw error;
     }
-  }
-
-  /**
-   * Obtiene el token del localStorage
-   */
-  static getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  /**
-   * Guarda el token en localStorage
-   */
-  static setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    this.notifyListeners();
-  }
-
-  /**
-   * Obtiene la información del usuario del localStorage
-   */
-  static getUserInfo(): UserInfo | null {
-    const userInfo = localStorage.getItem(this.USER_KEY);
-    return userInfo ? JSON.parse(userInfo) : null;
-  }
-
-  /**
-   * Guarda la información del usuario en localStorage
-   */
-  static setUserInfo(userInfo: UserInfo): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(userInfo));
-    this.notifyListeners();
-  }
-
-  /**
-   * Verifica si el usuario está autenticado
-   */
-  static isAuthenticated(): boolean {
-    const token = this.getToken();
-    const userInfo = this.getUserInfo();
-    return token !== null && userInfo !== null;
-  }
-
-  /**
-   * Cierra la sesión del usuario
-   */
-  static logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this.notifyListeners();
-  }
-
-  /**
-   * Obtiene el rol del usuario actual
-   */
-  static getUserRole(): string | null {
-    const userInfo = this.getUserInfo();
-    return userInfo?.rol || null;
-  }
-
-  /**
-   * Verifica si el usuario tiene un rol específico
-   */
-  static hasRole(role: string): boolean {
-    const userRole = this.getUserRole();
-    return userRole === role;
-  }
-
-  /**
-   * Manejo centralizado de errores
-   */
-  private static handleError(error: any): Error {
-    // El error ya viene procesado desde ApiClienteService
-    return error instanceof Error ? error : new Error('Error al iniciar sesión');
   }
 }

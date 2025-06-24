@@ -1,18 +1,41 @@
-import { ApiClient } from "./ApiClient";
+import { apiClienteService } from "./ApiClientService";
 
 export interface UnidadMedidaDTO {
   idUnidadMedida: number;
   denominacion: string;
 }
 
-export class UnidadMedidaService extends ApiClient {
+/**
+ * Servicio para operaciones de unidades de medida
+ * Usa apiClienteService que maneja automáticamente los tokens de Auth0
+ */
+export class UnidadMedidaService {
   private readonly endpoint = "/unidades-medida";
 
   async getAll(): Promise<UnidadMedidaDTO[]> {
-    return this.get<UnidadMedidaDTO[]>(this.endpoint);
+    try {
+      return await apiClienteService.get<UnidadMedidaDTO[]>(this.endpoint);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   async getById(id: number): Promise<UnidadMedidaDTO> {
-    return this.get<UnidadMedidaDTO>(`${this.endpoint}/${id}`);
+    try {
+      return await apiClienteService.get<UnidadMedidaDTO>(
+        `${this.endpoint}/${id}`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Manejo centralizado de errores
+   */
+  private handleError(error: any): Error {
+    return error instanceof Error
+      ? error
+      : new Error("Error en el servicio de unidades de medida");
   }
 }
