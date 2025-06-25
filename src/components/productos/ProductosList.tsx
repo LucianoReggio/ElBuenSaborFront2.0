@@ -1,3 +1,4 @@
+// src/components/productos/ProductosList.tsx
 import React from "react";
 import { Table, type TableColumn } from "../common/Table";
 import { Button } from "../common/Button";
@@ -20,42 +21,89 @@ export const ProductosList: React.FC<ProductosListProps> = ({
 }) => {
   const columns: TableColumn<ArticuloManufacturadoResponseDTO>[] = [
     {
+      key: "imagen",
+      title: "Imagen",
+      width: "8%",
+      align: "center",
+      render: (_, record: ArticuloManufacturadoResponseDTO) => (
+        <div className="flex justify-center">
+          {record.imagenes && record.imagenes.length > 0 ? (
+            <img
+              src={record.imagenes[0].url}
+              alt={record.imagenes[0].denominacion}
+              className="w-12 h-12 object-cover rounded-lg shadow-sm"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "https://via.placeholder.com/48x48/f3f4f6/6b7280?text=Sin+Imagen";
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+              <span className="text-gray-400 text-xs">📷</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "denominacion",
       title: "Producto",
-      width: "25%",
+      width: "22%",
+      render: (value: string, record: ArticuloManufacturadoResponseDTO) => (
+        <div>
+          <p className="font-medium text-gray-900">{value}</p>
+          {record.descripcion && (
+            <p className="text-sm text-gray-500 truncate max-w-xs">
+              {record.descripcion}
+            </p>
+          )}
+        </div>
+      ),
     },
     {
       key: "categoria.denominacion",
       title: "Categoría",
       width: "15%",
       render: (_, record: ArticuloManufacturadoResponseDTO) => (
-        <span>
-            {record.categoria.denominacionCategoriaPadre
-              ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
-              : record.categoria.denominacion}
-      </span>
+        <span className="text-sm">
+          {record.categoria.denominacionCategoriaPadre
+            ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
+            : record.categoria.denominacion}
+        </span>
       ),
     },
     {
       key: "tiempoEstimadoEnMinutos",
       title: "Tiempo",
-      width: "10%",
+      width: "8%",
       align: "center",
-      render: (value: number) => `${value} min`,
+      render: (value: number) => (
+        <span className="text-sm font-medium text-blue-600">
+          {value} min
+        </span>
+      ),
     },
     {
       key: "costoTotal",
       title: "Costo",
       width: "10%",
       align: "right",
-      render: (value: number) => `$${value.toFixed(2)}`,
+      render: (value: number) => (
+        <span className="text-sm font-medium text-gray-700">
+          ${value.toFixed(2)}
+        </span>
+      ),
     },
     {
       key: "precioVenta",
       title: "Precio",
       width: "10%",
       align: "right",
-      render: (value: number) => `$${value.toFixed(2)}`,
+      render: (value: number) => (
+        <span className="text-sm font-bold text-green-600">
+          ${value.toFixed(2)}
+        </span>
+      ),
     },
     {
       key: "margenGanancia",
@@ -81,20 +129,25 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Stock",
       width: "8%",
       align: "center",
-      render: (value: boolean) => (
-        <span
-          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-            value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {value ? "OK" : "Falta"}
-        </span>
+      render: (value: boolean, record: ArticuloManufacturadoResponseDTO) => (
+        <div className="flex flex-col items-center">
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            }`}
+          >
+            {value ? "OK" : "Falta"}
+          </span>
+          <span className="text-xs text-gray-500 mt-1">
+            Max: {record.cantidadMaximaPreparable}
+          </span>
+        </div>
       ),
     },
     {
       key: "acciones",
       title: "Acciones",
-      width: "14%",
+      width: "11%",
       align: "center",
       render: (_, record: ArticuloManufacturadoResponseDTO) => (
         <div className="flex justify-center space-x-1">
@@ -102,12 +155,17 @@ export const ProductosList: React.FC<ProductosListProps> = ({
             size="sm"
             variant="secondary"
             onClick={() => onViewDetails(record)}
-            title="Ver detalles"
+            title="Ver detalles completos"
           >
-            Ver
+            👁️
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
-            Editar
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEdit(record)}
+            title="Editar producto"
+          >
+            ✏️
           </Button>
           <Button
             size="sm"
@@ -115,10 +173,12 @@ export const ProductosList: React.FC<ProductosListProps> = ({
             onClick={() => onDelete(record.idArticulo)}
             disabled={record.cantidadVendida > 0}
             title={
-              record.cantidadVendida > 0 ? "Producto con ventas" : "Eliminar"
+              record.cantidadVendida > 0 
+                ? "No se puede eliminar: producto con ventas" 
+                : "Eliminar producto"
             }
           >
-            Eliminar
+            🗑️
           </Button>
         </div>
       ),
@@ -126,12 +186,16 @@ export const ProductosList: React.FC<ProductosListProps> = ({
   ];
 
   return (
-    <Table
-      columns={columns}
-      data={productos}
-      loading={loading}
-      emptyText="No hay productos registrados"
-      rowClassName={(record) => (!record.stockSuficiente ? "bg-red-50" : "")}
-    />
+    <div className="bg-white rounded-lg shadow">
+      <Table
+        columns={columns}
+        data={productos}
+        loading={loading}
+        emptyText="No hay productos registrados"
+        rowClassName={(record) => 
+          !record.stockSuficiente ? "bg-red-50" : ""
+        }
+      />
+    </div>
   );
 };

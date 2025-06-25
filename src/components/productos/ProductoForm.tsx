@@ -3,9 +3,11 @@ import type { ArticuloManufacturadoRequestDTO } from "../../types/productos/Arti
 import type { ArticuloManufacturadoResponseDTO } from "../../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloInsumoResponseDTO } from "../../types/insumos/ArticuloInsumoResponseDTO";
 import type { CategoriaResponseDTO } from "../../types/categorias/CategoriaResponseDTO";
+import type { ImagenDTO } from "../../types/common/ImagenDTO";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
 import { Button } from "../common/Button";
+import { ImageUpload } from "../common/ImageUpload";
 import { IngredientesSelector } from "./IngredientesSelector";
 import type { UnidadMedidaDTO } from "../../services";
 import { CategoriaSelector } from "../common/CategoriaSelector";
@@ -39,6 +41,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     precioVenta: 0,
     margenGanancia: 2.5, // 250% por defecto
     detalles: [],
+    imagen: undefined, // Campo para la imagen
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,6 +60,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         precioVenta: producto.precioVenta,
         margenGanancia: producto.margenGanancia || 2.5,
         detalles: producto.detalles || [],
+        imagen: producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : undefined,
       });
       setUsarMargenAutomatico(false); // Si es edición, asumir precio manual
     }
@@ -127,6 +131,14 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     value: any
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (imagen: ImagenDTO | null) => {
+    updateField("imagen", imagen || undefined);
+    // Limpiar error de imagen si existe
+    if (errors.imagen) {
+      setErrors(prev => ({ ...prev, imagen: '' }));
+    }
   };
 
   const costoTotal = formData.detalles.reduce(
@@ -204,6 +216,29 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         </div>
       </div>
 
+      {/* Imagen del producto */}
+      <div className="border-b pb-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Imagen del Producto
+        </h2>
+        
+        <div className="max-w-md">
+          <ImageUpload
+            currentImage={formData.imagen}
+            onImageChange={handleImageChange}
+            placeholder="Selecciona una imagen atractiva del producto"
+            maxSize={5}
+            disabled={loading}
+          />
+          {errors.imagen && (
+            <p className="mt-2 text-sm text-red-600">{errors.imagen}</p>
+          )}
+          <p className="mt-2 text-sm text-gray-500">
+            Una buena imagen ayuda a las ventas. Se recomienda una foto del producto terminado.
+          </p>
+        </div>
+      </div>
+
       {/* Ingredientes */}
       <div className="border-b pb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -269,6 +304,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
                 checked={usarMargenAutomatico}
                 onChange={() => setUsarMargenAutomatico(true)}
                 className="mr-2"
+                disabled={loading}
               />
               Calcular precio automáticamente con margen
             </label>
@@ -279,6 +315,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
                 checked={!usarMargenAutomatico}
                 onChange={() => setUsarMargenAutomatico(false)}
                 className="mr-2"
+                disabled={loading}
               />
               Establecer precio manualmente
             </label>
@@ -296,6 +333,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
                 min={1}
                 step={0.1}
                 required
+                disabled={loading}
                 error={errors.margenGanancia}
                 helperText="2.5 = 250% sobre el costo"
               />
@@ -311,7 +349,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
               min={0}
               step={0.01}
               required
-              disabled={usarMargenAutomatico}
+              disabled={usarMargenAutomatico || loading}
               error={errors.precioVenta}
               helperText={
                 usarMargenAutomatico
