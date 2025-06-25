@@ -1,5 +1,5 @@
 // src/components/productos/ProductosList.tsx
-import React from "react";
+import React, { act } from "react";
 import { Table, type TableColumn } from "../common/Table";
 import { Button } from "../common/Button";
 import type { ArticuloManufacturadoResponseDTO } from "../../types/productos/ArticuloManufacturadoResponseDTO";
@@ -8,15 +8,18 @@ interface ProductosListProps {
   productos: ArticuloManufacturadoResponseDTO[];
   loading?: boolean;
   onEdit: (producto: ArticuloManufacturadoResponseDTO) => void;
-  onDelete: (id: number) => void;
+  desactivarProducto: (id: number) => void;
+  activarProducto: (id: number) => void;
   onViewDetails: (producto: ArticuloManufacturadoResponseDTO) => void;
+  onActivate?: (id: number) => void; // Nuevo prop si lo querés separado
 }
 
 export const ProductosList: React.FC<ProductosListProps> = ({
   productos,
   loading = false,
   onEdit,
-  onDelete,
+  desactivarProducto,
+  activarProducto,
   onViewDetails,
 }) => {
   const columns: TableColumn<ArticuloManufacturadoResponseDTO>[] = [
@@ -65,7 +68,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Categoría",
       width: "15%",
       render: (_, record: ArticuloManufacturadoResponseDTO) => (
-        <span className="text-sm">
+        <span>
           {record.categoria.denominacionCategoriaPadre
             ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
             : record.categoria.denominacion}
@@ -151,51 +154,53 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       align: "center",
       render: (_, record: ArticuloManufacturadoResponseDTO) => (
         <div className="flex justify-center space-x-1">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onViewDetails(record)}
-            title="Ver detalles completos"
-          >
-            👁️
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onEdit(record)}
-            title="Editar producto"
-          >
-            ✏️
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => onDelete(record.idArticulo)}
-            disabled={record.cantidadVendida > 0}
-            title={
-              record.cantidadVendida > 0 
-                ? "No se puede eliminar: producto con ventas" 
-                : "Eliminar producto"
-            }
-          >
-            🗑️
-          </Button>
+          {record.eliminado ? (
+            <Button
+              size="sm"
+              className="bg-blue-100 text-blue-800 hover:bg-blue-200"
+              onClick={() => activarProducto(record.idArticulo)}
+              title="Activar producto"
+            >
+              Activar
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onViewDetails(record)}
+                title="Ver detalles"
+              >
+                Ver
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
+                Editar
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => desactivarProducto(record.idArticulo)}              >
+                Eliminar
+              </Button>
+            </>
+          )}
         </div>
       ),
     },
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <Table
-        columns={columns}
-        data={productos}
-        loading={loading}
-        emptyText="No hay productos registrados"
-        rowClassName={(record) => 
-          !record.stockSuficiente ? "bg-red-50" : ""
-        }
-      />
-    </div>
+    <Table
+      
+      columns={columns}
+      data={productos}
+      loading={loading}
+      emptyText="No hay productos registrados"
+      rowClassName={(record) => {
+        if (record.eliminado) return "bg-gray-400 ";
+        if (!record.stockSuficiente) return "bg-red-50";
+        return "";
+      }}
+    />
   );
 };

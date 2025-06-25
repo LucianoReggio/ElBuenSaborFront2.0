@@ -6,6 +6,7 @@ export interface ArticuloManufacturadoResponseDTO {
   idArticulo: number;
   denominacion: string;
   precioVenta: number;
+  eliminado: boolean;   // <- agregar este campo
 
   idUnidadMedida: number;
   denominacionUnidadMedida: string;
