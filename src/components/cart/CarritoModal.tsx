@@ -1,4 +1,3 @@
-// src/components/cart/CarritoModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingCart, Clock, Truck, Store } from 'lucide-react';
 import { useCarritoContext } from '../../context/CarritoContext';
@@ -7,7 +6,6 @@ import CheckoutModal from './CheckoutModal';
 interface CarritoModalProps {
   abierto: boolean;
   onCerrar: () => void;
-  items: CarritoItem[];
 }
 
 const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
@@ -62,35 +60,113 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
   };
 
   return (
-    <div className="fixed inset-0  bg-opacity-30 z-50 flex justify-end">
-      <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-[#CD6C50]">Carrito de Compras</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-1 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <ShoppingCart className="w-6 h-6 text-[#CD6C50]" />
+            <h2 className="text-2xl font-bold text-gray-800">Mi Carrito</h2>
+            {carrito.cantidadTotal > 0 && (
+              <span className="bg-[#CD6C50] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                {carrito.cantidadTotal} productos
+              </span>
+            )}
+          </div>
           <button
-            className="text-gray-400 hover:text-gray-700 text-2xl font-bold"
             onClick={onCerrar}
-            title="Cerrar"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
           >
-            ×
+            <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
+
+        {/* Contenido del carrito */}
         <div className="flex-1 overflow-y-auto">
-          {items.length === 0 ? (
-            <p className="text-gray-500 text-center mt-10">¡El carrito está vacío!</p>
+          {carrito.estaVacio ? (
+            // Carrito vacío
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ShoppingCart className="w-16 h-16 text-gray-300 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-500 mb-2">Tu carrito está vacío</h3>
+              <p className="text-gray-400 mb-6">¡Agrega algunos productos deliciosos!</p>
+              <button
+                onClick={onCerrar}
+                className="px-6 py-3 bg-[#CD6C50] text-white rounded-lg hover:bg-[#b85a42] transition-colors duration-200"
+              >
+                Seguir comprando
+              </button>
+            </div>
           ) : (
-            <ul className="divide-y">
-              {items.map((item) => (
-                <li key={item.id} className="py-4 flex justify-between items-center">
-                  <div>
-                    <span className="font-semibold">{item.nombre}</span>
-                    <span className="text-sm text-gray-400 ml-2">x{item.cantidad}</span>
+            // Lista de productos
+            <div className="p-10 space-y-2">
+              {carrito.items.map((item) => (
+                <div key={item.id} className="flex items-center space-x-4 bg-gray-50 rounded-lg p-4">
+                  
+                  {/* Imagen del producto */}
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {item.imagen ? (
+                      <img 
+                        src={item.imagen} 
+                        alt={item.nombre}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <span className="text-[#CD6C50] font-bold text-lg">
+                        {item.nombre.charAt(0)}
+                      </span>
+                    )}
                   </div>
-                  <div className="font-semibold text-[#CD6C50]">
-                    ${(item.precio * item.cantidad).toFixed(2)}
+
+                  {/* Información del producto */}
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-800 text-lg">{item.nombre}</h4>
+                    <p className="text-[#CD6C50] font-bold text-lg">${item.precio.toFixed(0)}</p>
+                    {item.tiempoPreparacion && (
+                      <div className="flex items-center text-sm text-gray-500 mt-1">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {item.tiempoPreparacion} min
+                      </div>
+                    )}
                   </div>
-                </li>
+
+                  {/* Controles de cantidad */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => carrito.decrementarCantidad(item.id)}
+                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors duration-200"
+                    >
+                      <Minus className="w-4 h-4 text-gray-600" />
+                    </button>
+                    
+                    <span className="font-semibold text-lg min-w-[2rem] text-center">
+                      {item.cantidad}
+                    </span>
+                    
+                    <button
+                      onClick={() => carrito.incrementarCantidad(item.id)}
+                      className="w-8 h-8 rounded-full bg-[#CD6C50] hover:bg-[#b85a42] text-white flex items-center justify-center transition-colors duration-200"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Subtotal y eliminar */}
+                  <div className="flex flex-col items-end space-y-2">
+                    <span className="font-bold text-lg text-gray-800">
+                      ${(item.precio * item.cantidad).toFixed(0)}
+                    </span>
+                    <button
+                      onClick={() => carrito.removerItem(item.id)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors duration-200"
+                      title="Eliminar producto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 
@@ -194,6 +270,11 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
           </div>
         )}
       </div>
+      <CheckoutModal
+        abierto={checkoutAbierto}
+        onCerrar={() => setCheckoutAbierto(false)}
+        onExito={handlePedidoExitoso}
+      />
     </div>
   );
 };
