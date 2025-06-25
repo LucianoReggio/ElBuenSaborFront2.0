@@ -1,50 +1,129 @@
 // src/pages/MisPedidos.tsx
 import React, { useState, useEffect } from 'react';
-import { Clock, MapPin, Phone, Package, Truck, Store, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, MapPin, Phone, Package, Truck, Store, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { PedidoService } from '../services/PedidoServices';
 import { useAuth } from '../hooks/useAuth';
 import type { PedidoResponseDTO } from '../types/pedidos/PedidoResponseDTO';
 
+// 🆕 NUEVO: Importaciones para facturas
+import { BotonDescargarFacturaPdf } from '../components/facturas/BotonDescargarFactura';
+import { useFacturas } from '../hooks/useFacturas';
+
 const pedidoService = new PedidoService();
 
 const MisPedidos: React.FC = () => {
-  const { user } = useAuth();
+  const { user, backendSynced } = useAuth();
   const [pedidos, setPedidos] = useState<PedidoResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pedidoExpandido, setPedidoExpandido] = useState<number | null>(null);
 
+  // 🆕 NUEVO: Hook para facturas y estado
+  const { checkFacturaExists } = useFacturas();
+  const [pedidosConFactura, setPedidosConFactura] = useState<Set<number>>(new Set());
+  const [verificandoFacturas, setVerificandoFacturas] = useState(false);
+
+  // 🆕 NUEVO: Función helper para obtener el ID correcto del usuario
+  const getUserId = () => {
+    // Si es BackendUser (tiene idCliente)
+    if ((user as any)?.idCliente) {
+      return (user as any).idCliente;
+    }
+
+    // Si es el formato original (tiene userId)
+    if ((user as any)?.userId) {
+      return (user as any).userId;
+    }
+
+    // Fallbacks adicionales
+    if ((user as any)?.sub) {
+      return (user as any).sub;
+    }
+
+    if ((user as any)?.id) {
+      return (user as any).id;
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     console.log('🔍 User object:', user);
-  console.log('🔍 User ID:', user?.userId);
-  console.log('🔍 Is authenticated:', !!user?.userId);
-    if (user?.userId) {
+    console.log('🔍 User ID:', user?.userId);
+    console.log('🔍 Backend synced:', backendSynced);
+
+    // ✅ MANTENER tu lógica original pero agregar fallback
+    const userId = getUserId();
+    console.log('🔍 Resolved User ID:', userId);
+
+    if (user?.userId && backendSynced) {
       cargarPedidos();
     }
-  }, [user]);
+  }, [user, backendSynced]);
 
   const cargarPedidos = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      if (!user?.userId) {
+
+      // ✅ MANTENER tu validación original pero con fallback
+      const userId = user?.userId || getUserId();
+      if (!userId) {
         setError('Usuario no autenticado');
         return;
       }
 
-      const pedidosUsuario = await pedidoService.getPedidosByCliente(user.userId);
-        console.log('✅ Pedidos recibidos:', pedidosUsuario);
-    console.log('📊 Cantidad de pedidos:', pedidosUsuario.length);
+      const pedidosUsuario = await pedidoService.getPedidosByCliente(userId);
+      console.log('✅ Pedidos recibidos:', pedidosUsuario);
+      console.log('📊 Cantidad de pedidos:', pedidosUsuario.length);
+
       setPedidos(pedidosUsuario);
       console.log('📋 Pedidos cargados:', pedidosUsuario.length);
-    } catch (err) {
 
+      // 🆕 NUEVO: Verificar facturas después de cargar pedidos
+      if (pedidosUsuario.length > 0) {
+        await verificarFacturas(pedidosUsuario);
+      }
+
+    } catch (err) {
       console.error('❌ Error al cargar pedidos:', err);
       setError('Error al cargar los pedidos. Por favor, intenta de nuevo.');
     } finally {
-        console.log('🏁 Terminando carga, setLoading(false)');
+      console.log('🏁 Terminando carga, setLoading(false)');
       setLoading(false);
+    }
+  };
+
+  // 🆕 NUEVO: Función para verificar qué pedidos tienen factura
+  const verificarFacturas = async (pedidos: PedidoResponseDTO[]) => {
+    setVerificandoFacturas(true);
+    const facturasSet = new Set<number>();
+
+    try {
+      console.log('🔍 Verificando facturas para', pedidos.length, 'pedidos...');
+
+      // Verificar cada pedido de forma secuencial para evitar sobrecarga
+      for (const pedido of pedidos) {
+        try {
+          const tieneFactura = await checkFacturaExists(pedido.idPedido);
+          if (tieneFactura) {
+            facturasSet.add(pedido.idPedido);
+            console.log(`✅ Factura encontrada para pedido ${pedido.idPedido}`);
+          } else {
+            console.log(`ℹ️ Sin factura para pedido ${pedido.idPedido}`);
+          }
+        } catch (error) {
+          console.log(`⚠️ Error verificando factura del pedido ${pedido.idPedido}:`, error);
+        }
+      }
+
+      setPedidosConFactura(facturasSet);
+      console.log(`📄 Total pedidos con factura: ${facturasSet.size}/${pedidos.length}`);
+
+    } catch (error) {
+      console.error('❌ Error verificando facturas:', error);
+    } finally {
+      setVerificandoFacturas(false);
     }
   };
 
@@ -54,41 +133,41 @@ const MisPedidos: React.FC = () => {
 
   const getEstadoConfig = (estado: string) => {
     const estados = {
-      'PENDIENTE': { 
-        texto: 'Pendiente', 
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
+      'PENDIENTE': {
+        texto: 'Pendiente',
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         icono: '⏳',
         descripcion: 'Tu pedido está siendo procesado'
       },
-      'PREPARACION': { 
-        texto: 'En Preparación', 
-        color: 'bg-blue-100 text-blue-800 border-blue-200', 
+      'PREPARACION': {
+        texto: 'En Preparación',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
         icono: '👨‍🍳',
         descripcion: 'Nuestros chefs están preparando tu pedido'
       },
-      'ENTREGADO': { 
-        texto: 'Entregado', 
-        color: 'bg-green-100 text-green-800 border-green-200', 
+      'ENTREGADO': {
+        texto: 'Entregado',
+        color: 'bg-green-100 text-green-800 border-green-200',
         icono: '✅',
         descripcion: 'Tu pedido ha sido entregado'
       },
-      'CANCELADO': { 
-        texto: 'Cancelado', 
-        color: 'bg-red-100 text-red-800 border-red-200', 
+      'CANCELADO': {
+        texto: 'Cancelado',
+        color: 'bg-red-100 text-red-800 border-red-200',
         icono: '❌',
         descripcion: 'El pedido fue cancelado'
       },
-      'RECHAZADO': { 
-        texto: 'Rechazado', 
-        color: 'bg-red-100 text-red-800 border-red-200', 
+      'RECHAZADO': {
+        texto: 'Rechazado',
+        color: 'bg-red-100 text-red-800 border-red-200',
         icono: '🚫',
         descripcion: 'El pedido fue rechazado'
       }
     };
-    
-    return estados[estado as keyof typeof estados] || { 
-      texto: estado, 
-      color: 'bg-gray-100 text-gray-800 border-gray-200', 
+
+    return estados[estado as keyof typeof estados] || {
+      texto: estado,
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
       icono: '❓',
       descripcion: 'Estado desconocido'
     };
@@ -107,6 +186,36 @@ const MisPedidos: React.FC = () => {
         minute: '2-digit'
       })
     };
+  };
+
+  // 🆕 NUEVO: Componente para el botón de factura
+  const BotonFactura: React.FC<{ pedido: PedidoResponseDTO }> = ({ pedido }) => {
+    const tieneFactura = pedidosConFactura.has(pedido.idPedido);
+
+    if (!tieneFactura) {
+      return (
+        <div className="flex items-center text-sm text-gray-400">
+          <FileText className="w-4 h-4 mr-1" />
+          <span>Sin factura</span>
+        </div>
+      );
+    }
+
+    return (
+      <BotonDescargarFacturaPdf
+        pedidoId={pedido.idPedido}
+        size="sm"
+        variant="outline"
+        texto="📄 Factura PDF"
+        className="text-sm"
+        onSuccess={() => {
+          console.log(`✅ Factura descargada para pedido ${pedido.idPedido}`);
+        }}
+        onError={(error) => {
+          console.error(`❌ Error descargando factura del pedido ${pedido.idPedido}:`, error);
+        }}
+      />
+    );
   };
 
   if (loading) {
@@ -148,10 +257,16 @@ const MisPedidos: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Mis Pedidos</h1>
         <p className="text-gray-600">
-          {pedidos.length > 0 
+          {pedidos.length > 0
             ? `Tienes ${pedidos.length} pedido${pedidos.length !== 1 ? 's' : ''}`
             : 'Aún no has realizado ningún pedido'
           }
+          {/* 🆕 NUEVO: Indicador de verificación de facturas */}
+          {verificandoFacturas && (
+            <span className="ml-2 text-sm text-blue-600">
+              • Verificando facturas...
+            </span>
+          )}
         </p>
       </div>
 
@@ -178,7 +293,7 @@ const MisPedidos: React.FC = () => {
 
             return (
               <div key={pedido.idPedido} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                
+
                 {/* Header del pedido */}
                 <div className="p-6 border-b border-gray-100">
                   <div className="flex items-center justify-between mb-4">
@@ -190,7 +305,7 @@ const MisPedidos: React.FC = () => {
                         {fechaFormateada.fecha} a las {fechaFormateada.hora}
                       </p>
                     </div>
-                    
+
                     <div className="text-right">
                       <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${estadoConfig.color} mb-2`}>
                         <span className="mr-2">{estadoConfig.icono}</span>
@@ -214,14 +329,14 @@ const MisPedidos: React.FC = () => {
                         {pedido.tipoEnvio === 'DELIVERY' ? 'Delivery' : 'Retiro en local'}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Clock className="w-5 h-5 text-[#CD6C50]" />
                       <span className="text-gray-700">
                         {pedido.tiempoEstimadoTotal} min estimados
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Package className="w-5 h-5 text-[#CD6C50]" />
                       <span className="text-gray-700">
@@ -233,24 +348,30 @@ const MisPedidos: React.FC = () => {
                   {/* Estado descripción */}
                   <p className="text-sm text-gray-600 mb-4">{estadoConfig.descripcion}</p>
 
-                  {/* Botón expandir */}
-                  <button
-                    onClick={() => toggleExpandir(pedido.idPedido)}
-                    className="flex items-center space-x-2 text-[#CD6C50] hover:text-[#b85a42] transition-colors duration-200"
-                  >
-                    <span>{expandido ? 'Ocultar detalles' : 'Ver detalles'}</span>
-                    {expandido ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
+                  {/* 🆕 MODIFICADO: Sección de acciones con facturas */}
+                  <div className="flex items-center justify-between">
+                    {/* Botón expandir (tu código original) */}
+                    <button
+                      onClick={() => toggleExpandir(pedido.idPedido)}
+                      className="flex items-center space-x-2 text-[#CD6C50] hover:text-[#b85a42] transition-colors duration-200"
+                    >
+                      <span>{expandido ? 'Ocultar detalles' : 'Ver detalles'}</span>
+                      {expandido ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+
+                    {/* 🆕 NUEVO: Botón de factura */}
+                    <BotonFactura pedido={pedido} />
+                  </div>
                 </div>
 
-                {/* Detalles expandidos */}
+                {/* Detalles expandidos (tu código original sin cambios) */}
                 {expandido && (
                   <div className="p-6 bg-gray-50">
-                    
+
                     {/* Productos */}
                     <div className="mb-6">
                       <h4 className="font-semibold text-gray-800 mb-4">Productos</h4>

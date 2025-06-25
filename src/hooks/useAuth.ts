@@ -5,6 +5,7 @@ import { apiClienteService } from "../services/ApiClientService";
 
 interface BackendUser {
   idCliente: number;
+  userId?: number; // Opcional, para compatibilidad con versiones anteriores
   nombre: string;
   apellido: string;
   email: string;
