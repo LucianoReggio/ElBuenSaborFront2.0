@@ -42,13 +42,32 @@ export class ProductoService {
     }
   }
   
-   async desactivar(id: number): Promise<void> {
-    return this.deleteRequest<void>(`${this.endpoint}/${id}/desactivar`);
+  async desactivar(id: number): Promise<ArticuloManufacturadoResponseDTO> {
+    try {
+      return await apiClienteService.deleteRequest<ArticuloManufacturadoResponseDTO>(
+        `${this.endpoint}/${id}/desactivar`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
-  async activar(id: number): Promise<void> {
-    return this.put<void>(`${this.endpoint}/${id}/activar`);
+   async activar(id: number): Promise<ArticuloManufacturadoResponseDTO> {
+    try {
+      return await apiClienteService.put<ArticuloManufacturadoResponseDTO>(
+        `${this.endpoint}/${id}/activar`
+      );
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
+  //  async desactivar(id: number): Promise<void> {
+  //   return this.deleteRequest<void>(`${this.endpoint}/${id}/desactivar`);
+  // }
+
+  // async activar(id: number): Promise<void> {
+  //   return this.put<void>(`${this.endpoint}/${id}/activar`);
+  // }
 
   async update(
     id: number,
