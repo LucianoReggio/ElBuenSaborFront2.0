@@ -28,7 +28,6 @@ const Catalogo: React.FC = () => {
   // Aplicar filtros
   useEffect(() => {
     let productosTemp = productos;
-    productosTemp = productosTemp.filter(p => !p.eliminado); // o p.activo === true, según tu modelo
 
     // Filtro por búsqueda
     if (busqueda.trim()) {
