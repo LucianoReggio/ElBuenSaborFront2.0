@@ -1,5 +1,4 @@
-// src/components/productos/ProductosList.tsx
-import React, { act } from "react";
+import React from "react";
 import { Table, type TableColumn } from "../common/Table";
 import { Button } from "../common/Button";
 import type { ArticuloManufacturadoResponseDTO } from "../../types/productos/ArticuloManufacturadoResponseDTO";
@@ -11,7 +10,7 @@ interface ProductosListProps {
   desactivarProducto: (id: number) => void;
   activarProducto: (id: number) => void;
   onViewDetails: (producto: ArticuloManufacturadoResponseDTO) => void;
-  onActivate?: (id: number) => void; // Nuevo prop si lo querés separado
+  idProductoEnAccion?: number | null;
 }
 
 export const ProductosList: React.FC<ProductosListProps> = ({
@@ -21,6 +20,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
   desactivarProducto,
   activarProducto,
   onViewDetails,
+  idProductoEnAccion,
 }) => {
   const columns: TableColumn<ArticuloManufacturadoResponseDTO>[] = [
     {
@@ -28,7 +28,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Imagen",
       width: "8%",
       align: "center",
-      render: (_, record: ArticuloManufacturadoResponseDTO) => (
+      render: (_, record) => (
         <div className="flex justify-center">
           {record.imagenes && record.imagenes.length > 0 ? (
             <img
@@ -37,7 +37,8 @@ export const ProductosList: React.FC<ProductosListProps> = ({
               className="w-12 h-12 object-cover rounded-lg shadow-sm"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = "https://via.placeholder.com/48x48/f3f4f6/6b7280?text=Sin+Imagen";
+                target.src =
+                  "https://via.placeholder.com/48x48/f3f4f6/6b7280?text=Sin+Imagen";
               }}
             />
           ) : (
@@ -52,7 +53,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       key: "denominacion",
       title: "Producto",
       width: "22%",
-      render: (value: string, record: ArticuloManufacturadoResponseDTO) => (
+      render: (value, record) => (
         <div>
           <p className="font-medium text-gray-900">{value}</p>
           {record.descripcion && (
@@ -67,7 +68,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       key: "categoria.denominacion",
       title: "Categoría",
       width: "15%",
-      render: (_, record: ArticuloManufacturadoResponseDTO) => (
+      render: (_, record) => (
         <span>
           {record.categoria.denominacionCategoriaPadre
             ? `${record.categoria.denominacionCategoriaPadre} > ${record.categoria.denominacion}`
@@ -80,10 +81,8 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Tiempo",
       width: "8%",
       align: "center",
-      render: (value: number) => (
-        <span className="text-sm font-medium text-blue-600">
-          {value} min
-        </span>
+      render: (value) => (
+        <span className="text-sm font-medium text-blue-600">{value} min</span>
       ),
     },
     {
@@ -132,7 +131,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Stock",
       width: "8%",
       align: "center",
-      render: (value: boolean, record: ArticuloManufacturadoResponseDTO) => (
+      render: (value: boolean, record) => (
         <div className="flex flex-col items-center">
           <span
             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -152,7 +151,7 @@ export const ProductosList: React.FC<ProductosListProps> = ({
       title: "Acciones",
       width: "11%",
       align: "center",
-      render: (_, record: ArticuloManufacturadoResponseDTO) => (
+      render: (_, record) => (
         <div className="flex justify-center space-x-1">
           {record.eliminado ? (
             <Button
@@ -160,8 +159,9 @@ export const ProductosList: React.FC<ProductosListProps> = ({
               className="bg-blue-100 text-blue-800 hover:bg-blue-200"
               onClick={() => activarProducto(record.idArticulo)}
               title="Activar producto"
+              disabled={idProductoEnAccion === record.idArticulo}
             >
-              Activar
+              {idProductoEnAccion === record.idArticulo ? "..." : "Activar"}
             </Button>
           ) : (
             <>
@@ -179,8 +179,10 @@ export const ProductosList: React.FC<ProductosListProps> = ({
               <Button
                 size="sm"
                 variant="danger"
-                onClick={() => desactivarProducto(record.idArticulo)}              >
-                Eliminar
+                onClick={() => desactivarProducto(record.idArticulo)}
+                disabled={idProductoEnAccion === record.idArticulo}
+              >
+                {idProductoEnAccion === record.idArticulo ? "..." : "Eliminar"}
               </Button>
             </>
           )}
@@ -191,7 +193,6 @@ export const ProductosList: React.FC<ProductosListProps> = ({
 
   return (
     <Table
-      
       columns={columns}
       data={productos}
       loading={loading}
