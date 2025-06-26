@@ -24,6 +24,7 @@ import Catalogo from "./pages/Catalogo";
 import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
+import {GestionPedidos} from "./pages/GestionPedidos"; // ← Nueva importación
 
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
@@ -65,12 +66,12 @@ const CallbackPage: React.FC = () => {
   return <Navigate to="/" replace />;
 };
 
-// Componente para proteger rutas administrativas
+// ← COMPONENTE PROTECTEDROUTE MEJORADO PARA MÚLTIPLES ROLES
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
-  requiredRole?: string;
+  allowedRoles?: string[]; // ← Cambiar a array de roles
   fallbackTo?: string;
-}> = ({ children, requiredRole = "ADMIN", fallbackTo = "/" }) => {
+}> = ({ children, allowedRoles = ["ADMIN"], fallbackTo = "/" }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -91,7 +92,8 @@ const ProtectedRoute: React.FC<{
   // Obtener rol del usuario (compatibilidad con diferentes estructuras)
   const userRole = (user as any)?.usuario?.rol || (user as any)?.rol;
 
-  if (requiredRole && userRole !== requiredRole) {
+  // ← VERIFICAR SI EL ROL ESTÁ EN LA LISTA DE ROLES PERMITIDOS
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center p-8">
@@ -263,6 +265,23 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </svg>
               Control Stock
             </NavLink>
+            {/* ← AGREGAR ENLACE A GESTIÓN DE PEDIDOS EN EL SIDEBAR */}
+            <NavLink to="/gestion-pedidos">
+              <svg
+                className="w-5 h-5 mr-3 transition-colors duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              Gestión Pedidos
+            </NavLink>
           </div>
         </nav>
 
@@ -374,11 +393,23 @@ function App() {
             }
           />
 
+          {/* ← NUEVA RUTA PARA GESTIÓN DE PEDIDOS (ADMIN Y CAJERO) */}
+          <Route
+            path="/gestion-pedidos"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "CAJERO"]}>
+                <AdminLayout>
+                  <GestionPedidos />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Rutas administrativas (requieren rol ADMIN) */}
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <Dashboard />
                 </AdminLayout>
@@ -388,7 +419,7 @@ function App() {
           <Route
             path="/categorias"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <Categorias />
                 </AdminLayout>
@@ -398,7 +429,7 @@ function App() {
           <Route
             path="/insumos"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <Insumos />
                 </AdminLayout>
@@ -408,7 +439,7 @@ function App() {
           <Route
             path="/productos"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <Productos />
                 </AdminLayout>
@@ -418,7 +449,7 @@ function App() {
           <Route
             path="/stock"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <StockControl />
                 </AdminLayout>
@@ -430,7 +461,7 @@ function App() {
           <Route
             path="/delivery"
             element={
-              <ProtectedRoute requiredRole="DELIVERY" fallbackTo="/catalogo">
+              <ProtectedRoute allowedRoles={["DELIVERY"]} fallbackTo="/catalogo">
                 <PublicLayout>
                   <DeliveryDashboard />
                 </PublicLayout>

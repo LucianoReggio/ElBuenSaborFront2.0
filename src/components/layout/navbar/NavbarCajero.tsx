@@ -7,6 +7,7 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // ← Agregar esta importación
 
 interface NavbarCajeroProps {
   user?: {
@@ -30,6 +31,7 @@ export default function NavbarCajero({
 }: NavbarCajeroProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate(); // ← Agregar esta línea
 
   const formatRole = (role?: string) => {
     const roleMap: { [key: string]: string } = {
@@ -161,9 +163,13 @@ export default function NavbarCajero({
                 <Receipt className="h-4 w-4" />
                 <span className="text-sm font-medium">Nueva Venta</span>
               </button>
-              <button className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200">
+              {/* ← CAMBIAR ESTE BOTÓN */}
+              <button 
+                onClick={() => navigate("/gestion-pedidos")}
+                className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+              >
                 <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">Pedidos</span>
+                <span className="text-sm font-medium">Gestión Pedidos</span>
               </button>
               <button className="flex items-center space-x-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200">
                 <DollarSign className="h-4 w-4" />
