@@ -1,4 +1,3 @@
-// src/components/cart/CarritoModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingCart, Clock, Truck, Store } from 'lucide-react';
 import { useCarritoContext } from '../../context/CarritoContext';

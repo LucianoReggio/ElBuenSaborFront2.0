@@ -76,13 +76,14 @@ export const useCatalogoProductos = () => {
     try {
       // Fetch productos manufacturados
       const productosManufacturados = await productoService.getAll();
-      
+      const productosManufacturadosActivos = productosManufacturados.filter(p => !p.eliminado);
+
       // Fetch insumos para venta (no para elaborar)
       const todosInsumos = await insumoService.getAll();
       const insumosParaVenta = todosInsumos.filter(insumo => !insumo.esParaElaborar);
 
       // Mapear y combinar
-      const productosMap = productosManufacturados.map(mapearManufacturado);
+      const productosMap = productosManufacturadosActivos.map(mapearManufacturado);
       const insumosMap = insumosParaVenta.map(mapearInsumo);
 
       // Combinar y ordenar por categoría y nombre

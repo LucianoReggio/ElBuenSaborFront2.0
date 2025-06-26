@@ -55,12 +55,30 @@ export const useProductos = () => {
     }
   };
 
+    const desactivarProducto = async (id: number) => {
+    try {
+      await productoService.desactivar(id);
+      await fetchProductos();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const activarProducto = async (id: number) => {
+    try {
+      await productoService.activar(id);
+      await fetchProductos();
+    } catch (err) {
+      throw err;
+    }
+  };
+
   const getProductoById = async (id: number) => {
     try {
       return await productoService.getById(id);
     } catch (err) {
       throw err;
-    }
+  }
   };
 
   const getProductosByCategoria = async (idCategoria: number) => {
@@ -110,7 +128,9 @@ export const useProductos = () => {
     updateProducto,
     deleteProducto,
     getProductoById,
-
+    desactivarProducto,
+    activarProducto,
+    
     // Operaciones específicas
     getProductosByCategoria,
     getProductosDisponibles,

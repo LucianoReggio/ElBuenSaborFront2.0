@@ -111,16 +111,9 @@ export function Table<T extends Record<string, any>>({
                     transition-colors border-b
                     ${onRowClick ? "cursor-pointer" : ""}
                     ${rowClassName ? rowClassName(record) : ""}
+                    hover:bg-orange-50
                   `}
-                  style={{ 
-                    borderBottomColor: "#E29C44"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "rgba(226, 156, 68, 0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#F7F7F5";
-                  }}
+                  style={{ borderBottomColor: "#E29C44" }}
                   onClick={() => onRowClick?.(record)}
                 >
                   {columns.map((column, colIndex) => {
