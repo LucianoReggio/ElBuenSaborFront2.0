@@ -400,7 +400,7 @@ function App() {
           <Route
             path="/usuarios"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <Usuarios />
                 </AdminLayout>
@@ -410,7 +410,7 @@ function App() {
           <Route
             path="/usuarios"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminLayout>
                   <StockControl />
                 </AdminLayout>
@@ -427,7 +427,7 @@ function App() {
               </ProtectedRoute>
             }
             
-            >
+            />
 
           {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route
