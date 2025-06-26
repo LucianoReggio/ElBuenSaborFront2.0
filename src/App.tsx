@@ -26,6 +26,7 @@ import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 
+
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
   const { isLoading, error } = useAuth0();
@@ -361,6 +362,16 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <AdminLayout>
                   <Productos />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout>
+                  <Usuarios />
                 </AdminLayout>
               </ProtectedRoute>
             }

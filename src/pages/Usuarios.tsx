@@ -1,30 +1,58 @@
 // src/pages/Usuarios.tsx
 import { useUsuarios } from "../hooks/useUsuarios";
-import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import { useState } from "react";
+import { Table } from "../components/common/Table";
+import type { TableColumn } from "../components/common/Table";
+import { useState, useEffect } from "react";
+
+type UsuarioType = {
+  idUsuario: number;
+  email: string;
+  rol: string;
+  nombre: string;
+  apellido: string;
+};
+
+const columns: TableColumn<UsuarioType>[] = [
+  { key: "idUsuario", title: "Id" },
+  { key: "email", title: "Email" },
+  { key: "rol", title: "Rol" },
+  { key: "nombre", title: "Nombre" },
+  { key: "apellido", title: "Apellido" },
+  {
+    key: "acciones",
+    title: "Acciones",
+    align: "right",
+    render: (_: any, u) => (
+      <button
+        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-lg"
+        title="Ver"
+      >
+        Ver
+      </button>
+    ),
+  },
+];
 
 const Usuarios = () => {
   const { usuarios, loading } = useUsuarios();
   const [filtroEmail, setFiltroEmail] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
-  const [resultados, setResultados] = useState(usuarios);
+  const [resultados, setResultados] = useState<UsuarioType[]>([]);
 
-  const buscarUsuarios = () => {
-    const filtrados = usuarios.filter((u) =>
+  useEffect(() => {
+    const filtrados = usuarios.filter((u: UsuarioType) =>
       u.email.toLowerCase().includes(filtroEmail.toLowerCase()) &&
       u.rol.toLowerCase().includes(filtroRol.toLowerCase())
     );
     setResultados(filtrados);
-  };
-
-  if (loading) return <LoadingSpinner />;
+  }, [usuarios, filtroEmail, filtroRol]);
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-2">Gestión de Usuarios</h2>
       <p className="text-gray-600 mb-6">Administre los usuarios registrados</p>
 
-      {/* 🔍 Filtros */}
+      {/* Filtros */}
       <div className="mb-4 flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-sm font-medium">Email</label>
@@ -36,7 +64,6 @@ const Usuarios = () => {
             onChange={(e) => setFiltroEmail(e.target.value)}
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium">Rol</label>
           <select
@@ -52,49 +79,14 @@ const Usuarios = () => {
             <option value="DELIVERY">Delivery</option>
           </select>
         </div>
-
-        <button
-          onClick={buscarUsuarios}
-          className="bg-[#CD6C50] hover:bg-[#b3593f] text-white px-4 py-2 rounded"
-        >
-          Buscar
-        </button>
       </div>
 
-      {/* 🧾 Tabla */}
-      <div className="bg-white shadow rounded-lg overflow-hidden border">
-        <table className="w-full table-auto text-left">
-          <thead className="bg-[#CD6C50] text-white text-sm">
-            <tr>
-              <th className="px-4 py-2">Id</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Rol</th>
-              <th className="px-4 py-2">Nombre</th>
-              <th className="px-4 py-2">Apellido</th>
-              <th className="px-4 py-2 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm">
-            {(resultados.length > 0 ? resultados : usuarios).map((u) => (
-              <tr key={u.idUsuario} className="hover:bg-gray-50">
-                <td className="px-4 py-2 border-t">{u.idUsuario}</td>
-                <td className="px-4 py-2 border-t">{u.email}</td>
-                <td className="px-4 py-2 border-t">{u.rol}</td>
-                <td className="px-4 py-2 border-t">{u.nombre}</td>
-                <td className="px-4 py-2 border-t">{u.apellido}</td>
-                <td className="px-4 py-2 border-t text-right">
-                  <button
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-lg"
-                    title="Ver"
-                  >
-                    Ver
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={columns}
+        data={resultados}
+        loading={loading}
+        emptyText="No hay usuarios encontrados"
+      />
     </div>
   );
 };

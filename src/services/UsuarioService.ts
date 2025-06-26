@@ -1,8 +1,8 @@
 // src/services/UsuarioService.ts
-import { ApiClient } from "./Cñ;
+import { ApiClienteService } from "./ApiClienteService";
 import type { UsuarioGridDTO } from "../types/usuario/UsuarioGridDTO";
 
-class UsuarioService extends ApiClient {
+class UsuarioService extends ApiClienteService {
   constructor() {
     super(); // usa la URL base "http://localhost:8080/api"
   }
