@@ -1,4 +1,3 @@
-// components/common/RefreshPermissionsButton.tsx
 import React, { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
