@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import type { ArticuloInsumoRequestDTO } from "../../types/insumos/ArticuloInsumoRequestDTO";
 import type { ArticuloInsumoResponseDTO } from "../../types/insumos/ArticuloInsumoResponseDTO";
 import type { CategoriaResponseDTO } from "../../types/categorias/CategoriaResponseDTO";
+import type { ImagenDTO } from "../../types/common/ImagenDTO";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
 import { Button } from "../common/Button";
+import { ImageUpload } from "../common/ImageUpload";
 import type { UnidadMedidaDTO } from "../../services";
 import { CategoriaSelector } from "../common/CategoriaSelector";
 
@@ -34,6 +36,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
     stockActual: 0,
     stockMaximo: 0,
     esParaElaborar: true,
+    imagen: undefined, // Campo para la imagen
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +53,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
         stockActual: insumo.stockActual,
         stockMaximo: insumo.stockMaximo,
         esParaElaborar: insumo.esParaElaborar,
+        imagen: insumo.imagenes && insumo.imagenes.length > 0 ? insumo.imagenes[0] : undefined,
       });
     }
   }, [insumo]);
@@ -109,6 +113,23 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleImageChange = (imagen: ImagenDTO | null) => {
+    updateField("imagen", imagen || undefined);
+    // Limpiar error de imagen si existe
+    if (errors.imagen) {
+      setErrors(prev => ({ ...prev, imagen: '' }));
+    }
+  };
+
+  const handleEsParaElaborarChange = (esParaElaborar: boolean) => {
+    updateField("esParaElaborar", esParaElaborar);
+    
+    // Si cambia a "Para Elaborar", limpiar la imagen
+    if (esParaElaborar && formData.imagen) {
+      updateField("imagen", undefined);
+    }
+  };
+
   // Filtrar solo categorías de ingredientes (no subcategorías por simplicidad)
   const categoriasDisponibles = categorias;
 
@@ -158,24 +179,54 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
                 type="radio"
                 name="esParaElaborar"
                 checked={formData.esParaElaborar}
-                onChange={() => updateField("esParaElaborar", true)}
+                onChange={() => handleEsParaElaborarChange(true)}
                 className="mr-2"
+                disabled={loading}
               />
-              Para Elaborar (se usa en recetas)
+              <span>Para Elaborar (se usa en recetas)</span>
             </label>
             <label className="flex items-center">
               <input
                 type="radio"
                 name="esParaElaborar"
                 checked={!formData.esParaElaborar}
-                onChange={() => updateField("esParaElaborar", false)}
+                onChange={() => handleEsParaElaborarChange(false)}
                 className="mr-2"
+                disabled={loading}
               />
-              Para Venta Directa
+              <span>Para Venta Directa</span>
             </label>
           </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Los ingredientes para venta directa pueden tener imagen
+          </p>
         </div>
       </div>
+
+      {/* Imagen del ingrediente - Solo para venta directa */}
+      {!formData.esParaElaborar && (
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Imagen del Ingrediente
+          </h3>
+          
+          <div className="max-w-md">
+            <ImageUpload
+              currentImage={formData.imagen}
+              onImageChange={handleImageChange}
+              placeholder="Selecciona una imagen del ingrediente para venta"
+              maxSize={5}
+              disabled={loading}
+            />
+            {errors.imagen && (
+              <p className="mt-2 text-sm text-red-600">{errors.imagen}</p>
+            )}
+            <p className="mt-2 text-sm text-gray-500">
+              La imagen ayuda a los clientes a identificar el producto en el catálogo.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="border-t pt-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -192,6 +243,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             min={0}
             step={0.01}
             required
+            disabled={loading}
             error={errors.precioCompra}
             helperText="Precio al que compra este ingrediente"
           />
@@ -206,8 +258,13 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             min={0}
             step={0.01}
             required
+            disabled={loading}
             error={errors.precioVenta}
-            helperText="Precio si se vende directamente"
+            helperText={
+              formData.esParaElaborar 
+                ? "Precio de referencia (no se vende directamente)" 
+                : "Precio de venta al cliente"
+            }
           />
 
           <FormField
@@ -219,6 +276,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             placeholder="0"
             min={0}
             required
+            disabled={loading}
             error={errors.stockActual}
           />
 
@@ -231,6 +289,7 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             placeholder="100"
             min={1}
             required
+            disabled={loading}
             error={errors.stockMaximo}
           />
         </div>

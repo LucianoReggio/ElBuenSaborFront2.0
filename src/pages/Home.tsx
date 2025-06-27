@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useProductos } from '../hooks/useProductos';
+import { useCatalogoProductos, type ProductoCatalogo } from '../hooks/useCatalogoProductos';
 import { Star, Clock, MapPin, Phone, Mail, ShoppingCart } from 'lucide-react';
 import CarritoModal from '../components/cart/CarritoModal';
-import type { ArticuloManufacturadoResponseDTO } from '../types/productos/ArticuloManufacturadoResponseDTO';
+import ProductoDetalleModal from '../components/productos/ProductoDetalleModal';
 import { useCarritoContext } from '../context/CarritoContext';
+
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { productos, loading } = useProductos();
+  const { productos, loading, getProductosDestacados } = useCatalogoProductos();
 
-  const [featuredProducts, setFeaturedProducts] = useState<ArticuloManufacturadoResponseDTO[]>([]);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
-const carrito = useCarritoContext();
-  // Carrito
-
+  const [productoDetalle, setProductoDetalle] = useState<ProductoCatalogo | null>(null);
+  const carrito = useCarritoContext();
 
   // Debug imagen header
   useEffect(() => {
@@ -25,19 +24,16 @@ const carrito = useCarritoContext();
     img.src = '/Header.jpg';
   }, []);
 
-  // Productos destacados
-  useEffect(() => {
+  // Productos destacados usando useMemo para evitar recálculos innecesarios
+  const featuredProducts = useMemo(() => {
     if (productos.length > 0) {
-      const destacados = productos
-        .filter(p => p.stockSuficiente)
-        .sort((a, b) => b.cantidadVendida - a.cantidadVendida)
-        .slice(0, 3);
-      setFeaturedProducts(destacados);
+      return getProductosDestacados(6);
     }
-  }, [productos]);
+    return [];
+  }, [productos, getProductosDestacados]);
 
   // Imagen producto
-  const getProductImage = (producto: ArticuloManufacturadoResponseDTO) =>
+  const getProductImage = (producto: ProductoCatalogo) =>
     producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0].url : null;
 
   // Color por categoría
@@ -53,8 +49,11 @@ const carrito = useCarritoContext();
     return colors[categoriaId % colors.length];
   };
 
-  // Rating
-  const getProductRating = (cantidadVendida: number) => {
+  // Rating (solo para manufacturados, para insumos usar un valor fijo)
+  const getProductRating = (producto: ProductoCatalogo) => {
+    if (producto.tipo === 'insumo') return 4.5; // Rating fijo para insumos
+    
+    const cantidadVendida = producto.cantidadVendida;
     if (cantidadVendida >= 100) return 4.9;
     if (cantidadVendida >= 50) return 4.7;
     if (cantidadVendida >= 20) return 4.5;
@@ -63,10 +62,36 @@ const carrito = useCarritoContext();
   };
 
   // Agregar producto al carrito y abrir modal
- const handleOrderClick = (producto: ArticuloManufacturadoResponseDTO) => {
-  carrito.agregarItem(producto);
-  setCarritoAbierto(true);
-};
+  const handleOrderClick = (producto: ProductoCatalogo) => {
+    const productoParaCarrito = {
+      idArticulo: producto.id,
+      denominacion: producto.denominacion,
+      descripcion: producto.descripcion,
+      precioVenta: producto.precioVenta,
+      imagenes: producto.imagenes,
+      categoria: producto.categoria,
+      tiempoEstimadoEnMinutos: producto.tiempoEstimadoEnMinutos || 0,
+      stockSuficiente: producto.stockSuficiente,
+      cantidadVendida: producto.cantidadVendida,
+      tipo: producto.tipo,
+    };
+    
+    carrito.agregarItem(productoParaCarrito as any);
+    setCarritoAbierto(true);
+  };
+
+  // Abrir modal de detalle
+  const handleDetalleClick = (producto: ProductoCatalogo) => {
+    setProductoDetalle(producto);
+  };
+
+  // Obtener icono por tipo de producto
+  const getProductIcon = (producto: ProductoCatalogo) => {
+    if (producto.tipo === 'manufacturado') {
+      return '🍽️'; // Plato para productos manufacturados
+    }
+    return '🛒'; // Carrito para insumos de venta
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -83,19 +108,18 @@ const carrito = useCarritoContext();
               ¡Bienvenido a El Buen Sabor!
             </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Las mejores comidas caseras con el sabor de siempre
+              Las mejores comidas caseras y productos de calidad
             </p>
             {isAuthenticated && user && (
               <p className="text-lg mb-8 opacity-80">
                 Hola {user.nombre || user.email}, ¿qué se te antoja hoy?
               </p>
             )}
-            {/* Puedes dejar esto como acceso directo al catálogo */}
             <button
               onClick={() => navigate('/catalogo')}
               className="bg-white text-[#CD6C50] px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-lg"
             >
-              {isAuthenticated ? 'Ver Menú' : 'Pedir Ahora'}
+              {isAuthenticated ? 'Ver Catálogo' : 'Pedir Ahora'}
             </button>
           </div>
         </div>
@@ -111,16 +135,16 @@ const carrito = useCarritoContext();
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-              Nuestras Especialidades
+              Nuestros Productos Destacados
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Platos preparados con ingredientes frescos y mucho amor
+              Comidas preparadas con amor y productos frescos de calidad premium
             </p>
           </div>
 
           {loading ? (
             <div className="grid md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse">
                   <div className="h-48 bg-gray-200"></div>
                   <div className="p-6">
@@ -144,10 +168,10 @@ const carrito = useCarritoContext();
             <div className="grid md:grid-cols-3 gap-8">
               {featuredProducts.map((producto) => {
                 const imagenUrl = getProductImage(producto);
-                const rating = getProductRating(producto.cantidadVendida);
+                const rating = getProductRating(producto);
                 
                 return (
-                  <div key={producto.idArticulo} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  <div key={`${producto.tipo}-${producto.id}`} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
                     <div className="h-48 relative overflow-hidden">
                       {imagenUrl ? (
                         <img 
@@ -163,8 +187,8 @@ const carrito = useCarritoContext();
                       <div className={`${imagenUrl ? 'hidden' : ''} w-full h-full bg-gradient-to-br ${getCategoryColor(producto.categoria.idCategoria)} flex items-center justify-center`}>
                         <div className="text-center p-8">
                           <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-white text-2xl font-bold">
-                              {producto.denominacion.charAt(0)}
+                            <span className="text-white text-2xl">
+                              {getProductIcon(producto)}
                             </span>
                           </div>
                           <p className="text-gray-600 text-sm">
@@ -181,12 +205,23 @@ const carrito = useCarritoContext();
                           {producto.stockSuficiente ? 'Disponible' : 'Agotado'}
                         </span>
                       </div>
-                      <div className="absolute bottom-3 left-3">
-                        <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-sm flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {producto.tiempoEstimadoEnMinutos} min
-                        </div>
+                      <div className="absolute top-3 left-3">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          producto.tipo === 'manufacturado'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {producto.tipo === 'manufacturado' ? 'Preparado' : 'Producto'}
+                        </span>
                       </div>
+                      {producto.tiempoEstimadoEnMinutos && (
+                        <div className="absolute bottom-3 left-3">
+                          <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-sm flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {producto.tiempoEstimadoEnMinutos} min
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
@@ -199,15 +234,22 @@ const carrito = useCarritoContext();
                         </div>
                       </div>
                       <p className="text-gray-600 mb-4 text-sm line-clamp-2">
-                        {producto.descripcion || `Delicioso ${producto.denominacion} preparado con ingredientes frescos`}
+                        {producto.descripcion || `${producto.denominacion} de excelente calidad`}
                       </p>
                       <div className="flex items-center text-xs text-gray-500 mb-4">
                         <span className="bg-gray-100 px-2 py-1 rounded">
                           {producto.categoria.denominacion}
                         </span>
-                        <span className="ml-2">
-                          {producto.cantidadVendida} vendidos
-                        </span>
+                        {producto.tipo === 'manufacturado' && (
+                          <span className="ml-2">
+                            {producto.cantidadVendida} vendidos
+                          </span>
+                        )}
+                        {producto.tipo === 'insumo' && (
+                          <span className="ml-2">
+                            Stock: {producto.stockActual}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-2xl font-bold text-[#CD6C50]">
@@ -226,7 +268,7 @@ const carrito = useCarritoContext();
                             {producto.stockSuficiente ? 'Pedir' : 'Agotado'}
                           </button>
                           <button
-                            onClick={() => navigate(`/productos/${producto.idArticulo}`)}
+                            onClick={() => handleDetalleClick(producto)}
                             className="px-4 py-2 rounded-lg border border-[#CD6C50] text-[#CD6C50] font-semibold hover:bg-[#f5ebe8] transition-colors duration-200"
                           >
                             Detalle
@@ -255,8 +297,8 @@ const carrito = useCarritoContext();
                 con ingredientes frescos y recetas tradicionales que han pasado de generación en generación.
               </p>
               <p className="text-lg text-gray-600 mb-8">
-                Nuestro compromiso es ofrecerte siempre la mejor calidad y el mejor sabor, 
-                porque sabemos que la buena comida alimenta el alma.
+                Además de nuestros platos preparados, también ofrecemos productos de calidad premium 
+                para que puedas disfrutar en casa.
               </p>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
@@ -337,12 +379,19 @@ const carrito = useCarritoContext();
         </div>
       </section>
 
+      {/* Modal de Detalle del Producto */}
+      <ProductoDetalleModal
+        producto={productoDetalle}
+        abierto={!!productoDetalle}
+        onCerrar={() => setProductoDetalle(null)}
+        onAgregarCarrito={handleOrderClick}
+      />
+
       {/* Carrito Modal */}
-  <CarritoModal
-  abierto={carritoAbierto}
-  onCerrar={() => setCarritoAbierto(false)}
- 
-/>
+      <CarritoModal
+        abierto={carritoAbierto}
+        onCerrar={() => setCarritoAbierto(false)}
+      />
 
       {/* Botón flotante carrito */}
       <button
@@ -352,10 +401,11 @@ const carrito = useCarritoContext();
         title="Ver carrito"
       >
         <ShoppingCart className="w-7 h-7" />
-       {carrito.cantidadTotal > 0 && (
-  <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
-    {carrito.cantidadTotal}
-  </span>)}
+        {carrito.cantidadTotal > 0 && (
+          <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 ml-1 shadow">
+            {carrito.cantidadTotal}
+          </span>
+        )}
       </button>
     </div>
   );

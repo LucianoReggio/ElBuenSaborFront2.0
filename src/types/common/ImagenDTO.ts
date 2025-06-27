@@ -1,5 +1,5 @@
 export interface ImagenDTO {
-  idImagen: number;
+  idImagen?: number;
   denominacion: string;
   url: string;
 }

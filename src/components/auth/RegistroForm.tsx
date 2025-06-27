@@ -256,9 +256,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             placeholder="Nombre"
             value={formData.nombre}
             onChange={(e) => handleInputChange("nombre", e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.nombre ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.nombre ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {validationErrors.nombre && (
             <p className="mt-1 text-xs text-red-600">
@@ -274,9 +273,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             placeholder="Apellido"
             value={formData.apellido}
             onChange={(e) => handleInputChange("apellido", e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.apellido ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.apellido ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {validationErrors.apellido && (
             <p className="mt-1 text-xs text-red-600">
@@ -296,11 +294,10 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             onChange={(e) =>
               handleInputChange("fechaNacimiento", e.target.value)
             }
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.fechaNacimiento
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.fechaNacimiento
                 ? "border-red-500"
                 : "border-gray-300"
-            }`}
+              }`}
           />
           {validationErrors.fechaNacimiento && (
             <p className="mt-1 text-xs text-red-600">
@@ -318,9 +315,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             onChange={(e) =>
               handleInputChange("domicilio.calle", e.target.value)
             }
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.direccion ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.direccion ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {validationErrors.direccion && (
             <p className="mt-1 text-xs text-red-600">
@@ -339,9 +335,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
               onChange={(e) =>
                 handleInputChange("domicilio.numero", e.target.value)
               }
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-                validationErrors.numero ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.numero ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {validationErrors.numero && (
               <p className="mt-1 text-xs text-red-600">
@@ -358,9 +353,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
               onChange={(e) =>
                 handleInputChange("domicilio.cp", e.target.value)
               }
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-                validationErrors.cp ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.cp ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {validationErrors.cp && (
               <p className="mt-1 text-xs text-red-600">{validationErrors.cp}</p>
@@ -377,11 +371,10 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             onChange={(e) =>
               handleInputChange("domicilio.localidad", e.target.value)
             }
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.departamento
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.departamento
                 ? "border-red-500"
                 : "border-gray-300"
-            }`}
+              }`}
           />
           {validationErrors.departamento && (
             <p className="mt-1 text-xs text-red-600">
@@ -397,9 +390,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             placeholder="Teléfono"
             value={formData.telefono}
             onChange={(e) => handleInputChange("telefono", e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${
-              validationErrors.telefono ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent transition-all duration-200 placeholder-gray-400 ${validationErrors.telefono ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {validationErrors.telefono && (
             <p className="mt-1 text-xs text-red-600">

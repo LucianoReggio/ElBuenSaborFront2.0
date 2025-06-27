@@ -10,6 +10,7 @@ import {
   ChefHat,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface NavbarAdminProps {
   user?: {
@@ -172,14 +173,14 @@ export default function NavbarAdmin({
           {/* Derecha: Acciones rápidas */}
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => navigate("/pedidos")}
-              className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
-            >
-              <Package className="h-4 w-4" />
-              <span className="hidden lg:block text-sm font-medium">
-                Pedidos
-              </span>
-            </button>
+  onClick={() => navigate("/gestion-pedidos")} // ← Cambiar de "/pedidos" a "/gestion-pedidos"
+  className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+>
+  <Package className="h-4 w-4" />
+  <span className="hidden lg:block text-sm font-medium">
+    Gestión Pedidos
+  </span>
+</button>
             <button
               onClick={() => navigate("/informes")}
               className="flex items-center space-x-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors duration-200"
@@ -194,9 +195,7 @@ export default function NavbarAdmin({
               className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
             >
               <Users className="h-4 w-4" />
-              <span className="hidden lg:block text-sm font-medium">
-                Usuarios
-              </span>
+              <Link to="/usuarios" className="hidden lg:block text-sm font-medium">Usuarios</Link>
             </button>
             <button
               onClick={() => navigate("/dashboard")}

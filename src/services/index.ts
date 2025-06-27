@@ -19,3 +19,5 @@ export { DomicilioService } from "./DomicilioService";
 // Exportar tipos relacionados
 export type { CompraInsumoDTO } from "./InsumoService";
 export type { UnidadMedidaDTO } from "./UnidadMedidaService";
+
+export { FacturaService } from './FacturaService';

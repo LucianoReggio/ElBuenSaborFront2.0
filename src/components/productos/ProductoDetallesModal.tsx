@@ -1,4 +1,5 @@
-import React from "react";
+// src/components/productos/ProductoDetallesModal.tsx
+import React, { useState } from "react";
 import { Modal } from "../common/Modal";
 import { Button } from "../common/Button";
 import type { ArticuloManufacturadoResponseDTO } from "../../types/productos/ArticuloManufacturadoResponseDTO";
@@ -16,12 +17,17 @@ export const ProductoDetallesModal: React.FC<ProductoDetallesModalProps> = ({
   producto,
   onEdit,
 }) => {
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
   if (!producto) return null;
 
   const handleEdit = () => {
     onEdit?.(producto);
     onClose();
   };
+
+  const hasImages = producto.imagenes && producto.imagenes.length > 0;
+  const currentImage = hasImages ? producto.imagenes[selectedImageIndex] : null;
 
   return (
     <Modal
@@ -31,6 +37,66 @@ export const ProductoDetallesModal: React.FC<ProductoDetallesModalProps> = ({
       size="lg"
     >
       <div className="space-y-6">
+        {/* Sección de Imágenes */}
+        {hasImages && (
+          <div className="border-b pb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">
+              Imágenes del Producto
+            </h3>
+            <div className="space-y-4">
+              {/* Imagen principal */}
+              <div className="flex justify-center">
+                <img
+                  src={currentImage?.url}
+                  alt={currentImage?.denominacion || producto.denominacion}
+                  className="max-h-64 rounded-lg shadow-md object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "https://via.placeholder.com/300x200/f3f4f6/6b7280?text=Error+al+cargar";
+                  }}
+                />
+              </div>
+
+              {/* Miniaturas si hay múltiples imágenes */}
+              {producto.imagenes.length > 1 && (
+                <div className="flex justify-center space-x-2">
+                  {producto.imagenes.map((imagen, index) => (
+                    <button
+                      key={imagen.idImagen || index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${
+                        index === selectedImageIndex
+                          ? "border-blue-500 ring-2 ring-blue-200"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <img
+                        src={imagen.url}
+                        alt={imagen.denominacion}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://via.placeholder.com/64x64/f3f4f6/6b7280?text=Error";
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Información de la imagen actual */}
+              <div className="text-center text-sm text-gray-500">
+                {currentImage?.denominacion}
+                {producto.imagenes.length > 1 && (
+                  <span className="ml-2">
+                    ({selectedImageIndex + 1} de {producto.imagenes.length})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Información básica */}
         <div className="border-b pb-4">
           <h3 className="text-lg font-medium text-gray-900 mb-3">

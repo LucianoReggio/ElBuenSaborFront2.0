@@ -18,7 +18,7 @@ interface CheckoutModalProps {
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExito }) => {
   const carrito = useCarritoContext();
-  const { user, isAuthenticated } = useAuth();
+  const { user, backendUser, auth0User, isAuthenticated, backendSynced, isLoading } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [loadingDomicilios, setLoadingDomicilios] = useState(false);
@@ -38,25 +38,101 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
     });
   };
 
+  // 🚨 FUNCIÓN HELPER PARA OBTENER EL USER ID - ADAPTADA AL useAuth
+  const getUserId = (): number | null => {
+    console.log('🔍 DEBUG getUserId:', {
+      backendUser,
+      backendUserIdCliente: backendUser?.idCliente,
+      user,
+      userHasIdCliente: user && 'idCliente' in user,
+      userHasUserId: user && 'userId' in user,
+      userIdCliente: user && 'idCliente' in user ? (user as any).idCliente : 'NO_TIENE',
+      userUserId: user && 'userId' in user ? (user as any).userId : 'NO_TIENE'
+    });
+
+    // Priorizar backendUser.idCliente si está disponible
+    if (backendUser?.idCliente) {
+      console.log('✅ Usando backendUser.idCliente:', backendUser.idCliente);
+      return backendUser.idCliente;
+    }
+    
+    // Si user es backendUser, buscar idCliente
+    if (user && 'idCliente' in user) {
+      const userId = (user as any).idCliente;
+      console.log('✅ Usando user.idCliente:', userId);
+      return userId;
+    }
+
+    // Si user tiene userId (como vimos en logs anteriores)
+    if (user && 'userId' in user) {
+      const userId = (user as any).userId;
+      console.log('✅ Usando user.userId:', userId);
+      return userId;
+    }
+    
+    console.log('❌ No se encontró userId válido');
+    return null;
+  };
+
+  // 🚨 FUNCIÓN HELPER PARA OBTENER DATOS DEL USUARIO - ADAPTADA AL useAuth
+  const getUserData = () => {
+    // Priorizar backendUser si está disponible
+    if (backendUser) {
+      return {
+        nombre: backendUser.nombre,
+        apellido: backendUser.apellido,
+        email: backendUser.email
+      };
+    }
+    
+    // Si user es backendUser (cuando authState.backendUser se asigna a user)
+    if (user && 'idCliente' in user) {
+      const backendUserData = user as any;
+      return {
+        nombre: backendUserData.nombre,
+        apellido: backendUserData.apellido,
+        email: backendUserData.email
+      };
+    }
+    
+    // Fallback a auth0User si no hay datos del backend
+    if (auth0User) {
+      return {
+        nombre: auth0User.given_name || auth0User.name?.split(' ')[0] || 'Usuario',
+        apellido: auth0User.family_name || auth0User.name?.split(' ')[1] || '',
+        email: auth0User.email
+      };
+    }
+    
+    return null;
+  };
+
   const cargarDomicilios = async () => {
     try {
       setLoadingDomicilios(true);
-      console.log('🏠 Cargando domicilios para usuario:', user?.userId);
+      const userId = getUserId();
       
-      const cliente = await ClienteService.getById(user!.userId);
+      console.log('🏠 Cargando domicilios para usuario:', userId);
+      console.log('🔍 Estado del auth:', {
+        isAuthenticated,
+        backendSynced,
+        userId,
+        backendUser: !!backendUser,
+        user: !!user
+      });
+      
+      if (!userId) {
+        console.log('❌ No se pudo obtener el ID del usuario');
+        return;
+      }
+      
+      const cliente = await ClienteService.getById(userId);
       console.log('👤 Cliente completo:', cliente);
       console.log('🏠 Domicilios del cliente:', cliente.domicilios);
       
       if (cliente.domicilios && cliente.domicilios.length > 0) {
         setDomicilios(cliente.domicilios);
         console.log('🏠 Domicilios cargados:', cliente.domicilios.length);
-        console.log('🏠 Domicilios details:', cliente.domicilios.map((d, index) => ({
-          index: index,
-          id: d.idDomicilio || 'SIN_ID',
-          direccion: `${d.calle} ${d.numero}`,
-          localidad: d.localidad,
-          objetoCompleto: d
-        })));
       } else {
         console.log('🏠 Usuario sin domicilios registrados');
         setDomicilios([]);
@@ -69,28 +145,55 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
   };
 
   useEffect(() => {
-    if (abierto && user?.userId) {
+    const userId = getUserId();
+    if (abierto && isAuthenticated && backendSynced && userId) {
       cargarDomicilios();
     }
-  }, [abierto, user?.userId]);
-
-  // ✅ ELIMINAR este useEffect que reseteaba las observaciones
-  // useEffect(() => {
-  //   if (!abierto) {
-  //     setObservaciones('');
-  //   }
-  // }, [abierto]);
+  }, [abierto, isAuthenticated, backendSynced, backendUser?.idCliente]);
 
   if (!abierto) return null;
+
+  // Mostrar loading si Auth0 está cargando o no está sincronizado
+  if (isLoading || !backendSynced) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CD6C50] mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando información del usuario...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleConfirmarPedido = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // 🚨 LOGS DE DEBUG
+      const userId = getUserId();
+      const userData = getUserData();
+      
+      console.log('🔐 ESTADO DE AUTH AL CONFIRMAR:', {
+        isAuthenticated,
+        backendSynced,
+        userId,
+        userData,
+        backendUser: !!backendUser,
+        user: !!user,
+        isLoading
+      });
+
       // Validaciones básicas
-      if (!isAuthenticated || !user?.userId) {
+      if (!isAuthenticated || !backendSynced) {
+        console.error('❌ FALLO EN VALIDACIÓN AUTH - No autenticado o no sincronizado');
         setError('Debes iniciar sesión para realizar un pedido');
+        return;
+      }
+
+      if (!userId) {
+        console.error('❌ FALLO EN VALIDACIÓN AUTH - No se pudo obtener userId');
+        setError('Error al obtener información del usuario. Intenta recargar la página.');
         return;
       }
 
@@ -113,7 +216,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
 
       // Crear el request del pedido
       const pedidoRequest: PedidoRequestDTO = {
-        idCliente: user.userId,
+        idCliente: userId,
         idSucursal: idSucursal,
         tipoEnvio: carrito.datosEntrega.tipoEnvio,
         // SOLO incluir domicilio si es delivery Y está seleccionado
@@ -132,9 +235,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
       console.log('🛒 PEDIDO REQUEST COMPLETO:', JSON.stringify(pedidoRequest, null, 2));
       console.log('📝 Observaciones enviadas:', `"${observaciones}"`);
       console.log('🏠 ID Domicilio enviado:', domicilioSeleccionado);
-      console.log('🏠 Domicilio seleccionado object:', domicilios.find((d, i) => (d.idDomicilio || i + 1) === domicilioSeleccionado));
       console.log('🚚 Tipo de envío:', carrito.datosEntrega.tipoEnvio);
-      console.log('👤 ID Cliente:', user.userId);
+      console.log('👤 ID Cliente:', userId);
 
       // Crear el pedido
       const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
@@ -156,6 +258,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
       setLoading(false);
     }
   };
+
+  // Obtener datos del usuario para mostrar
+  const userData = getUserData();
+  const userId = getUserId();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
@@ -192,9 +298,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
           {/* DEBUG INFO - Remover en producción */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
             <strong>🐛 DEBUG:</strong>
+            <br />UserID: {userId}
             <br />Observaciones: "{observaciones}"
             <br />Domicilio: {domicilioSeleccionado || 'Sin seleccionar'}
             <br />Tipo: {carrito.datosEntrega.tipoEnvio}
+            <br />Auth: {isAuthenticated ? 'Sí' : 'No'} | Synced: {backendSynced ? 'Sí' : 'No'} | Loading: {isLoading ? 'Sí' : 'No'}
+            <br />Backend User: {backendUser ? 'Sí' : 'No'}
           </div>
 
           {/* Información del cliente */}
@@ -203,10 +312,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
               <User className="w-5 h-5 text-[#CD6C50]" />
               <h3 className="font-semibold text-gray-800">Información del cliente</h3>
             </div>
-            <p className="text-gray-700">
-              {user?.nombre} {user?.apellido}
-            </p>
-            <p className="text-gray-600 text-sm">{user?.email}</p>
+            {userData ? (
+              <>
+                <p className="text-gray-700">
+                  {userData.nombre} {userData.apellido}
+                </p>
+                <p className="text-gray-600 text-sm">{userData.email}</p>
+              </>
+            ) : (
+              <p className="text-gray-500">Cargando información del usuario...</p>
+            )}
           </div>
 
           {/* Tipo de entrega y domicilio */}
@@ -357,7 +472,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
             </button>
             <button
               onClick={handleConfirmarPedido}
-              disabled={loading || carrito.estaVacio}
+              disabled={loading || carrito.estaVacio || !userId || !isAuthenticated || !backendSynced}
               className="flex-1 px-4 py-3 bg-[#CD6C50] text-white rounded-lg hover:bg-[#b85a42] transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Procesando...' : 'Confirmar Pedido'}

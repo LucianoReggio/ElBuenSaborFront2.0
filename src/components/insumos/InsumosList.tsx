@@ -34,11 +34,60 @@ export const InsumosList: React.FC<InsumosListProps> = ({
     );
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.target as HTMLImageElement;
+    target.src = "https://via.placeholder.com/40x40/f3f4f6/6b7280?text=Sin+Imagen";
+  };
+
   const columns: TableColumn<ArticuloInsumoResponseDTO>[] = [
+    {
+      key: "imagen",
+      title: "Imagen",
+      width: "8%",
+      align: "center",
+      render: (_, record: ArticuloInsumoResponseDTO) => {
+        // Solo mostrar imagen si NO es para elaborar (es para venta)
+        if (record.esParaElaborar) {
+          return (
+            <div className="flex justify-center">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <span className="text-gray-400 text-xs">🧪</span>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex justify-center">
+            {record.imagenes && record.imagenes.length > 0 ? (
+              <img
+                src={record.imagenes[0].url}
+                alt={record.imagenes[0].denominacion}
+                className="w-10 h-10 object-cover rounded-lg shadow-sm"
+                onError={handleImageError}
+                title={record.imagenes[0].denominacion}
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <span className="text-gray-400 text-xs">🛒</span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: "denominacion",
       title: "Ingrediente",
-      width: "20%",
+      width: "18%",
+      render: (value: string, record: ArticuloInsumoResponseDTO) => (
+        <div>
+          <p className="font-medium text-gray-900">{value}</p>
+          <p className="text-xs text-gray-500">
+            {record.esParaElaborar ? "Para elaborar" : "Venta directa"}
+          </p>
+        </div>
+      ),
     },
     {
       key: "denominacionCategoria",
@@ -96,11 +145,16 @@ export const InsumosList: React.FC<InsumosListProps> = ({
     {
       key: "acciones",
       title: "Acciones",
-      width: "15%",
+      width: "9%",
       align: "center",
       render: (_, record: ArticuloInsumoResponseDTO) => (
         <div className="flex justify-center space-x-1">
-          <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => onEdit(record)}
+            title="Editar ingrediente"
+          >
             ✏️
           </Button>
           <Button
@@ -110,8 +164,8 @@ export const InsumosList: React.FC<InsumosListProps> = ({
             disabled={record.cantidadProductosQueLoUsan > 0}
             title={
               record.cantidadProductosQueLoUsan > 0
-                ? "Se usa en productos"
-                : "Eliminar"
+                ? `Se usa en ${record.cantidadProductosQueLoUsan} producto(s)`
+                : "Eliminar ingrediente"
             }
           >
             🗑️
@@ -122,18 +176,20 @@ export const InsumosList: React.FC<InsumosListProps> = ({
   ];
 
   return (
-    <Table
-      columns={columns}
-      data={insumos}
-      loading={loading}
-      emptyText="No hay ingredientes registrados"
-      rowClassName={(record) =>
-        record.estadoStock === "CRITICO"
-          ? "bg-red-50"
-          : record.estadoStock === "BAJO"
-          ? "bg-yellow-50"
-          : ""
-      }
-    />
+    <div className="bg-white rounded-lg shadow">
+      <Table
+        columns={columns}
+        data={insumos}
+        loading={loading}
+        emptyText="No hay ingredientes registrados"
+        rowClassName={(record) =>
+          record.estadoStock === "CRITICO"
+            ? "bg-red-50"
+            : record.estadoStock === "BAJO"
+            ? "bg-yellow-50"
+            : ""
+        }
+      />
+    </div>
   );
 };
