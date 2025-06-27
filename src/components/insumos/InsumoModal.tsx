@@ -4,7 +4,7 @@ import { InsumoForm } from "./InsumoForm";
 import type { ArticuloInsumoRequestDTO } from "../../types/insumos/ArticuloInsumoRequestDTO";
 import type { ArticuloInsumoResponseDTO } from "../../types/insumos/ArticuloInsumoResponseDTO";
 import type { CategoriaResponseDTO } from "../../types/categorias/CategoriaResponseDTO";
-import type { UnidadMedidaDTO } from "../../services";
+import type { UnidadMedidaDTO } from "../../services/apiInstance";
 
 interface InsumoModalProps {
   isOpen: boolean;

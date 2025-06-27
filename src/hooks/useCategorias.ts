@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { categoriaService } from "../services";
+import { categoriaService } from "../services/apiInstance";
 import type { CategoriaResponseDTO } from "../types/categorias/CategoriaResponseDTO";
 import type { CategoriaRequestDTO } from "../types/categorias/CategoriaRequestDTO";
 

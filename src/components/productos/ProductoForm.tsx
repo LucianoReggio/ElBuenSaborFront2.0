@@ -9,7 +9,7 @@ import { Select } from "../common/Select";
 import { Button } from "../common/Button";
 import { ImageUpload } from "../common/ImageUpload";
 import { IngredientesSelector } from "./IngredientesSelector";
-import type { UnidadMedidaDTO } from "../../services";
+import type { UnidadMedidaDTO } from "../../services/apiInstance";
 import { CategoriaSelector } from "../common/CategoriaSelector";
 
 interface ProductoFormProps {

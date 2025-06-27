@@ -5,7 +5,7 @@ import type { ArticuloManufacturadoRequestDTO } from '../../types/productos/Arti
 import type { ArticuloManufacturadoResponseDTO } from '../../types/productos/ArticuloManufacturadoResponseDTO';
 import type { ArticuloInsumoResponseDTO } from '../../types/insumos/ArticuloInsumoResponseDTO';
 import type { CategoriaResponseDTO } from '../../types/categorias/CategoriaResponseDTO';
-import type { UnidadMedidaDTO } from '../../services';
+import type { UnidadMedidaDTO } from '../../services/apiInstance';
 
 
 interface ProductoModalProps {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { insumoService, type CompraInsumoDTO } from "../services";
+import { insumoService, type CompraInsumoDTO } from "../services/apiInstance";
 import type { ArticuloInsumoResponseDTO } from "../types/insumos/ArticuloInsumoResponseDTO";
 import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRequestDTO";
 

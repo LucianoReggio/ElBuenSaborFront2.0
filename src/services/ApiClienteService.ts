@@ -1,3 +1,9 @@
+// src/services/ApiClienteService.ts
+
+interface RequestOptions extends RequestInit {
+  params?: Record<string, any>;
+}
+
 export class ApiClienteService {
   private baseUrl: string;
   private auth0: any;
@@ -6,53 +12,53 @@ export class ApiClienteService {
     this.baseUrl = baseUrl;
   }
 
-  /**
-   * Getter para obtener la baseUrl
-   */
-  get baseURL(): string {
-    return this.baseUrl;
-  }
-
-  /**
-   * Configura la instancia de Auth0
-   */
-  setAuth0Instance(auth0Instance: any) {
+  setAuth0Instance(auth0Instance: any): void {
     this.auth0 = auth0Instance;
   }
 
-  private async getAuthHeaders(): Promise<Record<string, string>> {
+private async getAuthHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
     try {
-      if (
-        this.auth0 &&
-        this.auth0.isAuthenticated &&
-        this.auth0.getAccessTokenSilently
-      ) {
+      // Condición segura de HEAD + Lógica de Incoming Change
+      if (this.auth0 && this.auth0.isAuthenticated && this.auth0.getAccessTokenSilently) { 
         const token = await this.auth0.getAccessTokenSilently();
-
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
+        headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      // Para endpoints públicos, continuar sin token
+      console.warn("No se pudo obtener token de Auth0:", error);
     }
 
     return headers;
-  }
-
-  private async request<T>(url: string, options?: RequestInit): Promise<T> {
+}
+  
+  // --- 👇 MÉTODO CORREGIDO ---
+  private async request<T>(url: string, options: RequestOptions = {}): Promise<T> {
     const authHeaders = await this.getAuthHeaders();
 
-    const response = await fetch(`${this.baseUrl}${url}`, {
+    let fullUrl = `${this.baseUrl}${url}`;
+    
+    // 1. Si hay parámetros, los procesamos y los añadimos a la URL
+    if (options.params) {
+      const queryParams = new URLSearchParams(options.params).toString();
+      if (queryParams) {
+        fullUrl += `?${queryParams}`;
+      }
+    }
+    
+    // 2. Eliminamos 'params' del objeto de opciones para que no interfiera con fetch
+    const fetchOptions: RequestInit = { ...options };
+    delete (fetchOptions as any).params;
+
+    // 3. Realizamos la llamada con la URL ya construida
+    const response = await fetch(fullUrl, {
+      ...fetchOptions,
       headers: {
         ...authHeaders,
-        ...options?.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
     });
 
     if (!response.ok) {
@@ -78,19 +84,16 @@ export class ApiClienteService {
       throw new Error(errorMessage);
     }
 
-    // Si no hay contenido (ej: DELETE), retornar objeto vacío
-    if (
-      response.status === 204 ||
-      response.headers.get("content-length") === "0"
-    ) {
+    if (response.status === 204 || response.headers.get("content-length") === "0") {
       return {} as T;
     }
 
     return response.json();
   }
 
-  public async get<T = any>(url: string): Promise<T> {
-    return this.request<T>(url, { method: "GET" });
+  // --- El resto de los métodos usan 'request' y ahora funcionarán correctamente ---
+  public async get<T>(url: string, params?: Record<string, any>): Promise<T> {
+    return this.request<T>(url, { method: "GET", params });
   }
 
   public async post<T = any>(url: string, data?: any): Promise<T> {

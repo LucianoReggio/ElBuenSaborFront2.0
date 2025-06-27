@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloManufacturadoRequestDTO } from "../types/productos/ArticuloManufacturadoRequestDTO";
-import { productoService } from "../services";
+import { productoService } from "../services/apiInstance";
 
 export const useProductos = () => {
   const [productos, setProductos] = useState<

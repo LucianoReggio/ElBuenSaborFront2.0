@@ -6,10 +6,10 @@ import { InsumosList } from "../components/insumos/InsumosList";
 import { InsumoModal } from "../components/insumos/InsumoModal";
 import { useInsumos } from "../hooks/useInsumos";
 import { useCategorias } from "../hooks/useCategorias";
-import { unidadMedidaService } from "../services";
+import { unidadMedidaService } from "../services/apiInstance";
 import type { ArticuloInsumoResponseDTO } from "../types/insumos/ArticuloInsumoResponseDTO";
 import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRequestDTO";
-import type { UnidadMedidaDTO } from "../services";
+import type { UnidadMedidaDTO } from "../services/apiInstance";
 
 export const Insumos: React.FC = () => {
   const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo, refresh } =

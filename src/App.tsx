@@ -12,7 +12,7 @@ import { useAuth } from "./hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
-import Productos from "./pages/Productos";
+import {Productos} from "./pages/Productos";
 import StockControl from "./pages/StockControl";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
@@ -28,6 +28,7 @@ import DeliveryDashboard from "./pages/DeliveryDashboard";
 import { MiPerfil } from "./pages/MiPerfil";
 import { GestionPedidos } from "./pages/GestionPedidos";
 import Cocina from "./pages/Cocina";
+import InformesPage from './pages/InformesPage'; // Importar la nueva página
 
 // Componente de Loading
 const LoadingScreen: React.FC<{ message?: string }> = ({
@@ -40,6 +41,7 @@ const LoadingScreen: React.FC<{ message?: string }> = ({
     </div>
   </div>
 );
+
 
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
@@ -354,6 +356,9 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
     </div>
   );
 };
+const ListadoPedidosPage: React.FC = () => <h1>Listado de Pedidos</h1>;
+const UsuariosPage: React.FC = () => <h1>Gestión de Usuarios</h1>;
+const CocinaDashboard: React.FC = () => <h1>Dashboard de Cocina</h1>;
 
 // Componente principal
 function App() {
@@ -486,6 +491,7 @@ function App() {
                 </AdminLayout>
               </ProtectedRoute>
             }
+            
           />
           <Route
             path="/insumos"
@@ -525,6 +531,40 @@ function App() {
                   <Usuarios />
                 </AdminLayout>
               </ProtectedRoute>
+            }
+          />
+              <Route
+            path="/informes"
+            element={
+              <AdminLayout>
+                <InformesPage />
+              </AdminLayout>
+            }
+          />
+          
+          {/* Rutas para los otros botones del header (puedes crear componentes simples para empezar) */}
+          <Route
+            path="/listado-pedidos"
+            element={
+              <AdminLayout>
+                <ListadoPedidosPage /> 
+              </AdminLayout>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <AdminLayout>
+                <UsuariosPage />
+              </AdminLayout>
+            }
+          />
+          <Route
+            path="/cocina"
+            element={
+              <AdminLayout>
+                <CocinaDashboard />
+              </AdminLayout>
             }
           />
 

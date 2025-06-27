@@ -8,12 +8,15 @@ import { ProductoDetallesModal } from "../components/productos/ProductoDetallesM
 import { useProductos } from "../hooks/useProductos";
 import { useInsumos } from "../hooks/useInsumos";
 import { useCategorias } from "../hooks/useCategorias";
-import { unidadMedidaService } from "../services";
+import { unidadMedidaService } from "../services/apiInstance";
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloManufacturadoRequestDTO } from "../types/productos/ArticuloManufacturadoRequestDTO";
-import type { UnidadMedidaDTO } from "../services";
+import type { UnidadMedidaDTO } from "../services/apiInstance";
+import { RankingView } from '../components/productos/RankingView';
 
 export const Productos: React.FC = () => {
+    const [isRankingView, setIsRankingView] = useState(false);
+  // Datos y acciones del hook de productos
   const {
     productos,
     loading,
@@ -183,169 +186,132 @@ export const Productos: React.FC = () => {
     );
   }
 
+// En Productos.tsx, reemplaza todo el bloque del return por esto:
+
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
+      {/* --- ENCABEZADO Y PESTAÑAS (de la rama 'ramaPedro') --- */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Productos</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
           <p className="text-gray-600 mt-1">
-            Administre los productos manufacturados y sus recetas
+            Administre los productos manufacturados o vea el ranking de ventas.
           </p>
         </div>
-        <Button onClick={handleCreate}>Nuevo Producto</Button>
+        {/* El botón de "Nuevo Producto" solo aparece en la vista de productos */}
+        {!isRankingView && <Button onClick={handleCreate}>Nuevo Producto</Button>}
       </div>
 
-      {alert && (
-        <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
-      )}
-
-      {error && (
-        <Alert type="error" title="Error al cargar datos" message={error} />
-      )}
-
-      {ingredientesParaElaborar.length === 0 && (
-        <Alert
-          type="warning"
-          title="Sin ingredientes para elaborar"
-          message="No hay ingredientes marcados como 'Para Elaborar'. Debe crear ingredientes antes de poder crear productos."
-        />
-      )}
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSearch(searchInput);
-          setCategoriaSel(categoriaInput);
-          setPrecioMin(precioMinInput);
-          setPrecioMax(precioMaxInput);
-          setEstadoSel(estadoInput); // <--- Aplica el filtro de estado
-        }}
-        className="bg-white p-4 rounded-lg shadow grid grid-cols-1 md:grid-cols-6 gap-4 items-end"
-      >
-        <input
-          type="text"
-          placeholder="Buscar producto"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="w-full border px-3 py-2 rounded-lg"
-        />
-
-        <select
-          value={categoriaInput}
-          onChange={(e) =>
-            setCategoriaInput(e.target.value === "all" ? "all" : Number(e.target.value))
-          }
-          className="w-full border px-3 py-2 rounded-lg"
-        >
-          <option value="all">Todas las categorías</option>
-          {categoriasFiltradas.map((cat) => (
-            <option key={cat.idCategoria} value={cat.idCategoria}>
-              {cat.denominacion}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="number"
-          placeholder="Precio mín."
-          value={precioMinInput}
-          onChange={(e) =>
-            setPrecioMinInput(e.target.value === "" ? "" : Number(e.target.value))
-          }
-          className="w-full border px-3 py-2 rounded-lg"
-        />
-
-        <input
-          type="number"
-          placeholder="Precio máx."
-          value={precioMaxInput}
-          onChange={(e) =>
-            setPrecioMaxInput(e.target.value === "" ? "" : Number(e.target.value))
-          }
-          className="w-full border px-3 py-2 rounded-lg"
-        />
-
-        {/* --- FILTRO DE ESTADO --- */}
-        <select
-          value={estadoInput}
-          onChange={e => setEstadoInput(e.target.value as "all" | "activos" | "eliminados")}
-          className="w-full border px-3 py-2 rounded-lg"
-        >
-          <option value="all">Activos/Eliminados</option>
-          <option value="activos">Solo Activos</option>
-          <option value="eliminados">Solo Eliminados</option>
-        </select>
-
+      <div className="flex border-b">
         <button
-          type="submit"
-          className="text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 cursor-pointer"
-          style={{ backgroundColor: "#CD6C50" }}
+          className={`py-2 px-4 text-lg ${!isRankingView ? 'border-b-2 border-purple-600 font-semibold text-gray-800' : 'text-gray-500'}`}
+          onClick={() => setIsRankingView(false)}
         >
-          Buscar
+          Mis Productos
         </button>
-      </form>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-          <div className="text-sm text-gray-600">Total Productos</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-green-600">{stats.disponibles}</div>
-          <div className="text-sm text-gray-600">Stock Disponible</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-red-600">{stats.sinStock}</div>
-          <div className="text-sm text-gray-600">Sin Stock</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-purple-600">{stats.margenAlto}</div>
-          <div className="text-sm text-gray-600">Margen Alto (3x+)</div>
-        </div>
+        <button
+          className={`py-2 px-4 text-lg ${isRankingView ? 'border-b-2 border-purple-600 font-semibold text-gray-800' : 'text-gray-500'}`}
+          onClick={() => setIsRankingView(true)}
+        >
+          Ranking de Ventas
+        </button>
       </div>
 
-      {stats.sinStock > 0 && (
-        <Alert
-          type="warning"
-          title="Productos sin stock suficiente"
-          message={`Hay ${stats.sinStock} producto(s) que no se pueden preparar por falta de ingredientes.`}
-        />
+      {/* --- RENDERIZADO CONDICIONAL DE LA VISTA --- */}
+      {isRankingView ? (
+        // VISTA RANKING: Simple, solo muestra el componente de ranking.
+        <RankingView />
+      ) : (
+        // VISTA GESTIÓN DE PRODUCTOS: Usamos la versión completa y avanzada de la rama 'HEAD'.
+        <div className="space-y-6">
+          {alert && (
+            <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+          )}
+          {error && (
+            <Alert type="error" title="Error al cargar datos" message={error} />
+          )}
+          {ingredientesParaElaborar.length === 0 && (
+            <Alert
+              type="warning"
+              title="Sin ingredientes para elaborar"
+              message="No hay ingredientes marcados como 'Para Elaborar'. Debe crear ingredientes antes de poder crear productos."
+            />
+          )}
+
+          {/* Filtros avanzados */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setSearch(searchInput);
+              setCategoriaSel(categoriaInput);
+              setPrecioMin(precioMinInput);
+              setPrecioMax(precioMaxInput);
+              setEstadoSel(estadoInput);
+            }}
+            className="bg-white p-4 rounded-lg shadow grid grid-cols-1 md:grid-cols-6 gap-4 items-end"
+          >
+            <input type="text" placeholder="Buscar producto" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full border px-3 py-2 rounded-lg" />
+            <select value={categoriaInput} onChange={(e) => setCategoriaInput(e.target.value === "all" ? "all" : Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg">
+              <option value="all">Todas las categorías</option>
+              {categoriasFiltradas.map((cat) => (<option key={cat.idCategoria} value={cat.idCategoria}>{cat.denominacion}</option>))}
+            </select>
+            <input type="number" placeholder="Precio mín." value={precioMinInput} onChange={(e) => setPrecioMinInput(e.target.value === "" ? "" : Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+            <input type="number" placeholder="Precio máx." value={precioMaxInput} onChange={(e) => setPrecioMaxInput(e.target.value === "" ? "" : Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+            <select value={estadoInput} onChange={e => setEstadoInput(e.target.value as "all" | "activos" | "eliminados")} className="w-full border px-3 py-2 rounded-lg">
+              <option value="all">Activos/Eliminados</option>
+              <option value="activos">Solo Activos</option>
+              <option value="eliminados">Solo Eliminados</option>
+            </select>
+            <button type="submit" className="text-white text-sm px-4 py-2 rounded-lg hover:opacity-90 cursor-pointer" style={{ backgroundColor: "#CD6C50" }}>
+              Buscar
+            </button>
+          </form>
+
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow"><div className="text-2xl font-bold text-blue-600">{stats.total}</div><div className="text-sm text-gray-600">Total Productos</div></div>
+            <div className="bg-white p-4 rounded-lg shadow"><div className="text-2xl font-bold text-green-600">{stats.disponibles}</div><div className="text-sm text-gray-600">Stock Disponible</div></div>
+            <div className="bg-white p-4 rounded-lg shadow"><div className="text-2xl font-bold text-red-600">{stats.sinStock}</div><div className="text-sm text-gray-600">Sin Stock</div></div>
+            <div className="bg-white p-4 rounded-lg shadow"><div className="text-2xl font-bold text-purple-600">{stats.margenAlto}</div><div className="text-sm text-gray-600">Margen Alto (3x+)</div></div>
+          </div>
+
+          {stats.sinStock > 0 && (
+            <Alert type="warning" title="Productos sin stock suficiente" message={`Hay ${stats.sinStock} producto(s) que no se pueden preparar por falta de ingredientes.`} />
+          )}
+
+          {/* Tabla de productos con lógica de activar/desactivar */}
+          <ProductosList
+            productos={productosFiltrados}
+            loading={loading}
+            onEdit={handleEdit}
+            desactivarProducto={desactivarProducto}
+            activarProducto={activarProducto}
+            onViewDetails={handleViewDetails}
+          />
+
+          {/* Modales */}
+          <ProductoModal
+            isOpen={modalOpen}
+            onClose={() => { setModalOpen(false); setEditingProducto(undefined); }}
+            producto={editingProducto}
+            categorias={categorias}
+            unidadesMedida={unidadesMedida}
+            ingredientes={ingredientesParaElaborar}
+            onSubmit={handleSubmit}
+            loading={operationLoading}
+          />
+          <ProductoDetallesModal
+            isOpen={detallesModalOpen}
+            onClose={() => { setDetallesModalOpen(false); setViewingProducto(undefined); }}
+            producto={viewingProducto}
+            onEdit={handleEditFromDetails}
+          />
+        </div>
       )}
-
-      <ProductosList
-        productos={productosFiltrados}
-        loading={loading}
-        onEdit={handleEdit}
-        desactivarProducto={desactivarProducto}
-        activarProducto={activarProducto}
-        onViewDetails={handleViewDetails}
-      />
-
-      <ProductoModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingProducto(undefined);
-        }}
-        producto={editingProducto}
-        categorias={categorias}
-        unidadesMedida={unidadesMedida}
-        ingredientes={ingredientesParaElaborar}
-        onSubmit={handleSubmit}
-        loading={operationLoading}
-      />
-
-      <ProductoDetallesModal
-        isOpen={detallesModalOpen}
-        onClose={() => {
-          setDetallesModalOpen(false);
-          setViewingProducto(undefined);
-        }}
-        producto={viewingProducto}
-        onEdit={handleEditFromDetails}
-      />
     </div>
   );
+    
+  
 };
 
 export default Productos;

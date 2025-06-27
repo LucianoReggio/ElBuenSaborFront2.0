@@ -3,11 +3,11 @@ import type { ArticuloInsumoRequestDTO } from "../../types/insumos/ArticuloInsum
 import type { ArticuloInsumoResponseDTO } from "../../types/insumos/ArticuloInsumoResponseDTO";
 import type { CategoriaResponseDTO } from "../../types/categorias/CategoriaResponseDTO";
 import type { ImagenDTO } from "../../types/common/ImagenDTO";
-import { Button } from "../common/Button";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
 import { ImageUpload } from "../common/ImageUpload";
-import type { UnidadMedidaDTO } from "../../services";
+import { Button } from "../common/Button";
+import type { UnidadMedidaDTO } from "../../services/apiInstance";
 import { CategoriaSelector } from "../common/CategoriaSelector";
 
 interface InsumoFormProps {
