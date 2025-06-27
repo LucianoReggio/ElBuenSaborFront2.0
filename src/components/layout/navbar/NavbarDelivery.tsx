@@ -130,13 +130,13 @@ export default function NavbarDelivery({
                 )}
               </div>
             )}
-             {/* Indicador de estado activo */}
-            <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+             <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>En servicio</span>
             </div>
           </div>
-            
+          </div>
+
           {/* Centro: Logo y Estado */}
           <div className="flex items-center space-x-6">
             <button
@@ -151,8 +151,8 @@ export default function NavbarDelivery({
               />
             </button>
 
+            {/* Indicador de estado activo */}
            
-          </div>
 
           {/* Derecha: Enlaces rápidos */}
           <div className="flex items-center space-x-4">

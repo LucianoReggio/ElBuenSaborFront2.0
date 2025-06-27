@@ -186,12 +186,12 @@ export default function NavbarCocinero({
               </div>
             )}
 
-           
-          </div>
-<div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+           <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span>Cocina Activa</span>
             </div>
+          </div>
+
           {/* Centro: Logo */}
           <div className="flex items-center justify-center">
             <button
