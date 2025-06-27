@@ -62,6 +62,14 @@ export default function NavbarAdmin({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /**
+   * Navega a Mi Perfil y cierra el dropdown
+   */
+  const handleMiPerfil = () => {
+    setIsUserMenuOpen(false);
+    navigate("/mi-perfil");
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,7 +116,10 @@ export default function NavbarAdmin({
                       </p>
                     </div>
                     <div className="py-1">
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                      <button
+                        onClick={handleMiPerfil}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                      >
                         <User className="mr-3 h-4 w-4" />
                         Mi Perfil
                       </button>

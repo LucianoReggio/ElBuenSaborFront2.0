@@ -1,5 +1,5 @@
 import type { ImagenDTO } from "../common/Index";
-import type { DomicilioDTO } from "./Index";
+import type { DomicilioResponseDTO } from "./DomicilioDTO";
 
 export interface ClienteResponseDTO {
   idCliente: number;
@@ -8,6 +8,6 @@ export interface ClienteResponseDTO {
   email: string;
   telefono: string;
   fechaNacimiento: string; // ISO date string
-  domicilios: DomicilioDTO[]; // Array de domicilios
+  domicilios: DomicilioResponseDTO[]; // ✅ Actualizado para usar DomicilioResponseDTO
   imagen?: ImagenDTO;
 }

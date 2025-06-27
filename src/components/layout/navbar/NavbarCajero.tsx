@@ -7,7 +7,7 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // ← Agregar esta importación
+import { useNavigate } from "react-router-dom";
 
 interface NavbarCajeroProps {
   user?: {
@@ -31,7 +31,7 @@ export default function NavbarCajero({
 }: NavbarCajeroProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate(); // ← Agregar esta línea
+  const navigate = useNavigate();
 
   const formatRole = (role?: string) => {
     const roleMap: { [key: string]: string } = {
@@ -58,6 +58,14 @@ export default function NavbarCajero({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  /**
+   * Navega a Mi Perfil y cierra el dropdown
+   */
+  const handleMiPerfil = () => {
+    setIsUserMenuOpen(false);
+    navigate("/mi-perfil");
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -105,13 +113,12 @@ export default function NavbarCajero({
                       </p>
                     </div>
                     <div className="py-1">
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                      <button
+                        onClick={handleMiPerfil}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                      >
                         <User className="mr-3 h-4 w-4" />
                         Mi Perfil
-                      </button>
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
-                        <Settings className="mr-3 h-4 w-4" />
-                        Configuración
                       </button>
 
                       <div className="border-t border-gray-200 my-1"></div>
@@ -164,7 +171,7 @@ export default function NavbarCajero({
                 <span className="text-sm font-medium">Nueva Venta</span>
               </button>
               {/* ← CAMBIAR ESTE BOTÓN */}
-              <button 
+              <button
                 onClick={() => navigate("/gestion-pedidos")}
                 className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
               >

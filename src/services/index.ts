@@ -14,6 +14,7 @@ export { CategoriaService } from "./CategoriaService";
 export { InsumoService } from "./InsumoService";
 export { ProductoService } from "./ProductoService";
 export { UnidadMedidaService } from "./UnidadMedidaService";
+export { DomicilioService } from "./DomicilioService";
 
 // Exportar tipos relacionados
 export type { CompraInsumoDTO } from "./InsumoService";

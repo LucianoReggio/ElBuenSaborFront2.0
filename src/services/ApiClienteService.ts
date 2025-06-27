@@ -98,6 +98,13 @@ export class ApiClienteService {
     });
   }
 
+  public async patch<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>(url, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
   public async deleteRequest<T = any>(url: string): Promise<T> {
     return this.request<T>(url, { method: "DELETE" });
   }
