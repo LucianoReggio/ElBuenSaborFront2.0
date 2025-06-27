@@ -25,8 +25,8 @@ import Usuarios from "./pages/Usuarios";
 import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
-import {GestionPedidos} from "./pages/GestionPedidos"; // ← Nueva importación
-
+import { GestionPedidos } from "./pages/GestionPedidos";
+import Cocina from "./pages/Cocina"; // ← Importación para cocina
 
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
@@ -94,8 +94,12 @@ const ProtectedRoute: React.FC<{
   // Obtener rol del usuario (compatibilidad con diferentes estructuras)
   const userRole = (user as any)?.usuario?.rol || (user as any)?.rol;
 
+  console.log('🔐 ProtectedRoute - Rol del usuario:', userRole);
+  console.log('🔐 ProtectedRoute - Roles permitidos:', allowedRoles);
+
   // ← VERIFICAR SI EL ROL ESTÁ EN LA LISTA DE ROLES PERMITIDOS
   if (allowedRoles && !allowedRoles.includes(userRole)) {
+    console.log('❌ Acceso denegado - Rol no permitido');
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center p-8">
@@ -108,6 +112,8 @@ const ProtectedRoute: React.FC<{
               <br />
               <span className="text-xs">
                 Rol actual: {userRole || "No definido"}
+                <br />
+                Roles permitidos: {allowedRoles.join(', ')}
               </span>
             </p>
             <Link
@@ -122,6 +128,7 @@ const ProtectedRoute: React.FC<{
     );
   }
 
+  console.log('✅ Acceso permitido - Renderizando componente');
   return <>{children}</>;
 };
 
@@ -211,23 +218,42 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             </svg>
             Control Stock
           </NavLink>
-            {/* ← AGREGAR ENLACE A GESTIÓN DE PEDIDOS EN EL SIDEBAR */}
-            <NavLink to="/gestion-pedidos">
-              <svg
-                className="w-5 h-5 mr-3 transition-colors duration-200"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              Gestión Pedidos
-            </NavLink>
+          {/* ← AGREGAR ENLACE A GESTIÓN DE PEDIDOS EN EL SIDEBAR */}
+          <NavLink to="/gestion-pedidos">
+            <svg
+              className="w-5 h-5 mr-3 transition-colors duration-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+            Gestión Pedidos
+          </NavLink>
+          
+          {/* ← AGREGAR ENLACE A COCINA EN EL SIDEBAR PARA ADMINS */}
+          <NavLink to="/cocina">
+            <svg
+              className="w-5 h-5 mr-3 transition-colors duration-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Cocina
+          </NavLink>
+          
           <NavLink to="/usuarios">
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A4 4 0 018 16h8a4 4 0 012.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -243,6 +269,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       </main>
     </div>
     <Footer />
+  </div>
+);
+
+// ← LAYOUT ESPECÍFICO PARA COCINA (sin sidebar, fullscreen)
+const CocinaLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="min-h-screen bg-gray-50">
+    {/* El navbar se maneja dentro del componente CocinaDashboard */}
+    {children}
   </div>
 );
 
@@ -356,7 +390,21 @@ function App() {
             }
           />
 
-          {/* Rutas administrativas (requieren rol ADMIN) */}
+          {/* ← RUTA PARA COCINA CORREGIDA (COCINERO Y ADMIN) */}
+          <Route
+            path="/cocina"
+            element={
+              <ProtectedRoute allowedRoles={["COCINERO", "ADMIN"]} fallbackTo="/">
+                <CocinaLayout>
+                  <Cocina />
+                </CocinaLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rutas administrativas */}
+          
+          {/* Dashboard - Solo ADMIN */}
           <Route
             path="/dashboard"
             element={
@@ -367,36 +415,56 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Rubros/Categorías - ADMIN y COCINERO */}
           <Route
             path="/categorias"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <ProtectedRoute allowedRoles={["ADMIN", "COCINERO"]}>
                 <AdminLayout>
                   <Categorias />
                 </AdminLayout>
               </ProtectedRoute>
             }
           />
+          
+          {/* Ingredientes/Insumos - ADMIN y COCINERO */}
           <Route
             path="/insumos"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <ProtectedRoute allowedRoles={["ADMIN", "COCINERO"]}>
                 <AdminLayout>
                   <Insumos />
                 </AdminLayout>
               </ProtectedRoute>
             }
           />
+          
+          {/* Productos - ADMIN y COCINERO */}
           <Route
             path="/productos"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <ProtectedRoute allowedRoles={["ADMIN", "COCINERO"]}>
                 <AdminLayout>
                   <Productos />
                 </AdminLayout>
               </ProtectedRoute>
             }
           />
+          
+          {/* Control de Stock - ADMIN y COCINERO */}
+          <Route
+            path="/stock"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "COCINERO"]}>
+                <AdminLayout>
+                  <StockControl />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Usuarios - Solo ADMIN */}
           <Route
             path="/usuarios"
             element={
@@ -407,27 +475,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/usuarios"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <AdminLayout>
-                  <StockControl />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/stock"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <AdminLayout>
-                  <StockControl />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-            
-            />
 
           {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route

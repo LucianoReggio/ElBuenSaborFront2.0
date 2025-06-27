@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useRef } from "react";
+import  { useState, useEffect, useRef } from "react";
 import {
   User,
   LogOut,
   Settings,
-  Receipt,
+  ChefHat,
   Clock,
-  DollarSign,
+  RefreshCw,
+  
+  Package,
+  
 } from "lucide-react";
+import {  useNavigate } from "react-router-dom";
 
-interface NavbarCajeroProps {
+interface NavbarCocineroProps {
   user?: {
     nombre: string;
     apellido: string;
@@ -21,16 +25,30 @@ interface NavbarCajeroProps {
   };
   onLogout?: () => void;
   onHome?: () => void;
+  totalPedidos?: number;
+  pedidosPendientes?: number;
+  pedidosEnPreparacion?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  lastUpdate?: Date;
 }
 
-export default function NavbarCajero({
+export default function NavbarCocinero({
   user,
   onLogout,
   onHome,
-}: NavbarCajeroProps) {
+  
+  pedidosPendientes = 0,
+  pedidosEnPreparacion = 0,
+  onRefresh,
+  isRefreshing = false,
+  lastUpdate,
+}: NavbarCocineroProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isResourcesMenuOpen, setIsResourcesMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
+  const resourcesMenuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const formatRole = (role?: string) => {
     const roleMap: { [key: string]: string } = {
       ADMIN: "Administrador",
@@ -40,7 +58,23 @@ export default function NavbarCajero({
       COCINERO: "Cocinero",
       CLIENTE: "Cliente",
     };
-    return roleMap[role?.toUpperCase() || ""] || "Cajero";
+    return roleMap[role?.toUpperCase() || ""] || "Cocinero";
+  };
+
+  const formatLastUpdate = (date?: Date) => {
+    if (!date) return "Nunca";
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Hace un momento";
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    
+    return date.toLocaleTimeString('es-AR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   useEffect(() => {
@@ -51,11 +85,25 @@ export default function NavbarCajero({
       ) {
         setIsUserMenuOpen(false);
       }
+      if (
+        resourcesMenuRef.current &&
+        !resourcesMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsResourcesMenuOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Determinar urgencia basada en pedidos pendientes
+  const getUrgencyColor = () => {
+    if (pedidosPendientes >= 5) return "bg-red-500";
+    if (pedidosPendientes >= 3) return "bg-orange-500";
+    if (pedidosPendientes >= 1) return "bg-yellow-500";
+    return "bg-green-500";
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -68,7 +116,7 @@ export default function NavbarCajero({
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200"
-                  aria-label="Menú de cajero"
+                  aria-label="Menú de cocinero"
                 >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                     {user.imagen?.url ? (
@@ -85,7 +133,7 @@ export default function NavbarCajero({
                     <div className="text-sm font-medium text-gray-700">
                       {user.nombre} {user.apellido}
                     </div>
-                    <div className="text-xs text-blue-600 font-semibold">
+                    <div className="text-xs text-orange-600 font-semibold">
                       {formatRole(user.rol)}
                     </div>
                   </div>
@@ -98,7 +146,7 @@ export default function NavbarCajero({
                         {user.nombre} {user.apellido}
                       </p>
                       <p className="text-sm text-gray-500">{user.email}</p>
-                      <p className="text-xs text-blue-600 font-semibold mt-1">
+                      <p className="text-xs text-orange-600 font-semibold mt-1">
                         {formatRole(user.rol)}
                       </p>
                     </div>
@@ -116,7 +164,7 @@ export default function NavbarCajero({
 
                       {/* Información sobre permisos */}
                       <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 mx-2 rounded">
-                        💡 Los cambios de permisos se aplicarán en tu próximo
+                        👨‍🍳 Los cambios de turnos se aplicarán en tu próximo
                         inicio de sesión
                       </div>
 
@@ -137,14 +185,19 @@ export default function NavbarCajero({
                 )}
               </div>
             )}
-          </div>
 
+           
+          </div>
+<div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span>Cocina Activa</span>
+            </div>
           {/* Centro: Logo */}
           <div className="flex items-center justify-center">
             <button
-              onClick={onHome || (() => (window.location.href = "/caja"))}
+              onClick={() => navigate("/")}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
-              aria-label="Panel de caja"
+              aria-label="Dashboard de cocina"
             >
               <img
                 src="/src/assets/logos/Logo-nabvar.png"
@@ -154,30 +207,53 @@ export default function NavbarCajero({
             </button>
           </div>
 
-          {/* Derecha: Herramientas de caja */}
+          {/* Derecha: Controles de cocina */}
           <div className="flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200">
-                <Receipt className="h-4 w-4" />
-                <span className="text-sm font-medium">Nueva Venta</span>
+             <button
+              onClick={() => navigate("/cocina")}
+              className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+            >
+              <Package className="h-4 w-4" />
+              <span className="hidden lg:block text-sm font-medium">
+                Gestión Pedidos
+              </span>
+            </button>
+            {/* Menú de recursos de cocina */}
+           <button
+              onClick={() => navigate("/productos")}
+                className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200">
+                <ChefHat className="h-4 w-4" />
+                <span className="hidden lg:block text-sm font-medium">
+                  Cocina
+                </span>
               </button>
-              <button className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">Pedidos</span>
-              </button>
-              <button className="flex items-center space-x-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200">
-                <DollarSign className="h-4 w-4" />
-                <span className="text-sm font-medium">Caja</span>
-              </button>
-            </div>
 
-            {/* Estado de caja */}
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Caja Abierta</span>
-            </div>
+            {/* Refresh button */}
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50"
+              title="Actualizar pedidos"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline text-sm font-medium">
+                {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+              </span>
+            </button>
+
+            {/* Última actualización */}
+            {lastUpdate && (
+              <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-gray-50 text-gray-600 rounded-lg text-sm">
+                <Clock className="h-4 w-4" />
+                <span>{formatLastUpdate(lastUpdate)}</span>
+              </div>
+            )}
+
+            
           </div>
         </div>
+
+    
       </div>
     </nav>
   );
