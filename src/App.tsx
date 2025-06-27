@@ -24,6 +24,7 @@ import Catalogo from "./pages/Catalogo";
 import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
+import { MiPerfil } from "./pages/MiPerfil";
 
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
@@ -369,6 +370,18 @@ function App() {
               <AuthRoute>
                 <PublicLayout>
                   <MisPedidos />
+                </PublicLayout>
+              </AuthRoute>
+            }
+          />
+
+          {/* ✅ NUEVA RUTA - Mi Perfil */}
+          <Route
+            path="/mi-perfil"
+            element={
+              <AuthRoute>
+                <PublicLayout>
+                  <MiPerfil />
                 </PublicLayout>
               </AuthRoute>
             }
