@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, Phone, Package, Truck, Store, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { PedidoService } from '../services/PedidoServices';
+import { ClienteService } from '../services/ClienteService'; // ✅ AGREGAR IMPORT
 import { useAuth } from '../hooks/useAuth';
 import type { PedidoResponseDTO } from '../types/pedidos/PedidoResponseDTO';
 
@@ -23,57 +24,46 @@ const MisPedidos: React.FC = () => {
   const [pedidosConFactura, setPedidosConFactura] = useState<Set<number>>(new Set());
   const [verificandoFacturas, setVerificandoFacturas] = useState(false);
 
-  // 🆕 NUEVO: Función helper para obtener el ID correcto del usuario
-  const getUserId = () => {
-    // Si es BackendUser (tiene idCliente)
-    if ((user as any)?.idCliente) {
-      return (user as any).idCliente;
-    }
-
-    // Si es el formato original (tiene userId)
-    if ((user as any)?.userId) {
-      return (user as any).userId;
-    }
-
-    // Fallbacks adicionales
-    if ((user as any)?.sub) {
-      return (user as any).sub;
-    }
-
-    if ((user as any)?.id) {
-      return (user as any).id;
-    }
-
-    return null;
-  };
-
+  // ✅ CORREGIDO: useEffect simplificado
   useEffect(() => {
     console.log('🔍 User object:', user);
     console.log('🔍 User ID:', user?.userId);
+    console.log('🔍 User idCliente:', user?.idCliente);
     console.log('🔍 Backend synced:', backendSynced);
 
-    // ✅ MANTENER tu lógica original pero agregar fallback
-    const userId = getUserId();
-    console.log('🔍 Resolved User ID:', userId);
-
-    if (user?.userId && backendSynced) {
+    if (user && backendSynced) {
       cargarPedidos();
     }
   }, [user, backendSynced]);
 
+  // ✅ CORREGIDO: Función principal con la misma lógica del checkout
   const cargarPedidos = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // ✅ MANTENER tu validación original pero con fallback
-      const userId = user?.userId || getUserId();
-      if (!userId) {
-        setError('Usuario no autenticado');
+      // ✅ USAR LA MISMA LÓGICA QUE EL CHECKOUT
+      let clienteId = user?.idCliente;
+      
+      if (!clienteId) {
+        console.log('⚠️ Obteniendo idCliente del backend para cargar pedidos...');
+        try {
+          const perfilCompleto = await ClienteService.getMyProfile();
+          clienteId = perfilCompleto.idCliente;
+          console.log('✅ idCliente obtenido para pedidos:', clienteId);
+        } catch (error) {
+          console.log('❌ Error obteniendo perfil, usando userId como fallback');
+          clienteId = user?.userId;
+        }
+      }
+      
+      if (!clienteId) {
+        setError('No se pudo obtener la información del cliente');
         return;
       }
 
-      const pedidosUsuario = await pedidoService.getPedidosByCliente(userId);
+      console.log('📋 Buscando pedidos para cliente:', clienteId);
+      const pedidosUsuario = await pedidoService.getPedidosByCliente(clienteId);
       console.log('✅ Pedidos recibidos:', pedidosUsuario);
       console.log('📊 Cantidad de pedidos:', pedidosUsuario.length);
 

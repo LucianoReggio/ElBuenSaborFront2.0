@@ -73,7 +73,45 @@ export class FacturaService {
     }
   }
 
-  // ==================== DESCARGAS PDF ====================
+  // ==================== MÉTODOS AUXILIARES PARA AUTH0 ✅ NUEVO ====================
+
+  /**
+   * Obtener headers con autenticación Auth0
+   */
+  private static async getAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      'Accept': 'application/pdf',
+    };
+
+    try {
+      // ✅ ACCEDER AL auth0 del singleton apiClienteService
+      const auth0Instance = (apiClienteService as any).auth0;
+      
+      if (auth0Instance && auth0Instance.isAuthenticated && auth0Instance.getAccessTokenSilently) {
+        console.log('🔍 Obteniendo token Auth0 para factura...');
+        const token = await auth0Instance.getAccessTokenSilently();
+        
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+          console.log('✅ Token Auth0 agregado para factura:', token.substring(0, 50) + '...');
+        } else {
+          console.warn('⚠️ Token Auth0 vacío para factura');
+        }
+      } else {
+        console.warn('⚠️ Auth0 no configurado para factura:', {
+          hasAuth0: !!auth0Instance,
+          isAuthenticated: auth0Instance?.isAuthenticated,
+          hasTokenMethod: !!auth0Instance?.getAccessTokenSilently
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error obteniendo token Auth0 para factura:", error);
+    }
+
+    return headers;
+  }
+
+  // ==================== DESCARGAS PDF ✅ CORREGIDO ====================
 
   /**
    * Descargar factura en PDF por ID de factura
@@ -89,16 +127,16 @@ export class FacturaService {
         ? `${this.BASE_URL}/${facturaId}/pdf/preview`
         : `${this.BASE_URL}/${facturaId}/pdf`;
       
-      // Usar fetch directo para manejar blobs (el ApiClienteService espera JSON)
-      const baseUrl = 'http://localhost:8080/api'; // Mismo que tu ApiClienteService
+      // ✅ USAR headers con Auth0
+      const authHeaders = await this.getAuthHeaders();
+      
+      const baseUrl = 'http://localhost:8080/api';
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // TODO: Agregar token de autenticación si es necesario
-          // 'Authorization': `Bearer ${token}`
-        }
+        headers: authHeaders // ✅ CORREGIDO: Usar headers con Auth0
       });
+
+      console.log('📡 Response status para PDF factura:', response.status);
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
@@ -126,7 +164,7 @@ export class FacturaService {
   }
 
   /**
-   * Descargar factura en PDF por ID de pedido
+   * Descargar factura en PDF por ID de pedido ✅ CORREGIDO
    */
   static async descargarFacturaPdfByPedido(
     pedidoId: number, 
@@ -137,16 +175,16 @@ export class FacturaService {
       
       const endpoint = `${this.BASE_URL}/pedido/${pedidoId}/pdf`;
       
-      // Usar fetch directo para manejar blobs
-      const baseUrl = 'http://localhost:8080/api'; // Mismo que tu ApiClienteService
+      // ✅ USAR headers con Auth0
+      const authHeaders = await this.getAuthHeaders();
+      
+      const baseUrl = 'http://localhost:8080/api';
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // TODO: Agregar token de autenticación si es necesario
-          // 'Authorization': `Bearer ${token}`
-        }
+        headers: authHeaders // ✅ CORREGIDO: Usar headers con Auth0
       });
+
+      console.log('📡 Response status para PDF pedido:', response.status);
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);

@@ -27,7 +27,33 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     onExito
 }) => {
     const carrito = useCarritoMercadoPago();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, backendUser } = useAuth(); // ✅ Agregar backendUser
+
+    // 🔍 DEBUG COMPLETO DEL USER
+    useEffect(() => {
+        console.log('🔍 === DEBUG USER OBJECT ===');
+        console.log('🔍 user (principal):', user);
+        console.log('🔍 backendUser:', backendUser);
+        console.log('🔍 isAuthenticated:', isAuthenticated);
+        
+        if (user) {
+            console.log('🔍 user.userId:', user.userId);
+            console.log('🔍 user.idCliente:', user.idCliente);
+            console.log('🔍 user.nombre:', user.nombre);
+            console.log('🔍 user.apellido:', user.apellido);
+            console.log('🔍 user.email:', user.email);
+            console.log('🔍 user.domicilios:', user.domicilios);
+            console.log('🔍 user.usuario:', user.usuario);
+            console.log('🔍 Todas las propiedades de user:', Object.keys(user));
+        }
+        
+        if (backendUser) {
+            console.log('🔍 backendUser.userId:', backendUser.userId);
+            console.log('🔍 backendUser.idCliente:', backendUser.idCliente);
+            console.log('🔍 backendUser.usuario:', backendUser.usuario);
+            console.log('🔍 Todas las propiedades de backendUser:', Object.keys(backendUser));
+        }
+    }, [user, backendUser, isAuthenticated]);
 
     const [loading, setLoading] = useState(false);
     const [loadingDomicilios, setLoadingDomicilios] = useState(false);
@@ -44,37 +70,90 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     const [pedidoCreado, setPedidoCreado] = useState<any>(null);
     const [linkPago, setLinkPago] = useState<string | null>(null);
 
-    // ==================== CARGAR DOMICILIOS ====================
+    // ==================== CARGAR DOMICILIOS CON DEBUG Y FALLBACKS ====================
 
     const cargarDomicilios = async () => {
         try {
-            setLoadingDomicilios(true);
-            console.log('🏠 Cargando domicilios para usuario:', user?.userId);
-
-            const cliente = await ClienteService.getById(user!.userId);
-
-            if (cliente.domicilios && cliente.domicilios.length > 0) {
-                setDomicilios(cliente.domicilios);
-                console.log('🏠 Domicilios cargados:', cliente.domicilios.length);
-            } else {
-                console.log('🏠 Usuario sin domicilios registrados');
-                setDomicilios([]);
+            // 🔍 DEBUG: Verificar el objeto user completo
+            console.log('🔍 DEBUG USER OBJECT en cargarDomicilios:', user);
+            console.log('🔍 user.userId:', user?.userId);
+            console.log('🔍 user.idCliente:', user?.idCliente);
+            
+            let clienteId = user?.idCliente;
+            
+            // 🆘 FALLBACK: Si no hay idCliente, obtenerlo del backend
+            if (!clienteId) {
+                console.log('⚠️ No hay idCliente en user, obteniendo del backend...');
+                
+                try {
+                    // Opción 1: Intentar con /clientes/me usando el servicio (que ya tiene Auth0 configurado)
+                    console.log('📡 Intentando ClienteService.getMyProfile()...');
+                    const perfilCompleto = await ClienteService.getMyProfile();
+                    clienteId = perfilCompleto.idCliente;
+                    console.log('✅ idCliente obtenido de /clientes/me:', clienteId);
+                } catch (error1) {
+                    console.log('❌ Error con ClienteService.getMyProfile():', error1);
+                    
+                    // Opción 2: Usar userId si existe (como fallback)
+                    if (user?.userId) {
+                        console.log('🔄 Intentando con userId como fallback...');
+                        clienteId = user.userId;
+                    } else {
+                        console.log('❌ Tampoco hay userId disponible');
+                    }
+                }
             }
-        } catch (err) {
-            console.error('❌ Error al cargar domicilios:', err);
+            
+            console.log('🏠 Cargando domicilios para cliente:', clienteId);
+            
+            if (!clienteId) {
+                console.error('❌ No se pudo obtener ID del cliente de ninguna forma');
+                setError('No se pudo cargar la información del cliente');
+                return;
+            }
+            
+            setLoadingDomicilios(true);
+            
+            // 🔍 DEBUG: Verificar la llamada al servicio
+            console.log('📡 Llamando ClienteService.getById con ID:', clienteId);
+            const clienteData = await ClienteService.getById(clienteId);
+            console.log('📡 Respuesta del servicio:', clienteData);
+            
+            setDomicilios(clienteData.domicilios || []);
+            console.log('✅ Domicilios cargados:', clienteData.domicilios?.length || 0);
+            console.log('✅ Domicilios array:', clienteData.domicilios);
+            
+        } catch (error: any) {
+            console.error('❌ Error al cargar domicilios:', error);
+            console.error('❌ Error details:', error.response?.data);
+            
+            // Fallback: usar domicilios que ya tienes en user si están disponibles
+            if (user?.domicilios) {
+                setDomicilios(user.domicilios);
+                console.log('🔄 Usando domicilios del user cache:', user.domicilios.length);
+            } else {
+                setError('No se pudieron cargar los domicilios');
+            }
         } finally {
             setLoadingDomicilios(false);
         }
     };
 
+    // 🎯 useEffect cargarDomicilios triggered  
     useEffect(() => {
-        if (abierto && user?.userId) {
+        console.log('🎯 useEffect cargarDomicilios triggered');
+        console.log('🎯 abierto:', abierto);
+        console.log('🎯 user?.idCliente:', user?.idCliente);
+        console.log('🎯 isAuthenticated:', isAuthenticated);
+        
+        // ✅ CAMBIAR: No esperar user?.idCliente, solo que esté autenticado
+        if (abierto && isAuthenticated) {
             cargarDomicilios();
         }
-    }, [abierto, user?.userId]);
+    }, [abierto, isAuthenticated]); // ✅ CAMBIAR: solo depender de isAuthenticated
 
-    // ==================== LIMPIAR ESTADO AL CERRAR ====================
-
+    // ==================== RESTO DEL CÓDIGO IGUAL ====================
+    
     useEffect(() => {
         if (!abierto) {
             setError(null);
@@ -87,16 +166,14 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
 
     if (!abierto) return null;
 
-    // ==================== HANDLERS ====================
-
     const handleConfirmarPedido = async () => {
         try {
             setLoading(true);
             setError(null);
             setExito(null);
 
-            // Validaciones básicas
-            if (!isAuthenticated || !user?.userId) {
+            // ✅ CORRECCIÓN: Validar idCliente también
+            if (!isAuthenticated || (!user?.userId && !user?.idCliente)) {
                 setError('Debes iniciar sesión para realizar un pedido');
                 return;
             }
@@ -120,25 +197,59 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
 
             // Decidir qué servicio usar según el método de pago
             if (metodoPago === 'EFECTIVO') {
-                // Usar el servicio original para efectivo
                 await crearPedidoEfectivo();
             } else {
-                // Usar el nuevo servicio para MercadoPago
                 await crearPedidoMercadoPago();
             }
 
         } catch (err: any) {
             console.error('❌ Error al crear pedido:', err);
-            setError(err.message || 'Error al procesar el pedido. Intenta de nuevo.');
+            
+            // 🔍 DEBUG: Mostrar más detalles del error
+            if (err.response) {
+                console.error('❌ Error response:', err.response);
+                console.error('❌ Error response data:', err.response.data);
+                console.error('❌ Error response status:', err.response.status);
+            }
+            
+            // Intentar extraer más información del error
+            let errorMessage = err.message || 'Error al procesar el pedido. Intenta de nuevo.';
+            
+            if (err.response?.data) {
+                if (typeof err.response.data === 'string') {
+                    errorMessage = err.response.data;
+                } else if (err.response.data.mensaje) {
+                    errorMessage = err.response.data.mensaje;
+                } else if (err.response.data.error) {
+                    errorMessage = err.response.data.error;
+                }
+            }
+            
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
     const crearPedidoEfectivo = async () => {
-        // Usar el servicio original (PedidoService)
+        // ✅ OBTENER idCliente correcto del backend
+        let clienteId = user?.idCliente;
+        
+        if (!clienteId) {
+            console.log('⚠️ Obteniendo idCliente del backend para pedido efectivo...');
+            try {
+                const perfilCompleto = await ClienteService.getMyProfile();
+                clienteId = perfilCompleto.idCliente;
+                console.log('✅ idCliente obtenido:', clienteId);
+            } catch (error) {
+                // Fallback a userId solo si no hay otra opción
+                clienteId = user!.userId;
+                console.log('⚠️ Usando userId como fallback:', clienteId);
+            }
+        }
+        
         const pedidoRequest = {
-            idCliente: user!.userId,
+            idCliente: clienteId,
             idSucursal: idSucursal,
             tipoEnvio: carrito.datosEntrega.tipoEnvio,
             ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? {
@@ -159,7 +270,6 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
         setPedidoCreado(pedidoCreado);
         setExito('¡Pedido creado exitosamente! Puedes pagar en efectivo al momento de la entrega.');
 
-        // Limpiar carrito y notificar
         carrito.limpiarCarrito();
         setTimeout(() => {
             onExito({ pedido: pedidoCreado, metodoPago: 'EFECTIVO' });
@@ -168,25 +278,93 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     };
 
     const crearPedidoMercadoPago = async () => {
-        // Usar el nuevo servicio de MercadoPago
-        const pedidoRequest = MercadoPagoService.crearRequestPedidoCompleto(
-            user!.userId,
-            idSucursal,
-            carrito.datosEntrega.tipoEnvio,
-            carrito.items.map(item => ({ id: item.id, cantidad: item.cantidad })),
-            {
-                email: user!.email,
-                nombre: user!.nombre,
-                apellido: user!.apellido
-            },
-            {
-                idDomicilio: domicilioSeleccionado || undefined,
-                observaciones: carrito.datosEntrega.observaciones?.trim(),
-                crearPreferenciaMercadoPago: true
+        console.log('💳 Creando pedido con MercadoPago...');
+        
+        // ✅ VALIDACIONES PREVIAS
+        if (!user?.email || !user?.nombre || !user?.apellido) {
+            setError('Datos de usuario incompletos. Actualiza tu perfil.');
+            return;
+        }
+        
+        // ✅ OBTENER idCliente correcto ANTES de crear el request
+        let clienteId = user?.idCliente;
+        
+        if (!clienteId) {
+            console.log('⚠️ Obteniendo idCliente del backend para MercadoPago...');
+            try {
+                const perfilCompleto = await ClienteService.getMyProfile();
+                clienteId = perfilCompleto.idCliente;
+                console.log('✅ idCliente obtenido del backend:', clienteId);
+            } catch (error) {
+                console.error('❌ Error obteniendo perfil, usando userId como fallback');
+                clienteId = user.userId;
             }
-        );
+        }
+        
+        if (!clienteId) {
+            setError('No se pudo obtener la información del cliente');
+            return;
+        }
+        
+        // 🔍 DEBUG: Verificar datos antes de enviar
+        console.log('🔍 Datos del carrito:', {
+            items: carrito.items,
+            tipoEnvio: carrito.datosEntrega.tipoEnvio,
+            observaciones: carrito.datosEntrega.observaciones,
+            domicilioSeleccionado
+        });
+        
+        console.log('🔍 Datos del usuario:', {
+            email: user.email,
+            nombre: user.nombre,
+            apellido: user.apellido,
+            userId: user.userId,
+            clienteId: clienteId
+        });
+        
+        // ✅ CREAR request con todos los campos validados
+        const pedidoRequest: any = {
+            idCliente: Number(clienteId), // ✅ Asegurar que sea número
+            idSucursal: Number(idSucursal), // ✅ Asegurar que sea número
+            tipoEnvio: carrito.datosEntrega.tipoEnvio,
+            detalles: carrito.items.map(item => ({
+                idArticulo: Number(item.id),
+                cantidad: Number(item.cantidad)
+            })),
+            // ✅ Datos del comprador - asegurar que no sean undefined
+            emailComprador: user.email, // ✅ Ya validado arriba
+            nombreComprador: user.nombre, // ✅ Ya validado arriba  
+            apellidoComprador: user.apellido, // ✅ Ya validado arriba
+            // Configuración
+            porcentajeDescuentoTakeAway: 10.0,
+            gastosEnvioDelivery: 200.0,
+            aplicarDescuentoTakeAway: carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY',
+            crearPreferenciaMercadoPago: true,
+            externalReference: `PEDIDO_${Date.now()}_${clienteId}`
+        };
+        
+        // ✅ Agregar campos opcionales solo si tienen valor
+        if (domicilioSeleccionado) {
+            pedidoRequest.idDomicilio = Number(domicilioSeleccionado);
+        }
+        
+        if (carrito.datosEntrega.observaciones?.trim()) {
+            pedidoRequest.observaciones = carrito.datosEntrega.observaciones.trim();
+        }
 
-        console.log('💳 Creando pedido con MercadoPago:', pedidoRequest);
+        console.log('💳 Request completo enviado a MercadoPago:', JSON.stringify(pedidoRequest, null, 2));
+        
+        // 🔍 DEBUG: Verificar que todos los campos requeridos estén presentes
+        console.log('🔍 Validación de campos:');
+        console.log('  - idCliente:', pedidoRequest.idCliente, typeof pedidoRequest.idCliente);
+        console.log('  - tipoEnvio:', pedidoRequest.tipoEnvio, typeof pedidoRequest.tipoEnvio);
+        console.log('  - idSucursal:', pedidoRequest.idSucursal, typeof pedidoRequest.idSucursal);
+        console.log('  - emailComprador:', pedidoRequest.emailComprador, typeof pedidoRequest.emailComprador);
+        console.log('  - nombreComprador:', pedidoRequest.nombreComprador, typeof pedidoRequest.nombreComprador);
+        console.log('  - apellidoComprador:', pedidoRequest.apellidoComprador, typeof pedidoRequest.apellidoComprador);
+        console.log('  - detalles length:', pedidoRequest.detalles.length);
+        console.log('  - detalles:', pedidoRequest.detalles);
+        
         const response = await mercadoPagoService.crearPedidoConMercadoPago(pedidoRequest);
 
         if (!response.exito) {
@@ -195,7 +373,6 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
 
         setPedidoCreado(response.pedido);
 
-        // Verificar si se creó el link de pago
         if (MercadoPagoService.debeUsarMercadoPago(response)) {
             const link = MercadoPagoService.obtenerLinkPago(response.mercadoPago);
             setLinkPago(link);
@@ -204,7 +381,6 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             setError(response.mercadoPago?.errorMercadoPago || 'No se pudo generar el link de pago');
         }
 
-        // Limpiar carrito
         carrito.limpiarCarrito();
     };
 
@@ -352,8 +528,8 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                             <button
                                 onClick={() => setMetodoPago('EFECTIVO')}
                                 className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'EFECTIVO'
-                                        ? 'border-[#CD6C50] bg-[#CD6C50]/10'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-[#CD6C50] bg-[#CD6C50]/10'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <DollarSign className={`w-6 h-6 mx-auto mb-2 ${metodoPago === 'EFECTIVO' ? 'text-[#CD6C50]' : 'text-gray-400'
@@ -369,8 +545,8 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                             <button
                                 onClick={() => setMetodoPago('MERCADO_PAGO')}
                                 className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'MERCADO_PAGO'
-                                        ? 'border-[#CD6C50] bg-[#CD6C50]/10'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-[#CD6C50] bg-[#CD6C50]/10'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <Smartphone className={`w-6 h-6 mx-auto mb-2 ${metodoPago === 'MERCADO_PAGO' ? 'text-[#CD6C50]' : 'text-gray-400'

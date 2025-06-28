@@ -28,7 +28,7 @@ interface AuthState {
 
 /**
  * Hook personalizado para manejo de autenticación Auth0 + Backend
- * Versión simplificada y optimizada
+ * Versión simplificada y optimizada con configuración Auth0 mejorada
  */
 export const useAuth = () => {
   // Todos los hooks deben ejecutarse ANTES de cualquier return temprano
@@ -48,50 +48,83 @@ export const useAuth = () => {
     syncError: null,
   });
 
-  // CRÍTICO: Todos los useEffect y useCallback deben estar aquí, no después de returns
-
-  // Configurar token en apiClienteService
+  // ✅ CONFIGURACIÓN MEJORADA DE AUTH0 EN API CLIENT
   useEffect(() => {
+    console.log('🔧 Configurando Auth0 en ApiClient - Autenticado:', auth0IsAuthenticated);
+
     if (auth0IsAuthenticated) {
       apiClienteService.setAuth0Instance({
         isAuthenticated: auth0IsAuthenticated,
         getAccessTokenSilently,
       });
+      console.log('✅ Auth0 configurado en ApiClienteService');
+    } else {
+      console.log('⚠️ Usuario no autenticado - Auth0 no configurado');
     }
+  }, [auth0IsAuthenticated, getAccessTokenSilently]);
+  // ✅ AGREGAR EFECTO PARA PROBAR TOKEN DESPUÉS DE CONFIGURACIÓN
+  useEffect(() => {
+    const testTokenAfterConfig = async () => {
+      if (auth0IsAuthenticated && getAccessTokenSilently) {
+        try {
+          console.log('🧪 Probando obtención de token...');
+          const token = await getAccessTokenSilently();
+          console.log('✅ Token obtenido exitosamente:', token ? token.substring(0, 50) + '...' : 'null');
+        } catch (error) {
+          console.error('❌ Error obteniendo token de prueba:', error);
+        }
+      }
+    };
+
+    // Dar un pequeño delay para asegurar configuración
+    const timer = setTimeout(testTokenAfterConfig, 1000);
+    return () => clearTimeout(timer);
   }, [auth0IsAuthenticated, getAccessTokenSilently]);
 
   // Sincronización con backend
   useEffect(() => {
     const syncWithBackend = async () => {
-      if (!auth0IsAuthenticated || !auth0User || authState.isSynced) {
-        return;
-      }
+  if (!auth0IsAuthenticated || !auth0User || authState.isSynced) {
+    return;
+  }
 
-      try {
-        console.log("🔄 Syncing with backend for user:", auth0User.sub);
+  try {
+    console.log("🔄 Syncing with backend for user:", auth0User.sub);
 
-        const response = await AuthService.processAuth0Login({
-          email: auth0User.email,
-          name: auth0User.name,
-          given_name: auth0User.given_name,
-          family_name: auth0User.family_name,
-          picture: auth0User.picture,
-        });
+    const response = await AuthService.processAuth0Login({
+      email: auth0User.email,
+      name: auth0User.name,
+      given_name: auth0User.given_name,
+      family_name: auth0User.family_name,
+      picture: auth0User.picture,
+    });
 
-        if (response.success) {
-          console.log("✅ Backend sync successful");
+    // 🔍 DEBUG: Verificar la respuesta completa del AuthService
+    console.log("🔍 AuthService response completa:", response);
+    console.log("🔍 response.success:", response.success);
+    console.log("🔍 response.data:", response.data);
+    
+    if (response.data) {
+      console.log("🔍 response.data.idCliente:", response.data.idCliente);
+      console.log("🔍 response.data.userId:", response.data.userId);
+      console.log("🔍 response.data.idUsuario:", response.data.idUsuario);
+      console.log("🔍 Propiedades en response.data:", Object.keys(response.data));
+    }
 
-          setAuthState({
-            backendUser: response.data, // Cambio aquí: usar response.data en lugar de response.user
-            isSynced: true,
-            syncError: null,
-          });
+    if (response.success) {
+      console.log("✅ Backend sync successful");
 
-          // Notificar actualización de perfil
-          window.dispatchEvent(new Event("userProfileUpdated"));
-        }
-      } catch (error: any) {
-        console.error("❌ Backend sync error:", error);
+      setAuthState({
+        backendUser: response.data,
+        isSynced: true,
+        syncError: null,
+      });
+
+      // Notificar actualización de perfil
+      window.dispatchEvent(new Event("userProfileUpdated"));
+    }
+  } catch (error: any) {
+    console.error("❌ Backend sync error:", error);
 
         // Si usuario ya existe, continuar
         if (
@@ -108,7 +141,9 @@ export const useAuth = () => {
       }
     };
 
-    syncWithBackend();
+    // ✅ Agregar delay para asegurar que Auth0 esté configurado
+    const timer = setTimeout(syncWithBackend, 2000);
+    return () => clearTimeout(timer);
   }, [auth0IsAuthenticated, auth0User, authState.isSynced]);
 
   // Limpiar estado al hacer logout
@@ -262,6 +297,25 @@ export const useAuth = () => {
     setAuthState((prev) => ({ ...prev, isSynced: false, syncError: null }));
   }, []);
 
+  // ✅ NUEVO: Método para verificar configuración Auth0
+  const debugAuth0Config = useCallback(async () => {
+    console.log('🔍 DEBUG AUTH0 CONFIG:');
+    console.log('- isAuthenticated:', auth0IsAuthenticated);
+    console.log('- hasUser:', !!auth0User);
+    console.log('- user.sub:', auth0User?.sub);
+    console.log('- hasTokenMethod:', !!getAccessTokenSilently);
+
+    if (auth0IsAuthenticated && getAccessTokenSilently) {
+      try {
+        const token = await getAccessTokenSilently();
+        console.log('- token length:', token?.length);
+        console.log('- token preview:', token?.substring(0, 50) + '...');
+      } catch (error) {
+        console.log('- token error:', error);
+      }
+    }
+  }, [auth0IsAuthenticated, auth0User, getAccessTokenSilently]);
+
   // IMPORTANTE: Estados derivados al final, después de todos los hooks
   const isLoading =
     auth0IsLoading ||
@@ -294,5 +348,8 @@ export const useAuth = () => {
 
     // Método para refrescar sincronización
     refreshSync,
+
+    // ✅ NUEVO: Debug method
+    debugAuth0Config,
   };
 };

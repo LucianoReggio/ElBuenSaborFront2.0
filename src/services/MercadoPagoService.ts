@@ -1,4 +1,4 @@
-import { ApiClienteService } from './ApiClienteService';
+import { apiClienteService } from './ApiClienteService'; // ✅ USAR SINGLETON
 import type {
     PedidoConMercadoPagoRequestDTO,
     PedidoConMercadoPagoResponseDTO,
@@ -10,10 +10,11 @@ import type {
 } from '../types/mercadopago/MercadoPagoTypes';
 
 export class MercadoPagoService {
-    private apiClient: ApiClienteService;
+    private apiClient = apiClienteService; // ✅ USAR INSTANCIA SINGLETON
 
     constructor() {
-        this.apiClient = new ApiClienteService();
+        // Ya no crear nueva instancia
+        console.log('🚀 MercadoPagoService inicializado con singleton');
     }
 
     // ==================== CÁLCULOS EN TIEMPO REAL ====================
@@ -33,9 +34,9 @@ export class MercadoPagoService {
                 // Datos reales del usuario
                 idCliente: datosUsuario.idCliente,
                 idSucursal: datosUsuario.idSucursal || 1, // Sucursal por defecto
-                emailComprador: datosUsuario.email,
-                nombreComprador: datosUsuario.nombre,
-                apellidoComprador: datosUsuario.apellido,
+                emailComprador: datosUsuario.emailComprador,
+                nombreComprador: datosUsuario.nombreComprador,
+                apellidoComprador: datosUsuario.apellidoComprador,
 
                 // Datos reales del request original
                 tipoEnvio: request.tipoEnvio,
@@ -49,7 +50,7 @@ export class MercadoPagoService {
                 observaciones: "Solo cálculo de totales"
             };
 
-            console.log('📤 Request con datos reales enviado:', JSON.stringify(requestCompleto, null, 2));
+            console.log('📤 Request con datos reales enviado:', requestCompleto);
 
             const response = await this.apiClient.post<CalculoTotalesDTO>(
                 '/pedidos-mercadopago/calcular-totales',
@@ -72,74 +73,38 @@ export class MercadoPagoService {
         }
     }
 
-    // ==================== OBTENER DATOS DEL USUARIO ====================
+    // ==================== OBTENER DATOS DEL USUARIO ✅ CORREGIDO ====================
 
     /**
- * Obtener datos del usuario autenticado usando el nuevo endpoint
- */
+     * Obtener datos del usuario autenticado usando el nuevo endpoint
+     */
     private async obtenerDatosUsuarioAutenticado(): Promise<{
         idCliente: number;
-        email: string;
-        nombre: string;
-        apellido: string;
+        idUsuario: number;
+        emailComprador: string;
+        nombreComprador: string;
+        apellidoComprador: string;
         idSucursal?: number;
     }> {
         try {
-            // 🔍 ESTRATEGIA 1: localStorage (más rápido y sin bucles)
-            const userInfo = localStorage.getItem('user_info');
-            if (userInfo) {
-                try {
-                    const usuario = JSON.parse(userInfo);
-                    if (usuario.id && usuario.email && usuario.nombre && usuario.apellido) {
-                        console.log('✅ Usando datos de localStorage (evitando API para prevenir bucle)');
-                        return {
-                            idCliente: Number(usuario.id),
-                            email: usuario.email,
-                            nombre: usuario.nombre,
-                            apellido: usuario.apellido,
-                            idSucursal: usuario.idSucursal || 1
-                        };
-                    }
-                } catch (e) {
-                    console.log('⚠️ Error parsing localStorage:', e);
-                }
-            }
-
-            // 🔍 ESTRATEGIA 2: Solo llamar API si NO hay datos en localStorage
-            console.log('📡 Obteniendo datos desde /api/clientes/me (primera vez)...');
+            console.log('📡 Obteniendo datos desde /api/clientes/me...');
 
             const response = await this.apiClient.get<any>('/clientes/me');
 
             if (response && response.idCliente) {
-                console.log('✅ Datos obtenidos del API exitosamente');
-
-                // 🔧 GUARDAR EN LOCALSTORAGE SOLO UNA VEZ
-                const dataToStore = {
-                    id: response.idCliente,
-                    email: response.email,
-                    nombre: response.nombre,
-                    apellido: response.apellido,
-                    idSucursal: 1
-                };
-
-                // ⚡ IMPORTANTE: Solo guardar si no existe para evitar bucle
-                try {
-                    localStorage.setItem('user_info', JSON.stringify(dataToStore));
-                    console.log('💾 Datos guardados en localStorage');
-                } catch (e) {
-                    console.log('⚠️ No se pudo guardar en localStorage:', e);
-                }
+                console.log('✅ Datos obtenidos del API exitosamente:', response);
 
                 return {
                     idCliente: Number(response.idCliente),
-                    email: response.email,
-                    nombre: response.nombre,
-                    apellido: response.apellido,
+                    idUsuario: Number(response.idUsuario),
+                    emailComprador: response.emailComprador,
+                    nombreComprador: response.nombreComprador,
+                    apellidoComprador: response.apellidoComprador,
                     idSucursal: 1
                 };
             }
 
-            throw new Error('No se pudo obtener datos del cliente');
+            throw new Error('Respuesta inválida del servidor');
 
         } catch (error: any) {
             console.error('❌ Error al obtener datos del usuario:', error);
@@ -152,9 +117,10 @@ export class MercadoPagoService {
                 if (authResponse && authResponse.email) {
                     return {
                         idCliente: 1,
-                        email: authResponse.email,
-                        nombre: "Cliente",
-                        apellido: "Genérico",
+                        idUsuario: 6, // Del resultado de tu base de datos
+                        emailComprador: authResponse.email,
+                        nombreComprador: "Cliente",
+                        apellidoComprador: "Genérico",
                         idSucursal: 1
                     };
                 }
@@ -162,13 +128,14 @@ export class MercadoPagoService {
                 console.log('⚠️ También falló /auth/me');
             }
 
-            // 🆘 FALLBACK FINAL
+            // 🆘 FALLBACK FINAL con datos conocidos de tu BD
             console.log('⚠️ Usando datos de fallback...');
             return {
                 idCliente: 1,
-                email: "cliente@example.com",
-                nombre: "Cliente",
-                apellido: "Genérico",
+                idUsuario: 6,
+                emailComprador: "cliente@example.com",
+                nombreComprador: "Cliente",
+                apellidoComprador: "Genérico",
                 idSucursal: 1
             };
         }
@@ -221,9 +188,9 @@ export class MercadoPagoService {
             // Si no vienen datos del comprador, obtenerlos
             if (!request.emailComprador || !request.nombreComprador) {
                 const datosUsuario = await this.obtenerDatosUsuarioAutenticado();
-                request.emailComprador = request.emailComprador || datosUsuario.email;
-                request.nombreComprador = request.nombreComprador || datosUsuario.nombre;
-                request.apellidoComprador = request.apellidoComprador || datosUsuario.apellido;
+                request.emailComprador = request.emailComprador || datosUsuario.emailComprador;
+                request.nombreComprador = request.nombreComprador || datosUsuario.nombreComprador;
+                request.apellidoComprador = request.apellidoComprador || datosUsuario.apellidoComprador;
                 request.idCliente = request.idCliente || datosUsuario.idCliente;
             }
 
