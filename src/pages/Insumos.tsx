@@ -12,7 +12,7 @@ import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRe
 import type { UnidadMedidaDTO } from "../services";
 
 export const Insumos: React.FC = () => {
-  const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo } =
+  const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo, refresh } =
     useInsumos();
 
   const { categorias } = useCategorias();
@@ -219,6 +219,7 @@ export const Insumos: React.FC = () => {
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onRefresh={refresh}
       />
 
       {/* Modal de Insumo */}
