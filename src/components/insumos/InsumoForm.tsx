@@ -3,9 +3,9 @@ import type { ArticuloInsumoRequestDTO } from "../../types/insumos/ArticuloInsum
 import type { ArticuloInsumoResponseDTO } from "../../types/insumos/ArticuloInsumoResponseDTO";
 import type { CategoriaResponseDTO } from "../../types/categorias/CategoriaResponseDTO";
 import type { ImagenDTO } from "../../types/common/ImagenDTO";
+import { Button } from "../common/Button";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
-import { Button } from "../common/Button";
 import { ImageUpload } from "../common/ImageUpload";
 import type { UnidadMedidaDTO } from "../../services";
 import { CategoriaSelector } from "../common/CategoriaSelector";
@@ -27,30 +27,30 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  // Incluye TODOS los campos requeridos por el backend
   const [formData, setFormData] = useState<ArticuloInsumoRequestDTO>({
     denominacion: "",
-    precioVenta: 0,
+    precioVenta: 1,
     idUnidadMedida: 0,
     idCategoria: 0,
-    precioCompra: 0,
+    precioCompra: 1,
     stockActual: 0,
     stockMaximo: 0,
     esParaElaborar: true,
-    imagen: undefined, // Campo para la imagen
+    imagen: undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Cargar datos si es edición
   useEffect(() => {
     if (insumo) {
       setFormData({
         denominacion: insumo.denominacion,
-        precioVenta: insumo.precioVenta,
+        precioVenta: insumo.precioVenta || 0,
         idUnidadMedida: insumo.idUnidadMedida,
         idCategoria: insumo.idCategoria,
-        precioCompra: insumo.precioCompra,
-        stockActual: insumo.stockActual,
+        precioCompra: insumo.precioCompra || 0,
+        stockActual: insumo.stockActual || 0,
         stockMaximo: insumo.stockMaximo,
         esParaElaborar: insumo.esParaElaborar,
         imagen: insumo.imagenes && insumo.imagenes.length > 0 ? insumo.imagenes[0] : undefined,
@@ -60,48 +60,17 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.denominacion.trim()) {
-      newErrors.denominacion = "La denominación es obligatoria";
-    }
-
-    if (formData.precioVenta <= 0) {
-      newErrors.precioVenta = "El precio de venta debe ser mayor a 0";
-    }
-
-    if (formData.precioCompra <= 0) {
-      newErrors.precioCompra = "El precio de compra debe ser mayor a 0";
-    }
-
-    if (!formData.idUnidadMedida) {
-      newErrors.idUnidadMedida = "Debe seleccionar una unidad de medida";
-    }
-
-    if (!formData.idCategoria) {
-      newErrors.idCategoria = "Debe seleccionar una categoría";
-    }
-
-    if (formData.stockActual < 0) {
-      newErrors.stockActual = "El stock actual no puede ser negativo";
-    }
-
-    if (formData.stockMaximo <= 0) {
-      newErrors.stockMaximo = "El stock máximo debe ser mayor a 0";
-    }
-
-    if (formData.stockActual > formData.stockMaximo) {
-      newErrors.stockActual = "El stock actual no puede ser mayor al máximo";
-    }
-
+    if (!formData.denominacion.trim()) newErrors.denominacion = "La denominación es obligatoria";
+    if (!formData.idUnidadMedida) newErrors.idUnidadMedida = "Debe seleccionar una unidad de medida";
+    if (!formData.idCategoria) newErrors.idCategoria = "Debe seleccionar una categoría";
+    if (formData.stockMaximo <= 0) newErrors.stockMaximo = "El stock máximo debe ser mayor a 0";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     try {
       await onSubmit(formData);
     } catch (error) {
@@ -115,27 +84,20 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
 
   const handleImageChange = (imagen: ImagenDTO | null) => {
     updateField("imagen", imagen || undefined);
-    // Limpiar error de imagen si existe
-    if (errors.imagen) {
-      setErrors(prev => ({ ...prev, imagen: '' }));
-    }
+    if (errors.imagen) setErrors(prev => ({ ...prev, imagen: '' }));
   };
 
   const handleEsParaElaborarChange = (esParaElaborar: boolean) => {
     updateField("esParaElaborar", esParaElaborar);
-    
-    // Si cambia a "Para Elaborar", limpiar la imagen
     if (esParaElaborar && formData.imagen) {
       updateField("imagen", undefined);
     }
   };
 
-  // Filtrar solo categorías de ingredientes (no subcategorías por simplicidad)
-  const categoriasDisponibles = categorias;
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Estos campos se pueden mostrar como disabled si no querés que se editen */}
         <FormField
           label="Denominación"
           name="denominacion"
@@ -203,13 +165,12 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
         </div>
       </div>
 
-      {/* Imagen del ingrediente - Solo para venta directa */}
+      {/* Imagen solo si es para venta directa */}
       {!formData.esParaElaborar && (
         <div className="border-t pt-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Imagen del Ingrediente
           </h3>
-          
           <div className="max-w-md">
             <ImageUpload
               currentImage={formData.imagen}
@@ -228,58 +189,12 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
         </div>
       )}
 
+      {/* SOLO MOSTRÁ este campo de stock máximo */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Información de Precios y Stock
+          Stock Máximo
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            label="Precio de Compra"
-            name="precioCompra"
-            type="number"
-            value={formData.precioCompra}
-            onChange={(value) => updateField("precioCompra", value)}
-            placeholder="0.00"
-            min={0}
-            step={0.01}
-            required
-            disabled={loading}
-            error={errors.precioCompra}
-            helperText="Precio al que compra este ingrediente"
-          />
-
-          <FormField
-            label="Precio de Venta"
-            name="precioVenta"
-            type="number"
-            value={formData.precioVenta}
-            onChange={(value) => updateField("precioVenta", value)}
-            placeholder="0.00"
-            min={0}
-            step={0.01}
-            required
-            disabled={loading}
-            error={errors.precioVenta}
-            helperText={
-              formData.esParaElaborar 
-                ? "Precio de referencia (no se vende directamente)" 
-                : "Precio de venta al cliente"
-            }
-          />
-
-          <FormField
-            label="Stock Actual"
-            name="stockActual"
-            type="number"
-            value={formData.stockActual}
-            onChange={(value) => updateField("stockActual", value)}
-            placeholder="0"
-            min={0}
-            required
-            disabled={loading}
-            error={errors.stockActual}
-          />
-
           <FormField
             label="Stock Máximo"
             name="stockMaximo"
@@ -293,38 +208,6 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             error={errors.stockMaximo}
           />
         </div>
-
-        {/* Indicadores visuales */}
-        {formData.stockMaximo > 0 && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>Nivel de Stock</span>
-              <span>
-                {Math.round(
-                  (formData.stockActual / formData.stockMaximo) * 100
-                )}
-                %
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${
-                  formData.stockActual / formData.stockMaximo < 0.2
-                    ? "bg-red-500"
-                    : formData.stockActual / formData.stockMaximo < 0.5
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
-                }`}
-                style={{
-                  width: `${Math.min(
-                    (formData.stockActual / formData.stockMaximo) * 100,
-                    100
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
