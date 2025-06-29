@@ -77,7 +77,7 @@ export default function NavbarCajero({
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200"
+                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200 cursor-pointer"
                   aria-label="Menú de cajero"
                 >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
@@ -115,7 +115,7 @@ export default function NavbarCajero({
                     <div className="py-1">
                       <button
                         onClick={handleMiPerfil}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
                       >
                         <User className="mr-3 h-4 w-4" />
                         Mi Perfil
@@ -136,7 +136,7 @@ export default function NavbarCajero({
                           setIsUserMenuOpen(false);
                           onLogout?.();
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-20 cursor-pointer"
                       >
                         <LogOut className="mr-3 h-4 w-4" />
                         Cerrar Sesión
@@ -152,7 +152,7 @@ export default function NavbarCajero({
           <div className="flex items-center justify-center">
             <button
               onClick={onHome || (() => (window.location.href = "/caja"))}
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
               aria-label="Panel de caja"
             >
               <img
@@ -166,21 +166,14 @@ export default function NavbarCajero({
           {/* Derecha: Herramientas de caja */}
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200">
-                <Receipt className="h-4 w-4" />
-                <span className="text-sm font-medium">Nueva Venta</span>
-              </button>
+              
               {/* ← CAMBIAR ESTE BOTÓN */}
               <button
                 onClick={() => navigate("/gestion-pedidos")}
-                className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+                className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 cursor-pointer"
               >
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium">Gestión Pedidos</span>
-              </button>
-              <button className="flex items-center space-x-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200">
-                <DollarSign className="h-4 w-4" />
-                <span className="text-sm font-medium">Caja</span>
               </button>
             </div>
 
