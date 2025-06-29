@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Search,
-  User,
-  LogOut,
-  Settings,
-  ShoppingCart,
-  Package,
-} from "lucide-react";
+import { Search, User, LogOut, ShoppingCart, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CarritoModal from "../../cart/CarritoModal";
 
@@ -86,12 +79,19 @@ export default function NavbarCliente({
   const handleCarritoClick = () => setIsCarritoModalOpen(true);
   const handleCerrarCarrito = () => setIsCarritoModalOpen(false);
 
-  /**
-   * Navega a Mi Perfil y cierra el dropdown
-   */
   const handleMiPerfil = () => {
     setIsUserMenuOpen(false);
     navigate("/mi-perfil");
+  };
+
+  const handleMisPedidos = () => {
+    setIsUserMenuOpen(false);
+    navigate("/mis-pedidos");
+  };
+
+  const handleLogout = () => {
+    setIsUserMenuOpen(false);
+    onLogout?.();
   };
 
   return (
@@ -149,10 +149,7 @@ export default function NavbarCliente({
                           Mi Perfil
                         </button>
                         <button
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            navigate("/mis-pedidos");
-                          }}
+                          onClick={handleMisPedidos}
                           className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                         >
                           <Package className="mr-3 h-4 w-4" />
@@ -161,7 +158,6 @@ export default function NavbarCliente({
 
                         <div className="border-t border-gray-200 my-1"></div>
 
-                        {/* Información sobre permisos */}
                         <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 mx-2 rounded">
                           💡 Los cambios de permisos se aplicarán en tu próximo
                           inicio de sesión
@@ -170,10 +166,7 @@ export default function NavbarCliente({
                         <div className="border-t border-gray-200 my-1"></div>
 
                         <button
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            onLogout?.();
-                          }}
+                          onClick={handleLogout}
                           className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
                         >
                           <LogOut className="mr-3 h-4 w-4" />

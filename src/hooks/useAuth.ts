@@ -1,11 +1,11 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { AuthService } from "../services/AuthService";
 import { apiClienteService } from "../services/ApiClienteService";
 
 interface BackendUser {
   idCliente: number;
-  userId?: number; // Puede ser opcional si no siempre está presente
+  userId?: number;
   nombre: string;
   apellido: string;
   email: string;
@@ -17,21 +17,21 @@ interface BackendUser {
     email: string;
     rol: string;
   };
-  rol?: string; // Para compatibilidad cuando el rol viene directamente
+  rol?: string;
 }
 
 interface AuthState {
   backendUser: BackendUser | null;
   isSynced: boolean;
   syncError: string | null;
+  isProcessing: boolean;
+  initialized: boolean;
 }
 
 /**
  * Hook personalizado para manejo de autenticación Auth0 + Backend
- * Versión simplificada y optimizada con configuración Auth0 mejorada
  */
 export const useAuth = () => {
-  // Todos los hooks deben ejecutarse ANTES de cualquier return temprano
   const {
     isAuthenticated: auth0IsAuthenticated,
     isLoading: auth0IsLoading,
@@ -46,177 +46,213 @@ export const useAuth = () => {
     backendUser: null,
     isSynced: false,
     syncError: null,
+    isProcessing: false,
+    initialized: false,
   });
 
-  // ✅ CONFIGURACIÓN MEJORADA DE AUTH0 EN API CLIENT
-  useEffect(() => {
-    console.log('🔧 Configurando Auth0 en ApiClient - Autenticado:', auth0IsAuthenticated);
+  const syncInProgress = useRef<boolean>(false);
+  const syncAttempted = useRef<boolean>(false);
+  const mounted = useRef<boolean>(true);
 
+  // Cleanup en unmount
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Marcar como inicializado cuando Auth0 termine de cargar
+  useEffect(() => {
+    if (!auth0IsLoading && !authState.initialized) {
+      setAuthState((prev) => ({ ...prev, initialized: true }));
+    }
+  }, [auth0IsLoading, authState.initialized]);
+
+  // Configuración Auth0 en API Client
+  useEffect(() => {
     if (auth0IsAuthenticated) {
       apiClienteService.setAuth0Instance({
         isAuthenticated: auth0IsAuthenticated,
         getAccessTokenSilently,
       });
-      console.log('✅ Auth0 configurado en ApiClienteService');
-    } else {
-      console.log('⚠️ Usuario no autenticado - Auth0 no configurado');
     }
-  }, [auth0IsAuthenticated, getAccessTokenSilently]);
-  // ✅ AGREGAR EFECTO PARA PROBAR TOKEN DESPUÉS DE CONFIGURACIÓN
-  useEffect(() => {
-    const testTokenAfterConfig = async () => {
-      if (auth0IsAuthenticated && getAccessTokenSilently) {
-        try {
-          console.log('🧪 Probando obtención de token...');
-          const token = await getAccessTokenSilently();
-          console.log('✅ Token obtenido exitosamente:', token ? token.substring(0, 50) + '...' : 'null');
-        } catch (error) {
-          console.error('❌ Error obteniendo token de prueba:', error);
-        }
-      }
-    };
-
-    // Dar un pequeño delay para asegurar configuración
-    const timer = setTimeout(testTokenAfterConfig, 1000);
-    return () => clearTimeout(timer);
   }, [auth0IsAuthenticated, getAccessTokenSilently]);
 
   // Sincronización con backend
   useEffect(() => {
-    const syncWithBackend = async () => {
-  if (!auth0IsAuthenticated || !auth0User || authState.isSynced) {
-    return;
-  }
+    let timeoutId: NodeJS.Timeout;
 
-  try {
-    console.log("🔄 Syncing with backend for user:", auth0User.sub);
+    const performSync = async () => {
+      if (!mounted.current || !auth0IsAuthenticated || !auth0User?.sub) {
+        return;
+      }
 
-    const response = await AuthService.processAuth0Login({
-      email: auth0User.email,
-      name: auth0User.name,
-      given_name: auth0User.given_name,
-      family_name: auth0User.family_name,
-      picture: auth0User.picture,
-    });
+      if (authState.isSynced || syncInProgress.current) {
+        return;
+      }
 
-    // 🔍 DEBUG: Verificar la respuesta completa del AuthService
-    console.log("🔍 AuthService response completa:", response);
-    console.log("🔍 response.success:", response.success);
-    console.log("🔍 response.data:", response.data);
-    
-    if (response.data) {
-      console.log("🔍 response.data.idCliente:", response.data.idCliente);
-      console.log("🔍 response.data.userId:", response.data.userId);
-      console.log("🔍 response.data.idUsuario:", response.data.idUsuario);
-      console.log("🔍 Propiedades en response.data:", Object.keys(response.data));
-    }
+      syncInProgress.current = true;
+      syncAttempted.current = true;
 
-    if (response.success) {
-      console.log("✅ Backend sync successful");
-
-      setAuthState({
-        backendUser: response.data,
-        isSynced: true,
+      setAuthState((prev) => ({
+        ...prev,
+        isProcessing: true,
         syncError: null,
-      });
+      }));
 
-      // Notificar actualización de perfil
-      window.dispatchEvent(new Event("userProfileUpdated"));
-    }
-  } catch (error: any) {
-    console.error("❌ Backend sync error:", error);
+      try {
+        const response = await AuthService.processAuth0Login({
+          email: auth0User.email,
+          name: auth0User.name,
+          given_name: auth0User.given_name,
+          family_name: auth0User.family_name,
+          picture: auth0User.picture,
+        });
 
-        // Si usuario ya existe, continuar
+        if (response.success && mounted.current) {
+          setAuthState((prev) => ({
+            ...prev,
+            backendUser: response.data,
+            isSynced: true,
+            syncError: null,
+            isProcessing: false,
+          }));
+          window.dispatchEvent(new Event("userProfileUpdated"));
+        }
+      } catch (error: any) {
+        if (!mounted.current) return;
+
+        // Manejo de usuario duplicado
         if (
           error.message?.includes("Duplicate entry") ||
           error.message?.includes("already exists")
         ) {
-          setAuthState((prev) => ({ ...prev, isSynced: true }));
+          try {
+            const profile = await AuthService.getCurrentUser();
+
+            if (profile.authenticated && mounted.current) {
+              const basicUser: BackendUser = {
+                idCliente: 0,
+                nombre:
+                  profile.name?.split(" ")[0] ||
+                  auth0User.given_name ||
+                  "Usuario",
+                apellido:
+                  profile.name?.split(" ")[1] || auth0User.family_name || "",
+                email: profile.email || auth0User.email || "",
+                usuario: {
+                  email: profile.email || auth0User.email || "",
+                  rol: "CLIENTE",
+                },
+                rol: "CLIENTE",
+              };
+
+              setAuthState((prev) => ({
+                ...prev,
+                backendUser: basicUser,
+                isSynced: true,
+                syncError: null,
+                isProcessing: false,
+              }));
+              window.dispatchEvent(new Event("userProfileUpdated"));
+            }
+          } catch (profileError) {
+            if (mounted.current) {
+              setAuthState((prev) => ({
+                ...prev,
+                syncError: "Error al recuperar perfil",
+                isProcessing: false,
+              }));
+            }
+          }
         } else {
           setAuthState((prev) => ({
             ...prev,
             syncError: error.message || "Error de sincronización",
+            isProcessing: false,
           }));
         }
+      } finally {
+        syncInProgress.current = false;
       }
     };
 
-    // ✅ Agregar delay para asegurar que Auth0 esté configurado
-    const timer = setTimeout(syncWithBackend, 2000);
-    return () => clearTimeout(timer);
-  }, [auth0IsAuthenticated, auth0User, authState.isSynced]);
+    // Solo sincronizar una vez por usuario
+    if (
+      auth0IsAuthenticated &&
+      auth0User &&
+      !authState.isSynced &&
+      !syncAttempted.current &&
+      authState.initialized
+    ) {
+      timeoutId = setTimeout(performSync, 500);
+    }
 
-  // Limpiar estado al hacer logout
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [
+    auth0IsAuthenticated,
+    auth0User?.sub,
+    authState.isSynced,
+    authState.initialized,
+  ]);
+
+  // Reset en logout
   useEffect(() => {
-    if (!auth0IsAuthenticated) {
+    if (!auth0IsAuthenticated && authState.initialized) {
       setAuthState({
         backendUser: null,
         isSynced: false,
         syncError: null,
+        isProcessing: false,
+        initialized: true,
       });
+      syncInProgress.current = false;
+      syncAttempted.current = false;
     }
-  }, [auth0IsAuthenticated]);
+  }, [auth0IsAuthenticated, authState.initialized]);
 
-  /**
-   * Login usando Auth0
-   */
+  // ============= MÉTODOS =============
+
   const login = useCallback(async () => {
-    try {
-      await loginWithRedirect();
-    } catch (error: any) {
-      console.error("Error en login:", error);
-      throw error;
-    }
+    await loginWithRedirect();
   }, [loginWithRedirect]);
 
-  /**
-   * Login con Google específicamente
-   */
   const loginWithGoogle = useCallback(async () => {
-    try {
-      await loginWithRedirect({
-        authorizationParams: {
-          connection: "google-oauth2",
-        },
-      });
-    } catch (error: any) {
-      console.error("Error en login con Google:", error);
-      throw error;
-    }
+    await loginWithRedirect({
+      authorizationParams: { connection: "google-oauth2" },
+    });
   }, [loginWithRedirect]);
 
-  /**
-   * Logout completo
-   */
   const logout = useCallback(() => {
-    setAuthState({
+    setAuthState((prev) => ({
+      ...prev,
       backendUser: null,
       isSynced: false,
       syncError: null,
-    });
-
-    auth0Logout({
-      logoutParams: {
-        returnTo: window.location.origin,
-      },
-    });
+      isProcessing: false,
+    }));
+    syncInProgress.current = false;
+    syncAttempted.current = false;
+    auth0Logout({ logoutParams: { returnTo: window.location.origin } });
   }, [auth0Logout]);
 
-  /**
-   * Completar perfil con datos adicionales
-   */
   const registerCliente = useCallback(
     async (clienteData: any) => {
       if (!auth0IsAuthenticated || !auth0User) {
         throw new Error("Debes estar autenticado con Auth0 primero");
       }
 
+      if (authState.isProcessing) {
+        throw new Error("Ya se está procesando una solicitud");
+      }
+
       try {
+        setAuthState((prev) => ({ ...prev, isProcessing: true }));
         const response = await AuthService.completeProfile(clienteData);
 
-        console.log("✅ Profile completed successfully");
-
-        // Actualizar estado local con perfil completo
         const updatedUser: BackendUser = {
           idCliente: response.idCliente,
           nombre: response.nombre,
@@ -226,33 +262,28 @@ export const useAuth = () => {
           fechaNacimiento: response.fechaNacimiento,
           domicilios: response.domicilios || [],
           imagen: response.imagen,
-          usuario: {
-            email: response.email,
-            rol: "CLIENTE",
-          },
+          usuario: { email: response.email, rol: "CLIENTE" },
+          rol: "CLIENTE",
         };
 
         setAuthState((prev) => ({
           ...prev,
           backendUser: updatedUser,
           isSynced: true,
+          syncError: null,
+          isProcessing: false,
         }));
 
-        // Notificar actualización
         window.dispatchEvent(new Event("userProfileUpdated"));
-
         return response;
       } catch (error: any) {
-        console.error("Error en registro:", error);
+        setAuthState((prev) => ({ ...prev, isProcessing: false }));
         throw error;
       }
     },
-    [auth0IsAuthenticated, auth0User]
+    [auth0IsAuthenticated, auth0User, authState.isProcessing]
   );
 
-  /**
-   * Verificar si el usuario necesita completar datos adicionales
-   */
   const needsAdditionalData = useCallback(() => {
     if (
       !auth0IsAuthenticated ||
@@ -263,9 +294,7 @@ export const useAuth = () => {
     }
 
     const user = authState.backendUser;
-
-    // Verificar datos requeridos
-    const missingCriticalData =
+    return (
       !user.telefono?.trim() ||
       !user.domicilios?.length ||
       !user.fechaNacimiento ||
@@ -273,83 +302,78 @@ export const useAuth = () => {
       !user.apellido?.trim() ||
       user.nombre === "Usuario" ||
       user.apellido === "Auth0" ||
-      user.nombre.includes("@");
+      user.nombre.includes("@") ||
+      user.idCliente === 0
+    );
+  }, [auth0IsAuthenticated, authState.isSynced, authState.backendUser]);
 
-    return missingCriticalData;
-  }, [auth0IsAuthenticated, authState]);
-
-  /**
-   * Obtener perfil actual del backend
-   */
   const getCurrentProfile = useCallback(async () => {
-    try {
-      return await AuthService.getCurrentUser();
-    } catch (error: any) {
-      console.error("Error obteniendo perfil:", error);
-      throw error;
-    }
+    return await AuthService.getCurrentUser();
   }, []);
 
-  /**
-   * Forzar re-sincronización con backend
-   */
   const refreshSync = useCallback(() => {
-    setAuthState((prev) => ({ ...prev, isSynced: false, syncError: null }));
+    syncInProgress.current = false;
+    syncAttempted.current = false;
+    setAuthState((prev) => ({
+      ...prev,
+      isSynced: false,
+      syncError: null,
+      isProcessing: false,
+    }));
   }, []);
 
-  // ✅ NUEVO: Método para verificar configuración Auth0
-  const debugAuth0Config = useCallback(async () => {
-    console.log('🔍 DEBUG AUTH0 CONFIG:');
-    console.log('- isAuthenticated:', auth0IsAuthenticated);
-    console.log('- hasUser:', !!auth0User);
-    console.log('- user.sub:', auth0User?.sub);
-    console.log('- hasTokenMethod:', !!getAccessTokenSilently);
+  // ============= ESTADOS FINALES =============
 
-    if (auth0IsAuthenticated && getAccessTokenSilently) {
-      try {
-        const token = await getAccessTokenSilently();
-        console.log('- token length:', token?.length);
-        console.log('- token preview:', token?.substring(0, 50) + '...');
-      } catch (error) {
-        console.log('- token error:', error);
-      }
+  const isLoading = useMemo(() => {
+    return auth0IsLoading || !authState.initialized || authState.isProcessing;
+  }, [auth0IsLoading, authState.initialized, authState.isProcessing]);
+
+  const isAuthenticated = useMemo(() => {
+    if (!authState.initialized) {
+      return false;
     }
-  }, [auth0IsAuthenticated, auth0User, getAccessTokenSilently]);
 
-  // IMPORTANTE: Estados derivados al final, después de todos los hooks
-  const isLoading =
-    auth0IsLoading ||
-    (auth0IsAuthenticated && !authState.isSynced && !authState.syncError);
-  const isAuthenticated = auth0IsAuthenticated && authState.isSynced;
-  const user = authState.backendUser || auth0User;
+    return Boolean(
+      auth0IsAuthenticated &&
+        (authState.isSynced ||
+          authState.backendUser ||
+          (auth0User && !authState.syncError))
+    );
+  }, [
+    authState.initialized,
+    auth0IsAuthenticated,
+    authState.isSynced,
+    authState.backendUser,
+    auth0User,
+    authState.syncError,
+  ]);
+
+  const user = useMemo(() => {
+    return authState.backendUser || auth0User;
+  }, [authState.backendUser, auth0User]);
+
   const error = auth0Error?.message || authState.syncError;
 
   return {
-    // Estados
+    // Estados principales
     isAuthenticated,
     isLoading,
     user,
     error,
 
-    // Datos específicos
+    // Estados específicos
     auth0User,
     backendUser: authState.backendUser,
     backendSynced: authState.isSynced,
+    isProcessing: authState.isProcessing,
 
-    // Métodos de autenticación
+    // Métodos
     login,
     loginWithGoogle,
     logout,
-
-    // Métodos de perfil
     registerCliente,
     getCurrentProfile,
     needsAdditionalData,
-
-    // Método para refrescar sincronización
     refreshSync,
-
-    // ✅ NUEVO: Debug method
-    debugAuth0Config,
   };
 };
