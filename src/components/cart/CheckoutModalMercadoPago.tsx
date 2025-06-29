@@ -12,8 +12,12 @@ import { ClienteService } from '../../services/ClienteService';
 import type { ClienteResponseDTO } from '../../types/clientes/ClienteResponseDTO';
 import type { MetodoPago } from '../../types/mercadopago/MercadoPagoTypes';
 
+import { PagoService } from '../../services/PagoService';
+import { apiClienteService } from '../../services/ApiClienteService';
+
 const pedidoService = new PedidoService();
 const mercadoPagoService = new MercadoPagoService();
+const pagoService = new PagoService();
 
 interface CheckoutModalMercadoPagoProps {
     abierto: boolean;
@@ -232,50 +236,78 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     };
 
     const crearPedidoEfectivo = async () => {
-        // ✅ OBTENER idCliente correcto del backend
-        let clienteId = user?.idCliente;
-        
-        if (!clienteId) {
-            console.log('⚠️ Obteniendo idCliente del backend para pedido efectivo...');
-            try {
-                const perfilCompleto = await ClienteService.getMyProfile();
-                clienteId = perfilCompleto.idCliente;
-                console.log('✅ idCliente obtenido:', clienteId);
-            } catch (error) {
-                // Fallback a userId solo si no hay otra opción
-                clienteId = user!.userId;
-                console.log('⚠️ Usando userId como fallback:', clienteId);
-            }
+    // ✅ OBTENER idCliente correcto del backend
+    let clienteId = user?.idCliente;
+    
+    if (!clienteId) {
+        console.log('⚠️ Obteniendo idCliente del backend para pedido efectivo...');
+        try {
+            const perfilCompleto = await ClienteService.getMyProfile();
+            clienteId = perfilCompleto.idCliente;
+            console.log('✅ idCliente obtenido:', clienteId);
+        } catch (error) {
+            // Fallback a userId solo si no hay otra opción
+            clienteId = user!.userId;
+            console.log('⚠️ Usando userId como fallback:', clienteId);
         }
+    }
+    
+    const pedidoRequest = {
+        idCliente: clienteId,
+        idSucursal: idSucursal,
+        tipoEnvio: carrito.datosEntrega.tipoEnvio,
+        ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? {
+            idDomicilio: domicilioSeleccionado
+        } : {}),
+        detalles: carrito.items.map(item => ({
+            idArticulo: item.id,
+            cantidad: item.cantidad
+        })),
+        ...(carrito.datosEntrega.observaciones?.trim() ? {
+            observaciones: carrito.datosEntrega.observaciones.trim()
+        } : {})
+    };
+
+    console.log('💵 Creando pedido con pago en efectivo:', pedidoRequest);
+    const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
+
+    // ✅ NUEVO: Crear pago en efectivo automáticamente
+    try {
+        console.log('💳 Creando pago en efectivo para pedido:', pedidoCreado.idPedido);
         
-        const pedidoRequest = {
-            idCliente: clienteId,
-            idSucursal: idSucursal,
-            tipoEnvio: carrito.datosEntrega.tipoEnvio,
-            ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? {
-                idDomicilio: domicilioSeleccionado
-            } : {}),
-            detalles: carrito.items.map(item => ({
-                idArticulo: item.id,
-                cantidad: item.cantidad
-            })),
-            ...(carrito.datosEntrega.observaciones?.trim() ? {
-                observaciones: carrito.datosEntrega.observaciones.trim()
-            } : {})
+        // Obtener la factura del pedido recién creado
+        const factura = await pagoService.getFacturaPedido(pedidoCreado.idPedido);
+        console.log('📄 Factura obtenida:', factura);
+
+        // Crear el pago en efectivo
+        const pagoRequest = {
+            facturaId: factura.idFactura,
+            formaPago: 'EFECTIVO',
+            monto: factura.totalVenta,
+            moneda: 'ARS',
+            descripcion: `Pago en efectivo - Pedido #${pedidoCreado.idPedido} - ${carrito.datosEntrega.tipoEnvio}`
         };
 
-        console.log('💵 Creando pedido con pago en efectivo:', pedidoRequest);
-        const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
+        console.log('💰 Creando pago con datos:', pagoRequest);
+        
+        const pagoCreado = await apiClienteService.post('/pagos', pagoRequest);
+        console.log('✅ Pago en efectivo creado exitosamente:', pagoCreado);
 
-        setPedidoCreado(pedidoCreado);
-        setExito('¡Pedido creado exitosamente! Puedes pagar en efectivo al momento de la entrega.');
+    } catch (pagoError: any) {
+        console.error('❌ Error al crear pago en efectivo:', pagoError);
+        console.log('⚠️ El pedido se creó correctamente. El pago se puede crear manualmente.');
+        // No fallar el proceso completo
+    }
 
-        carrito.limpiarCarrito();
-        setTimeout(() => {
-            onExito({ pedido: pedidoCreado, metodoPago: 'EFECTIVO' });
-            onCerrar();
-        }, 2000);
-    };
+    setPedidoCreado(pedidoCreado);
+    setExito('¡Pedido creado exitosamente! Puedes pagar en efectivo al momento de la entrega.');
+
+    carrito.limpiarCarrito();
+    setTimeout(() => {
+        onExito({ pedido: pedidoCreado, metodoPago: 'EFECTIVO' });
+        onCerrar();
+    }, 2000);
+};
 
     const crearPedidoMercadoPago = async () => {
         console.log('💳 Creando pedido con MercadoPago...');
