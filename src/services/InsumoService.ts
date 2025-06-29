@@ -3,7 +3,7 @@ import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRe
 import type { ArticuloInsumoResponseDTO } from "../types/insumos/ArticuloInsumoResponseDTO";
 
 export interface CompraInsumoDTO {
-  idInsumo: number;
+  idArticulo: number;
   cantidad: number;
   precioCompra: number;
 }
@@ -135,3 +135,5 @@ export class InsumoService {
       : new Error("Error en el servicio de insumos");
   }
 }
+
+export const insumoService = new InsumoService();

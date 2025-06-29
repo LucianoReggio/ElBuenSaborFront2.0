@@ -41,6 +41,16 @@ export const GestionPedidos: React.FC = () => {
     }
   };
 
+  // ✅ NUEVO: Callback para cuando se confirma un pago
+  const handlePagoConfirmado = async () => {
+    console.log('💵 Pago confirmado, recargando pedidos...');
+    try {
+      await refreshPedidos();
+      // Opcional: Mostrar notificación de éxito
+    } catch (error) {
+      console.error('Error al recargar pedidos después de confirmar pago:', error);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -89,6 +99,17 @@ export const GestionPedidos: React.FC = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* ✅ NUEVO: Información sobre pagos pendientes */}
+      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="font-semibold text-yellow-800 mb-2">💡 Información sobre Pagos en Efectivo</h3>
+        <ul className="text-sm text-yellow-700 space-y-1">
+          <li>• Los pedidos con <strong>💵 Pago pendiente</strong> requieren confirmación manual del cajero</li>
+          <li>• Usa el botón <strong>"Confirmar Pago"</strong> cuando el cliente pague en efectivo al retirar/recibir</li>
+          <li>• Los pagos con MercadoPago se confirman automáticamente</li>
+          <li>• Los pedidos aparecen con indicador amarillo cuando tienen pagos pendientes</li>
+        </ul>
       </div>
 
       {/* Filtros y búsqueda */}
@@ -171,11 +192,12 @@ export const GestionPedidos: React.FC = () => {
         </div>
       )}
 
-      {/* Tabla de pedidos */}
+      {/* ✅ MODIFICADO: Tabla de pedidos con callback de pago confirmado */}
       <PedidosGestionTable
         pedidos={pedidosAMostrar}
         loading={loading}
         onCambiarEstado={cambiarEstadoPedido}
+        onPagoConfirmado={handlePagoConfirmado} // ✅ NUEVO: Callback para pagos
       />
 
       {/* Botón "Ver más" */}
@@ -202,7 +224,7 @@ export const GestionPedidos: React.FC = () => {
         </div>
       )}
 
-      {/* Footer con información adicional */}
+      {/* ✅ MODIFICADO: Footer con información adicional actualizada */}
       <div className="mt-8 bg-gray-50 p-4 rounded-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
           <div>
@@ -217,15 +239,18 @@ export const GestionPedidos: React.FC = () => {
             <h4 className="font-medium text-gray-900 mb-1">Acciones disponibles:</h4>
             <ul className="space-y-1">
               <li>🔍 <strong>Ver detalle:</strong> Información completa</li>
+              <li>💵 <strong>Confirmar pago:</strong> Para pagos en efectivo</li>
               <li>✅ <strong>Cambiar estado:</strong> Según flujo del pedido</li>
               <li>❌ <strong>Anular:</strong> Cancelar pedido (si no está entregado)</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-medium text-gray-900 mb-1">Tipos de entrega:</h4>
+            <h4 className="font-medium text-gray-900 mb-1">Tipos de entrega y pago:</h4>
             <ul className="space-y-1">
               <li>🚚 <strong>Delivery:</strong> Entrega a domicilio</li>
               <li>📦 <strong>Take Away:</strong> Retiro en local</li>
+              <li>💵 <strong>Efectivo:</strong> Requiere confirmación manual</li>
+              <li>💳 <strong>MercadoPago:</strong> Confirmación automática</li>
             </ul>
           </div>
         </div>

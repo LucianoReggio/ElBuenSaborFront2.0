@@ -115,7 +115,7 @@ export default function NavbarCocinero({
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="bg-white shadow-sm border-b border-gray-200 ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Izquierda: Usuario */}
@@ -124,7 +124,7 @@ export default function NavbarCocinero({
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200"
+                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200 cursor-pointer"
                   aria-label="Menú de cocinero"
                 >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
@@ -162,7 +162,7 @@ export default function NavbarCocinero({
                     <div className="py-1">
                       <button
                         onClick={handleMiPerfil}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
                       >
                         <User className="mr-3 h-4 w-4" />
                         Mi Perfil
@@ -183,7 +183,7 @@ export default function NavbarCocinero({
                           setIsUserMenuOpen(false);
                           onLogout?.();
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 cursor-pointer"
                       >
                         <LogOut className="mr-3 h-4 w-4" />
                         Cerrar Sesión
@@ -204,7 +204,7 @@ export default function NavbarCocinero({
           <div className="flex items-center justify-center">
             <button
               onClick={() => navigate("/")}
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
               aria-label="Dashboard de cocina"
             >
               <img
@@ -219,7 +219,7 @@ export default function NavbarCocinero({
           <div className="flex items-center space-x-4">
              <button
               onClick={() => navigate("/cocina")}
-              className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+              className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 cursor-pointer"
             >
               <Package className="h-4 w-4" />
               <span className="hidden lg:block text-sm font-medium">
@@ -229,7 +229,7 @@ export default function NavbarCocinero({
             {/* Menú de recursos de cocina */}
            <button
               onClick={() => navigate("/productos")}
-                className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200">
+                className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 cursor-pointer">
                 <ChefHat className="h-4 w-4" />
                 <span className="hidden lg:block text-sm font-medium">
                   Cocina
@@ -240,7 +240,7 @@ export default function NavbarCocinero({
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50"
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
               title="Actualizar pedidos"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -251,7 +251,7 @@ export default function NavbarCocinero({
 
             {/* Última actualización */}
             {lastUpdate && (
-              <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-gray-50 text-gray-600 rounded-lg text-sm">
+              <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-gray-50 text-gray-600 rounded-lg text-sm ">
                 <Clock className="h-4 w-4" />
                 <span>{formatLastUpdate(lastUpdate)}</span>
               </div>
