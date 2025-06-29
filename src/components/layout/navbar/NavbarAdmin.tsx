@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { RefreshPermissionsButton } from "../../common/RefreshPermissionsButton";
+
 
 interface NavbarAdminProps {
   user?: {
@@ -81,7 +81,7 @@ export default function NavbarAdmin({
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200"
+                  className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded-full transition-colors duration-200 cursor-pointer"
                   aria-label="Menú de administrador"
                 >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
@@ -156,7 +156,7 @@ export default function NavbarAdmin({
           <div className="flex items-center justify-center">
             <button
               onClick={onHome || (() => (window.location.href = "/dashboard"))}
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
               aria-label="Dashboard"
             >
               <img
@@ -167,8 +167,7 @@ export default function NavbarAdmin({
             </button>
           </div>
 
-
-{/* Derecha: Opciones de Admin - VERSIÓN FINAL Y CORREGIDA */}
+{/* Derecha: Acciones rápidas (versión final y fusionada) */}
 <div className="flex items-center space-x-2">
   
   <Link 
@@ -198,6 +197,17 @@ export default function NavbarAdmin({
     <Users className="h-4 w-4" />
     <span className="hidden lg:block text-sm font-medium">
       Usuarios
+    </span>
+  </Link>
+
+  {/* ✅ Se añade el botón de "Productos" que venía de la rama main */}
+  <Link
+    to="/productos"
+    className="flex items-center space-x-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200"
+  >
+    <ShoppingBag className="h-4 w-4" />
+    <span className="hidden lg:block text-sm font-medium">
+      Productos
     </span>
   </Link>
 

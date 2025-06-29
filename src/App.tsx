@@ -28,7 +28,16 @@ import DeliveryDashboard from "./pages/DeliveryDashboard";
 import { MiPerfil } from "./pages/MiPerfil";
 import { GestionPedidos } from "./pages/GestionPedidos";
 import Cocina from "./pages/Cocina";
-import InformesPage from './pages/InformesPage'; // Importar la nueva página
+import {
+  LayoutGrid, // Rubros
+  Box,        // Ingredientes
+  ShoppingBag, // Productos
+  ClipboardList, // Gestión Pedidos
+  Flame,      // Cocina
+  Users       // Usuarios
+} from "lucide-react";
+import InformesPage from './pages/InformesPage';
+
 
 // Componente de Loading
 const LoadingScreen: React.FC<{ message?: string }> = ({
@@ -164,7 +173,7 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 // Componente para el elemento de navegación activo
-const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({
+const NavLink: React.FC<{ to: string; children: React.ReactNode; className?: string }> =  ({
   to,
   children,
 }) => {
@@ -195,138 +204,29 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <div className="text-xs font-semibold text-[#99AAB3] uppercase tracking-wide mb-4 px-2">
             Menú Principal
           </div>
-          <NavLink to="/dashboard">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"
-              />
-            </svg>
-            Dashboard
-          </NavLink>
-          <NavLink to="/categorias">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"
-              />
-            </svg>
+          
+          <NavLink to="/categorias" className="flex items-center gap-3">
+            <LayoutGrid className="w-5 h-5" />
             Rubros
           </NavLink>
-          <NavLink to="/insumos">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-              />
-            </svg>
+          <NavLink to="/insumos" className="flex items-center gap-3">
+            <Box className="w-5 h-5" />
             Ingredientes
           </NavLink>
-          <NavLink to="/productos">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-              />
-            </svg>
+          <NavLink to="/productos" className="flex items-center gap-3">
+            <ShoppingBag className="w-5 h-5" />
             Productos
           </NavLink>
-          <NavLink to="/stock">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            Control Stock
-          </NavLink>
-          <NavLink to="/gestion-pedidos">
-            <svg
-              className="w-5 h-5 mr-3 transition-colors duration-200"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
+          <NavLink to="/gestion-pedidos" className="flex items-center gap-3">
+            <ClipboardList className="w-5 h-5" />
             Gestión Pedidos
           </NavLink>
-          <NavLink to="/cocina">
-            <svg
-              className="w-5 h-5 mr-3 transition-colors duration-200"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
+          <NavLink to="/cocina" className="flex items-center gap-3">
+            <Flame className="w-5 h-5" />
             Cocina
           </NavLink>
-          <NavLink to="/usuarios">
-            <svg
-              className="w-5 h-5 mr-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5.121 17.804A4 4 0 018 16h8a4 4 0 012.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
+          <NavLink to="/usuarios" className="flex items-center gap-3">
+            <Users className="w-5 h-5" />
             Usuarios
           </NavLink>
         </div>
