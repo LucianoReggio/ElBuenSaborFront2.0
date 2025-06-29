@@ -4,7 +4,7 @@ import type {
   ClienteResponseDTO,
 } from "../types/clientes/Index";
 
-// Tipos de respuesta que coinciden con el backend
+// Tipos de respuesta
 interface LoginResponse {
   success: boolean;
   data: any;
@@ -46,27 +46,75 @@ interface RefreshRolesResponse {
 
 /**
  * Servicio de autenticación para Auth0
- * Versión simplificada que coincide con el backend limpio
  */
 export class AuthService {
+  private static pendingRequests = new Map<string, Promise<any>>();
+
   /**
    * Procesa el login con Auth0 y sincroniza con el backend
    */
   static async processAuth0Login(userData?: any): Promise<LoginResponse> {
+    const cacheKey = `login-${JSON.stringify(userData)}`;
+
+    // Verificar si ya hay una request pending
+    if (this.pendingRequests.has(cacheKey)) {
+      return this.pendingRequests.get(cacheKey)!;
+    }
+
+    const request = this._performLogin(userData);
+    this.pendingRequests.set(cacheKey, request);
+
+    try {
+      const result = await request;
+      return result;
+    } finally {
+      // Limpiar cache después de 5 segundos
+      setTimeout(() => {
+        this.pendingRequests.delete(cacheKey);
+      }, 5000);
+    }
+  }
+
+  /**
+   * Ejecutar login real
+   */
+  private static async _performLogin(userData?: any): Promise<LoginResponse> {
     try {
       const response = await apiClienteService.post<LoginResponse>(
         "/auth0/login",
         userData
       );
+
       return response;
     } catch (error: any) {
-      console.error("Error en login Auth0:", error);
+      // Manejo específico de errores comunes
+      if (error.message?.includes("Duplicate entry")) {
+        try {
+          // Intentar obtener el usuario existente
+          const profile = await this.getCurrentUser();
+          if (profile.authenticated) {
+            return {
+              success: true,
+              data: {
+                email: profile.email,
+                nombre: profile.name?.split(" ")[0] || "Usuario",
+                apellido: profile.name?.split(" ")[1] || "Auth0",
+                rol: "CLIENTE",
+              },
+              message: "Usuario recuperado exitosamente",
+            };
+          }
+        } catch (recoveryError) {
+          // Continuar con el error original
+        }
+      }
+
       throw error;
     }
   }
 
   /**
-   * Registra un cliente con datos adicionales después del login Auth0
+   * Registra un cliente con protección contra duplicados
    */
   static async registerClienteAuth0(
     clienteData: ClienteRegisterDTO
@@ -76,45 +124,99 @@ export class AuthService {
         "/auth0/register",
         clienteData
       );
+
       return response.data;
     } catch (error: any) {
-      console.error("Error en registro Auth0:", error);
+      // Si el usuario ya existe, intentar usar complete-profile
+      if (
+        error.message?.includes("ya está registrado") ||
+        error.message?.includes("already registered")
+      ) {
+        try {
+          return await this.completeProfile(clienteData);
+        } catch (completeError) {
+          throw error; // Lanzar error original
+        }
+      }
+
       throw error;
     }
   }
 
   /**
-   * Completa el perfil de un usuario ya autenticado con Auth0
+   * Completa el perfil con validaciones
    */
   static async completeProfile(
     clienteData: ClienteRegisterDTO
   ): Promise<ClienteResponseDTO> {
-    try {
-      const response = await apiClienteService.post<RegisterResponse>(
-        "/auth0/complete-profile",
-        clienteData
-      );
-      console.log("✅ Profile completion successful");
-      return response.data;
-    } catch (error: any) {
-      console.error("Error completing profile:", error);
-      throw error;
+    // Validar datos antes de enviar
+    this._validateClienteData(clienteData);
+
+    const response = await apiClienteService.post<RegisterResponse>(
+      "/auth0/complete-profile",
+      clienteData
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Validar datos del cliente antes de enviar
+   */
+  private static _validateClienteData(clienteData: ClienteRegisterDTO): void {
+    const errors: string[] = [];
+
+    if (!clienteData.nombre?.trim()) {
+      errors.push("Nombre es requerido");
+    }
+
+    if (!clienteData.apellido?.trim()) {
+      errors.push("Apellido es requerido");
+    }
+
+    if (!clienteData.email?.trim()) {
+      errors.push("Email es requerido");
+    } else if (!/\S+@\S+\.\S+/.test(clienteData.email)) {
+      errors.push("Email debe tener formato válido");
+    }
+
+    if (!clienteData.telefono?.trim()) {
+      errors.push("Teléfono es requerido");
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`Datos inválidos: ${errors.join(", ")}`);
     }
   }
 
   /**
-   * Obtiene información del usuario actual desde Auth0
+   * Obtiene información del usuario con cache
    */
   static async getCurrentUser(): Promise<UserProfileResponse> {
-    try {
-      const response = await apiClienteService.get<UserProfileResponse>(
-        "/auth0/me"
-      );
-      return response;
-    } catch (error: any) {
-      console.error("Error obteniendo usuario actual:", error);
-      throw error;
+    const cacheKey = "current-user";
+
+    if (this.pendingRequests.has(cacheKey)) {
+      return this.pendingRequests.get(cacheKey)!;
     }
+
+    const request = this._getCurrentUserRequest();
+    this.pendingRequests.set(cacheKey, request);
+
+    try {
+      return await request;
+    } finally {
+      // Cache más corto para current user
+      setTimeout(() => {
+        this.pendingRequests.delete(cacheKey);
+      }, 2000);
+    }
+  }
+
+  private static async _getCurrentUserRequest(): Promise<UserProfileResponse> {
+    const response = await apiClienteService.get<UserProfileResponse>(
+      "/auth0/me"
+    );
+    return response;
   }
 
   /**
@@ -127,7 +229,6 @@ export class AuthService {
       );
       return response;
     } catch (error: any) {
-      console.error("Error validando token:", error);
       return { valid: false };
     }
   }
@@ -136,46 +237,53 @@ export class AuthService {
    * Fuerza la actualización de roles desde Auth0
    */
   static async refreshRoles(): Promise<RefreshRolesResponse> {
-    try {
-      const response = await apiClienteService.post<RefreshRolesResponse>(
-        "/auth0/refresh-roles"
-      );
-      return response;
-    } catch (error: any) {
-      console.error("Error refreshing roles:", error);
-      throw error;
-    }
+    const response = await apiClienteService.post<RefreshRolesResponse>(
+      "/auth0/refresh-roles"
+    );
+    return response;
   }
 
   /**
-   * Actualización de roles con token específico (para casos especiales)
+   * Actualización de roles con token específico
    */
   static async refreshRolesWithToken(
     token: string
   ): Promise<RefreshRolesResponse> {
-    try {
-      const response = await fetch(
-        "http://localhost:8080/api/auth0/refresh-roles",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Error desconocido" }));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+    const response = await fetch(
+      "http://localhost:8080/api/auth0/refresh-roles",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
+    );
 
-      return await response.json();
-    } catch (error: any) {
-      console.error("Error refreshing roles with token:", error);
-      throw error;
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Error desconocido" }));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
     }
+
+    return await response.json();
+  }
+
+  /**
+   * Limpiar cache manualmente
+   */
+  static clearCache(): void {
+    this.pendingRequests.clear();
+  }
+
+  /**
+   * Obtener estado del cache
+   */
+  static getCacheStatus(): { pendingRequests: number; cacheKeys: string[] } {
+    return {
+      pendingRequests: this.pendingRequests.size,
+      cacheKeys: Array.from(this.pendingRequests.keys()),
+    };
   }
 }
