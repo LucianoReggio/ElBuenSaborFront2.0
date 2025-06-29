@@ -1,10 +1,12 @@
 // src/hooks/useCatalogoProductos.ts
 import { useState, useEffect, useCallback } from "react";
-import { productoService, insumoService } from "../services";
+// ✅ SE AÑADEN LAS IMPORTACIONES NECESARIAS
+import { ProductoService } from '../services/ProductoService'; 
+import { InsumoService } from '../services/InsumoService';
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloInsumoResponseDTO } from "../types/insumos/ArticuloInsumoResponseDTO";
 
-// Tipo unificado para productos del catálogo
+// Tipo unificado para productos del catálogo 
 export interface ProductoCatalogo {
   id: number;
   denominacion: string;
@@ -16,20 +18,21 @@ export interface ProductoCatalogo {
     denominacion: string;
     denominacionCategoriaPadre?: string;
   };
-  // Campos específicos para diferenciar tipo
   tipo: 'manufacturado' | 'insumo';
-  tiempoEstimadoEnMinutos?: number; // Solo manufacturados
+  tiempoEstimadoEnMinutos?: number;
   stockSuficiente: boolean;
   cantidadVendida: number;
-  // Datos adicionales para manufacturados
   costoTotal?: number;
   margenGanancia?: number;
   cantidadMaximaPreparable?: number;
-  // Datos adicionales para insumos
   stockActual?: number;
   stockMaximo?: number;
   estadoStock?: string;
 }
+
+// ✅ SE CREAN LAS INSTANCIAS DE AMBOS SERVICIOS
+const productoService = new ProductoService();
+const insumoService = new InsumoService();
 
 export const useCatalogoProductos = () => {
   const [productos, setProductos] = useState<ProductoCatalogo[]>([]);
@@ -65,7 +68,7 @@ export const useCatalogoProductos = () => {
     },
     tipo: 'insumo',
     stockSuficiente: insumo.stockActual > 0,
-    cantidadVendida: 0, // Los insumos no tienen historial de ventas
+    cantidadVendida: 0,
     stockActual: insumo.stockActual,
     stockMaximo: insumo.stockMaximo,
     estadoStock: insumo.estadoStock,
@@ -73,6 +76,7 @@ export const useCatalogoProductos = () => {
 
   const fetchProductosCatalogo = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       // Fetch productos manufacturados
       const productosManufacturados = await productoService.getAll();
@@ -80,24 +84,21 @@ export const useCatalogoProductos = () => {
 
       // Fetch insumos para venta (no para elaborar)
       const todosInsumos = await insumoService.getAll();
-      const insumosParaVenta = todosInsumos.filter(insumo => !insumo.esParaElaborar);
+      // ✅ SE CORRIGE LA SINTAXIS DEL FILTER
+      const insumosParaVenta = todosInsumos.filter((insumo) => !insumo.esParaElaborar);
 
       // Mapear y combinar
       const productosMap = productosManufacturadosActivos.map(mapearManufacturado);
       const insumosMap = insumosParaVenta.map(mapearInsumo);
 
-      // Combinar y ordenar por categoría y nombre
       const productosCombinados = [...productosMap, ...insumosMap].sort((a, b) => {
-        // Primero por categoría
         if (a.categoria.denominacion !== b.categoria.denominacion) {
           return a.categoria.denominacion.localeCompare(b.categoria.denominacion);
         }
-        // Luego por nombre
         return a.denominacion.localeCompare(b.denominacion);
       });
 
       setProductos(productosCombinados);
-      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -113,14 +114,12 @@ export const useCatalogoProductos = () => {
     return productos
       .filter(producto => producto.stockSuficiente)
       .sort((a, b) => {
-        // Priorizar manufacturados por ventas, insumos por stock
         if (a.tipo === 'manufacturado' && b.tipo === 'manufacturado') {
           return b.cantidadVendida - a.cantidadVendida;
         }
         if (a.tipo === 'insumo' && b.tipo === 'insumo') {
           return (b.stockActual || 0) - (a.stockActual || 0);
         }
-        // Manufacturados primero
         return a.tipo === 'manufacturado' ? -1 : 1;
       })
       .slice(0, limite);
@@ -163,18 +162,13 @@ export const useCatalogoProductos = () => {
   }, [fetchProductosCatalogo]);
 
   return {
-    // Estado
     productos,
     loading,
     error,
-
-    // Métodos de filtrado y búsqueda
     getProductosPorCategoria,
     getProductosDestacados,
     getCategorias,
     buscarProductos,
-
-    // Utilidades
     refresh: fetchProductosCatalogo,
   };
 };

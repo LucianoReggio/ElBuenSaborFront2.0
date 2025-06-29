@@ -5,19 +5,19 @@ import type {
 } from "../types/clientes/Index";
 
 // Tipos de respuesta
-interface LoginResponse {
+export interface LoginResponse {
   success: boolean;
   data: any;
   message: string;
 }
 
-interface RegisterResponse {
+export interface RegisterResponse {
   success: boolean;
   data: ClienteResponseDTO;
   message: string;
 }
 
-interface UserProfileResponse {
+export interface UserProfileResponse {
   authenticated: boolean;
   auth_provider?: string;
   sub?: string;
@@ -27,21 +27,22 @@ interface UserProfileResponse {
   token_type?: string;
 }
 
-interface TokenValidationResponse {
+export interface TokenValidationResponse {
   valid: boolean;
   sub?: string;
   auth_provider?: string;
   token_type?: string;
 }
 
-interface RefreshRolesResponse {
+export interface RefreshRolesResponse {
   success: boolean;
-  data?: {
-    oldRole?: string;
-    newRole?: string;
-    currentRole?: string;
-  };
   message: string;
+  // Añadimos las propiedades que faltan como opcionales
+  roleChanged?: boolean;
+  oldRole?: string;
+  newRole?: string;
+  currentRole?: string;
+  requiresRelogin?: boolean; // Esta la usa tu componente más abajo
 }
 
 /**
@@ -236,13 +237,17 @@ export class AuthService {
   /**
    * Fuerza la actualización de roles desde Auth0
    */
-  static async refreshRoles(): Promise<RefreshRolesResponse> {
+ static async refreshRoles(): Promise<RefreshRolesResponse> { // <-- Verifica que devuelva el tipo correcto
+  try {
     const response = await apiClienteService.post<RefreshRolesResponse>(
       "/auth0/refresh-roles"
     );
     return response;
+  } catch (error: any) {
+    console.error("Error refreshing roles:", error);
+    throw error;
   }
-
+}
   /**
    * Actualización de roles con token específico
    */

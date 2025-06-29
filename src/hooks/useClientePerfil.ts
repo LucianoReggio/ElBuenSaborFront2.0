@@ -138,12 +138,12 @@ export const useClientePerfil = () => {
       return estadisticas;
     } catch (error: any) {
       // ✅ Log silencioso para estadísticas (no es crítico)
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "Error al obtener estadísticas del perfil:",
-          error.message
-        );
-      }
+      if (import.meta.env.DEV) {
+    console.warn(
+      "Error al obtener estadísticas del perfil:",
+      error.message
+    );
+}
       throw error;
     }
   }, [isAuthenticated]);
@@ -160,9 +160,12 @@ export const useClientePerfil = () => {
       return auth0Config;
     } catch (error: any) {
       // ✅ Log silencioso para config Auth0 (no es crítico)
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Error al obtener configuración Auth0:", error.message);
-      }
+     if (import.meta.env.DEV) {
+    console.warn(
+      "Error al obtener estadísticas del perfil:",
+      error.message
+    );
+}
       throw error;
     }
   }, [isAuthenticated]);
@@ -232,9 +235,12 @@ export const useClientePerfil = () => {
       };
     } catch (error: any) {
       // ✅ Error handling más suave para refresh
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Error parcial al refrescar perfil:", error.message);
-      }
+      if (import.meta.env.DEV) {
+    console.warn(
+      "Error al obtener estadísticas del perfil:",
+      error.message
+    );
+}
       // No lanzar error para permitir refresh parcial
       return { perfil: null, estadisticas: null };
     }
@@ -260,9 +266,12 @@ export const useClientePerfil = () => {
     }));
 
     // Log solo en desarrollo
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`Error en ${context}:`, error);
-    }
+    if (import.meta.env.DEV) {
+    console.warn(
+      "Error al obtener estadísticas del perfil:",
+      error.message
+    );
+}
   }, []);
 
   // ✅ Cargar perfil automáticamente cuando se autentica (con error handling mejorado)
@@ -294,7 +303,7 @@ export const useClientePerfil = () => {
         Promise.allSettled([getEstadisticas(), getPerfilCompleto()]).catch(
           () => {
             // Error silencioso para actualizaciones automáticas
-            if (process.env.NODE_ENV === "development") {
+            if (import.meta.env.DEV) {
               console.warn(
                 "Error actualizando perfil tras cambio de domicilios"
               );

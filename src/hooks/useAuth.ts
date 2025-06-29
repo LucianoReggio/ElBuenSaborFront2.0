@@ -81,7 +81,7 @@ export const useAuth = () => {
 
   // Sincronización con backend
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: number;
 
     const performSync = async () => {
       if (!mounted.current || !auth0IsAuthenticated || !auth0User?.sub) {
@@ -215,6 +215,16 @@ export const useAuth = () => {
   }, [auth0IsAuthenticated, authState.initialized]);
 
   // ============= MÉTODOS =============
+  const refreshRoles = useCallback(async () => {
+  try {
+    // Llamamos directamente al método estático del servicio
+    return await AuthService.refreshRoles();
+  } catch (error: any) {
+    console.error("Error al refrescar roles desde useAuth:", error);
+    // Devolvemos un objeto de error consistente para que el componente lo maneje
+    return { success: false, message: error.message || "Error desconocido" };
+  }
+}, []);
 
   const login = useCallback(async () => {
     await loginWithRedirect();
@@ -375,5 +385,6 @@ export const useAuth = () => {
     getCurrentProfile,
     needsAdditionalData,
     refreshSync,
+      refreshRoles, 
   };
 };
