@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Percent, DollarSign, Hash, Tag, Image,  X } from 'lucide-react';
+import { Calendar, Clock, Percent, DollarSign, Hash, Tag, X } from 'lucide-react';
 import { Button } from '../common/Button';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Alert } from '../common/Alert';
+import { ImageUpload } from '../common/ImageUpload'; // ✅ Importar componente de carga
 import { useProductos } from '../../hooks/useProductos';
+import { useInsumos } from '../../hooks/useInsumos';
 import type { PromocionRequestDTO, PromocionResponseDTO } from '../../types/promociones';
 import type { ArticuloManufacturadoResponseDTO } from '../../types/productos/ArticuloManufacturadoResponseDTO';
+import type { ArticuloInsumoResponseDTO } from '../../types/insumos/ArticuloInsumoResponseDTO';
+import type { ImagenDTO } from '../../types/common/ImagenDTO'; // ✅ Importar tipo
 
 interface PromocionFormProps {
   promocion?: PromocionResponseDTO | null;
@@ -17,7 +21,16 @@ interface ProductoSeleccionado {
   id: number;
   nombre: string;
   precio: number;
+  tipo: 'MANUFACTURADO' | 'INSUMO';
 }
+
+// ✅ Tipo unificado para todos los artículos
+type ArticuloUnificado = {
+  idArticulo: number;
+  denominacion: string;
+  precioVenta: number;
+  tipo: 'MANUFACTURADO' | 'INSUMO';
+};
 
 export const PromocionForm: React.FC<PromocionFormProps> = ({
   promocion,
@@ -25,6 +38,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
   onCancelar
 }) => {
   const { productos, loading: loadingProductos } = useProductos();
+  const { insumos, loading: loadingInsumos } = useInsumos(); // ✅ Usar hook de insumos
   
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -41,20 +55,42 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
   });
 
   const [productosSeleccionados, setProductosSeleccionados] = useState<ProductoSeleccionado[]>([]);
-  const [imagenesUrls, setImagenesUrls] = useState<string[]>([]);
-  const [nuevaImagenUrl, setNuevaImagenUrl] = useState('');
+  const [imagenesPromocionales, setImagenesPromocionales] = useState<ImagenDTO[]>([]); // ✅ Cambiar a ImagenDTO[]
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ Combinar productos manufacturados e insumos vendibles
+  const articulosDisponibles: ArticuloUnificado[] = React.useMemo(() => {
+    const productosManufacturados: ArticuloUnificado[] = productos.map(p => ({
+      idArticulo: p.idArticulo,
+      denominacion: p.denominacion,
+      precioVenta: p.precioVenta,
+      tipo: 'MANUFACTURADO' as const
+    }));
+
+    // ✅ Filtrar solo insumos que NO son para elaborar (son para venta)
+    const insumosVendibles: ArticuloUnificado[] = insumos
+      .filter(i => !i.esParaElaborar && !i.eliminado)
+      .map(i => ({
+        idArticulo: i.idArticulo,
+        denominacion: i.denominacion,
+        precioVenta: i.precioVenta,
+        tipo: 'INSUMO' as const
+      }));
+
+    return [...productosManufacturados, ...insumosVendibles]
+      .sort((a, b) => a.denominacion.localeCompare(b.denominacion));
+  }, [productos, insumos]);
 
   // Inicializar formulario con datos de la promoción (modo edición)
   useEffect(() => {
     if (promocion) {
       setFormData({
         denominacion: promocion.denominacion,
-        fechaDesde: promocion.fechaDesde.split('T')[0], // Extraer solo la fecha
+        fechaDesde: promocion.fechaDesde.split('T')[0],
         fechaHasta: promocion.fechaHasta.split('T')[0],
-        horaDesde: promocion.horaDesde.slice(0, 5), // "HH:mm:ss" -> "HH:mm"
+        horaDesde: promocion.horaDesde.slice(0, 5),
         horaHasta: promocion.horaHasta.slice(0, 5),
         descripcionDescuento: promocion.descripcionDescuento || '',
         tipoDescuento: promocion.tipoDescuento,
@@ -63,15 +99,23 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
         activo: promocion.activo
       });
 
+      // ✅ Mapear productos desde la promoción existente
       setProductosSeleccionados(
         promocion.articulos.map(art => ({
           id: art.idArticulo,
           nombre: art.denominacion,
-          precio: art.precioVenta
+          precio: art.precioVenta,
+          tipo: 'MANUFACTURADO' as const // Por defecto, en edición asumimos manufacturados
         }))
       );
 
-      setImagenesUrls(promocion.urlsImagenes || []);
+      // ✅ Mapear imágenes como ImagenDTO
+      const imagenesDTO: ImagenDTO[] = (promocion.urlsImagenes || []).map((url, index) => ({
+        idImagen: undefined,
+        denominacion: `Imagen promocional ${index + 1}`,
+        url: url
+      }));
+      setImagenesPromocionales(imagenesDTO);
     }
   }, [promocion]);
 
@@ -84,18 +128,19 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     setError(null);
   };
 
-  // Agregar producto seleccionado
-  const agregarProducto = (producto: ArticuloManufacturadoResponseDTO) => {
-    const yaSeleccionado = productosSeleccionados.some(p => p.id === producto.idArticulo);
+  // ✅ Agregar producto seleccionado (manufacturado o insumo)
+  const agregarProducto = (articulo: ArticuloUnificado) => {
+    const yaSeleccionado = productosSeleccionados.some(p => p.id === articulo.idArticulo);
     if (yaSeleccionado) {
       setError('Este producto ya está seleccionado');
       return;
     }
 
     setProductosSeleccionados(prev => [...prev, {
-      id: producto.idArticulo,
-      nombre: producto.denominacion,
-      precio: producto.precioVenta
+      id: articulo.idArticulo,
+      nombre: articulo.denominacion,
+      precio: articulo.precioVenta,
+      tipo: articulo.tipo
     }]);
     setError(null);
   };
@@ -105,23 +150,31 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     setProductosSeleccionados(prev => prev.filter(p => p.id !== id));
   };
 
-  // Agregar URL de imagen
-  const agregarImagen = () => {
-    if (!nuevaImagenUrl.trim()) return;
-    
-    if (imagenesUrls.includes(nuevaImagenUrl)) {
-      setError('Esta imagen ya está agregada');
-      return;
-    }
-
-    setImagenesUrls(prev => [...prev, nuevaImagenUrl.trim()]);
-    setNuevaImagenUrl('');
-    setError(null);
+  // ✅ Agregar nueva imagen promocional
+  const agregarImagenPromocional = () => {
+    const nuevaImagen: ImagenDTO = {
+      idImagen: undefined,
+      denominacion: `Imagen promocional ${imagenesPromocionales.length + 1}`,
+      url: '' // Se llenará cuando se suba la imagen
+    };
+    setImagenesPromocionales(prev => [...prev, nuevaImagen]);
   };
 
-  // Remover imagen
-  const removerImagen = (index: number) => {
-    setImagenesUrls(prev => prev.filter((_, i) => i !== index));
+  // ✅ Actualizar imagen promocional específica
+  const actualizarImagenPromocional = (index: number, imagen: ImagenDTO | null) => {
+    if (imagen) {
+      setImagenesPromocionales(prev => 
+        prev.map((img, i) => i === index ? imagen : img)
+      );
+    } else {
+      // Eliminar imagen
+      removerImagenPromocional(index);
+    }
+  };
+
+  // ✅ Remover imagen promocional
+  const removerImagenPromocional = (index: number) => {
+    setImagenesPromocionales(prev => prev.filter((_, i) => i !== index));
   };
 
   // Validar formulario
@@ -175,15 +228,17 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
       setLoading(true);
       setError(null);
 
-      // Calcular precio promocional (promedio de precios con descuento aplicado)
+      // ✅ Calcular precio promocional (precio total de la promoción después del descuento)
       const precioPromocional = productosSeleccionados.length > 0
         ? productosSeleccionados.reduce((sum, producto) => {
             if (formData.tipoDescuento === 'PORCENTUAL') {
+              // Precio después del descuento porcentual
               return sum + (producto.precio * (1 - formData.valorDescuento / 100));
             } else {
+              // Precio después del descuento fijo
               return sum + Math.max(0, producto.precio - formData.valorDescuento);
             }
-          }, 0) / productosSeleccionados.length
+          }, 0) // ✅ TOTAL (sin división) - precio total de la promoción
         : 0;
 
       const promocionRequest: PromocionRequestDTO = {
@@ -195,13 +250,16 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
         descripcionDescuento: formData.descripcionDescuento.trim() || undefined,
         tipoDescuento: formData.tipoDescuento,
         valorDescuento: formData.valorDescuento,
-        precioPromocional: Math.round(precioPromocional * 100) / 100, // Redondear a 2 decimales
+        precioPromocional: Math.round(precioPromocional * 100) / 100,
         cantidadMinima: formData.cantidadMinima,
         activo: formData.activo,
         idsArticulos: productosSeleccionados.map(p => p.id),
-        urlsImagenes: imagenesUrls.length > 0 ? imagenesUrls : undefined
+        urlsImagenes: imagenesPromocionales
+          .filter(img => img.url && img.url.trim() !== '')
+          .map(img => img.url)
       };
 
+      console.log('🚀 Promoción a guardar:', promocionRequest);
       await onGuardar(promocionRequest);
     } catch (err: any) {
       setError(err.message || 'Error al guardar la promoción');
@@ -210,7 +268,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     }
   };
 
-  if (loadingProductos) {
+  if (loadingProductos || loadingInsumos) {
     return (
       <div className="flex justify-center py-8">
         <LoadingSpinner />
@@ -375,19 +433,22 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
         </div>
       </div>
 
-      {/* Productos incluidos */}
+      {/* ✅ PRODUCTOS INCLUIDOS - MEJORADO PARA INSUMOS */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
           Productos incluidos en la promoción *
+          <span className="text-xs text-gray-500 block mt-1">
+            Incluye productos manufacturados e insumos para la venta
+          </span>
         </label>
         
         {/* Selector de productos */}
         <div className="mb-4">
           <select
             onChange={(e) => {
-              const producto = productos.find(p => p.idArticulo === parseInt(e.target.value));
-              if (producto) {
-                agregarProducto(producto);
+              const articulo = articulosDisponibles.find(a => a.idArticulo === parseInt(e.target.value));
+              if (articulo) {
+                agregarProducto(articulo);
                 e.target.value = '';
               }
             }}
@@ -395,11 +456,11 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
             defaultValue=""
           >
             <option value="" disabled>Seleccionar un producto...</option>
-            {productos
-              .filter(p => !productosSeleccionados.some(ps => ps.id === p.idArticulo))
-              .map(producto => (
-                <option key={producto.idArticulo} value={producto.idArticulo}>
-                  {producto.denominacion} - ${producto.precioVenta}
+            {articulosDisponibles
+              .filter(a => !productosSeleccionados.some(ps => ps.id === a.idArticulo))
+              .map(articulo => (
+                <option key={`${articulo.tipo}-${articulo.idArticulo}`} value={articulo.idArticulo}>
+                  {articulo.denominacion} - ${articulo.precioVenta} ({articulo.tipo === 'INSUMO' ? 'Insumo' : 'Producto'})
                 </option>
               ))
             }
@@ -426,7 +487,16 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                   className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
                 >
                   <div className="flex-1">
-                    <span className="font-medium">{producto.nombre}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">{producto.nombre}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        producto.tipo === 'INSUMO' 
+                          ? 'bg-orange-100 text-orange-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {producto.tipo === 'INSUMO' ? 'Insumo' : 'Producto'}
+                      </span>
+                    </div>
                     <div className="text-sm text-gray-500 mt-1">
                       <span className="line-through">${producto.precio}</span>
                       {formData.valorDescuento > 0 && (
@@ -447,79 +517,89 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
               );
             })}
 
-            {/* Precio promocional promedio */}
+            {/* Precio promocional total (después del descuento) */}
             {formData.valorDescuento > 0 && productosSeleccionados.length > 0 && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="text-sm font-medium text-blue-800">
-                  Precio promocional promedio estimado:
+                  Precio total de la promoción (después del descuento):
                 </div>
                 <div className="text-lg font-bold text-blue-900">
                   ${(() => {
-                    const promedio = productosSeleccionados.reduce((sum, producto) => {
+                    const total = productosSeleccionados.reduce((sum, producto) => {
                       if (formData.tipoDescuento === 'PORCENTUAL') {
                         return sum + (producto.precio * (1 - formData.valorDescuento / 100));
                       } else {
                         return sum + Math.max(0, producto.precio - formData.valorDescuento);
                       }
-                    }, 0) / productosSeleccionados.length;
-                    return promedio.toFixed(2);
+                    }, 0);
+                    return total.toFixed(2);
                   })()}
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
-                  Este es el precio que se guardará en la base de datos
+                  Este es el precio total que se guardará como precio promocional
                 </div>
               </div>
             )}
+
+            {/* Resumen de tipos de productos */}
+            <div className="mt-3 p-2 bg-gray-100 rounded-lg">
+              <div className="text-xs text-gray-600">
+                Resumen: {productosSeleccionados.filter(p => p.tipo === 'MANUFACTURADO').length} productos manufacturados, {' '}
+                {productosSeleccionados.filter(p => p.tipo === 'INSUMO').length} insumos vendibles
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Imágenes */}
+      {/* ✅ IMÁGENES PROMOCIONALES - MEJORADO CON COMPONENTE DE CARGA */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          <Image className="w-4 h-4 inline mr-1" />
-          Imágenes (opcional)
+          Imágenes promocionales (opcional)
         </label>
         
-        {/* Agregar imagen */}
-        <div className="flex gap-2 mb-4">
-          <input
-            type="url"
-            value={nuevaImagenUrl}
-            onChange={(e) => setNuevaImagenUrl(e.target.value)}
-            placeholder="URL de la imagen"
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <Button
-            type="button"
-            onClick={agregarImagen}
-            variant="outline"
-          
-          >
-            Agregar
-          </Button>
-        </div>
-
-        {/* Lista de imágenes */}
-        {imagenesUrls.length > 0 && (
-          <div className="space-y-2">
-            {imagenesUrls.map((url, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
-              >
-                <span className="text-sm text-gray-600 truncate flex-1 mr-2">{url}</span>
-                <button
-                  type="button"
-                  onClick={() => removerImagen(index)}
-                  className="text-red-600 hover:text-red-800 p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+        {/* Lista de imágenes actuales */}
+        {imagenesPromocionales.length > 0 && (
+          <div className="space-y-4 mb-4">
+            {imagenesPromocionales.map((imagen, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-900">
+                    Imagen {index + 1}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => removerImagenPromocional(index)}
+                    className="text-red-600 hover:text-red-800 p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <ImageUpload
+                  currentImage={imagen.url ? imagen : null}
+                  onImageChange={(nuevaImagen) => actualizarImagenPromocional(index, nuevaImagen)}
+                  placeholder="Seleccionar imagen promocional"
+                  className="w-full"
+                />
               </div>
             ))}
           </div>
         )}
+
+        {/* Botón para agregar nueva imagen */}
+        <Button
+          type="button"
+          onClick={agregarImagenPromocional}
+          variant="outline"
+          className="w-full"
+        >
+          + Agregar imagen promocional
+        </Button>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Las imágenes se utilizarán para mostrar la promoción en el catálogo y páginas promocionales
+        </p>
       </div>
 
       {/* Estado activo */}
@@ -549,7 +629,6 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
         <Button
           type="submit"
           disabled={loading}
-          
         >
           {loading ? 'Guardando...' : promocion ? 'Actualizar' : 'Crear'} Promoción
         </Button>
