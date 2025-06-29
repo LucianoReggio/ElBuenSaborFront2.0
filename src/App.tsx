@@ -229,6 +229,10 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <Users className="w-5 h-5" />
             Usuarios
           </NavLink>
+            <NavLink to="/promociones" className="flex items-center gap-3">
+            <Users className="w-5 h-5" />
+            promociones
+          </NavLink>
         </div>
       </nav>
       <main className="flex-1 overflow-y-auto bg-[#F7F7F5] bg-opacity-50">
