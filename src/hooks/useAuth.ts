@@ -123,6 +123,25 @@ export const useAuth = () => {
       } catch (error: any) {
         if (!mounted.current) return;
 
+        // Manejo específico de usuario desactivado
+        if (error.message === "USUARIO_DESACTIVADO") {
+          console.error("❌ Usuario desactivado");
+
+          // Mostrar alerta inmediata
+          alert(
+            "Tu cuenta ha sido desactivada. Contacta al administrador para más información."
+          );
+
+          // Forzar logout de Auth0
+          auth0Logout({
+            logoutParams: {
+              returnTo: window.location.origin,
+            },
+          });
+
+          return;
+        }
+
         // Manejo de usuario duplicado
         if (
           error.message?.includes("Duplicate entry") ||

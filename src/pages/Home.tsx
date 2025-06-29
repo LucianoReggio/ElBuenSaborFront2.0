@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { useCatalogoProductos, type ProductoCatalogo } from '../hooks/useCatalogoProductos';
-import { Star, Clock, MapPin, Phone, Mail, ShoppingCart } from 'lucide-react';
-import CarritoModal from '../components/cart/CarritoModal';
-import ProductoDetalleModal from '../components/productos/ProductoDetalleModal';
-import { useCarritoContext } from '../context/CarritoContext';
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import {
+  useCatalogoProductos,
+  type ProductoCatalogo,
+} from "../hooks/useCatalogoProductos";
+import { Star, Clock, MapPin, Phone, Mail, ShoppingCart } from "lucide-react";
+import CarritoModal from "../components/cart/CarritoModal";
+import ProductoDetalleModal from "../components/productos/ProductoDetalleModal";
+import { useCarritoContext } from "../context/CarritoContext";
+import { UserDeactivatedAlert } from "../components/common/UserDeactivatedAlert";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -13,15 +17,17 @@ const Home: React.FC = () => {
   const { productos, loading, getProductosDestacados } = useCatalogoProductos();
 
   const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [productoDetalle, setProductoDetalle] = useState<ProductoCatalogo | null>(null);
+  const [productoDetalle, setProductoDetalle] =
+    useState<ProductoCatalogo | null>(null);
   const carrito = useCarritoContext();
 
   // Debug imagen header
   useEffect(() => {
     const img = new Image();
-    img.onload = () => console.log('✅ Imagen cargada correctamente');
-    img.onerror = () => console.error('❌ Error al cargar la imagen desde /Header.jpg');
-    img.src = '/Header.jpg';
+    img.onload = () => console.log("✅ Imagen cargada correctamente");
+    img.onerror = () =>
+      console.error("❌ Error al cargar la imagen desde /Header.jpg");
+    img.src = "/Header.jpg";
   }, []);
 
   // Productos destacados usando useMemo para evitar recálculos innecesarios
@@ -34,25 +40,27 @@ const Home: React.FC = () => {
 
   // Imagen producto
   const getProductImage = (producto: ProductoCatalogo) =>
-    producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0].url : null;
+    producto.imagenes && producto.imagenes.length > 0
+      ? producto.imagenes[0].url
+      : null;
 
   // Color por categoría
   const getCategoryColor = (categoriaId: number) => {
     const colors = [
-      'from-orange-100 to-orange-200',
-      'from-blue-100 to-blue-200',
-      'from-green-100 to-green-200',
-      'from-purple-100 to-purple-200',
-      'from-red-100 to-red-200',
-      'from-yellow-100 to-yellow-200',
+      "from-orange-100 to-orange-200",
+      "from-blue-100 to-blue-200",
+      "from-green-100 to-green-200",
+      "from-purple-100 to-purple-200",
+      "from-red-100 to-red-200",
+      "from-yellow-100 to-yellow-200",
     ];
     return colors[categoriaId % colors.length];
   };
 
   // Rating (solo para manufacturados, para insumos usar un valor fijo)
   const getProductRating = (producto: ProductoCatalogo) => {
-    if (producto.tipo === 'insumo') return 4.5; // Rating fijo para insumos
-    
+    if (producto.tipo === "insumo") return 4.5; // Rating fijo para insumos
+
     const cantidadVendida = producto.cantidadVendida;
     if (cantidadVendida >= 100) return 4.9;
     if (cantidadVendida >= 50) return 4.7;
@@ -75,7 +83,7 @@ const Home: React.FC = () => {
       cantidadVendida: producto.cantidadVendida,
       tipo: producto.tipo,
     };
-    
+
     carrito.agregarItem(productoParaCarrito as any);
     setCarritoAbierto(true);
   };
@@ -87,18 +95,19 @@ const Home: React.FC = () => {
 
   // Obtener icono por tipo de producto
   const getProductIcon = (producto: ProductoCatalogo) => {
-    if (producto.tipo === 'manufacturado') {
-      return '🍽️'; // Plato para productos manufacturados
+    if (producto.tipo === "manufacturado") {
+      return "🍽️"; // Plato para productos manufacturados
     }
-    return '🛒'; // Carrito para insumos de venta
+    return "🛒"; // Carrito para insumos de venta
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <UserDeactivatedAlert />
       {/* Hero Section */}
       <section className="relative text-white min-h-[500px]">
-        <img 
-          src="/Header.jpg" 
+        <img
+          src="/Header.jpg"
           alt="Header background"
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
@@ -116,15 +125,19 @@ const Home: React.FC = () => {
               </p>
             )}
             <button
-              onClick={() => navigate('/catalogo')}
+              onClick={() => navigate("/catalogo")}
               className="bg-white text-[#CD6C50] px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-lg"
             >
-              {isAuthenticated ? 'Ver Catálogo' : 'Pedir Ahora'}
+              {isAuthenticated ? "Ver Catálogo" : "Pedir Ahora"}
             </button>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 fill-gray-50">
+          <svg
+            viewBox="0 0 1200 120"
+            preserveAspectRatio="none"
+            className="w-full h-12 fill-gray-50"
+          >
             <path d="M0,60 C300,120 900,0 1200,60 L1200,120 L0,120 Z"></path>
           </svg>
         </div>
@@ -145,7 +158,10 @@ const Home: React.FC = () => {
           {loading ? (
             <div className="grid md:grid-cols-3 gap-8">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse">
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse"
+                >
                   <div className="h-48 bg-gray-200"></div>
                   <div className="p-6">
                     <div className="h-6 bg-gray-200 rounded mb-2"></div>
@@ -169,22 +185,33 @@ const Home: React.FC = () => {
               {featuredProducts.map((producto) => {
                 const imagenUrl = getProductImage(producto);
                 const rating = getProductRating(producto);
-                
+
                 return (
-                  <div key={`${producto.tipo}-${producto.id}`} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  <div
+                    key={`${producto.tipo}-${producto.id}`}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  >
                     <div className="h-48 relative overflow-hidden">
                       {imagenUrl ? (
-                        <img 
-                          src={imagenUrl} 
+                        <img
+                          src={imagenUrl}
                           alt={producto.denominacion}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.nextElementSibling?.classList.remove(
+                              "hidden"
+                            );
                           }}
                         />
                       ) : null}
-                      <div className={`${imagenUrl ? 'hidden' : ''} w-full h-full bg-gradient-to-br ${getCategoryColor(producto.categoria.idCategoria)} flex items-center justify-center`}>
+                      <div
+                        className={`${
+                          imagenUrl ? "hidden" : ""
+                        } w-full h-full bg-gradient-to-br ${getCategoryColor(
+                          producto.categoria.idCategoria
+                        )} flex items-center justify-center`}
+                      >
                         <div className="text-center p-8">
                           <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-white text-2xl">
@@ -197,21 +224,27 @@ const Home: React.FC = () => {
                         </div>
                       </div>
                       <div className="absolute top-3 right-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          producto.stockSuficiente 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {producto.stockSuficiente ? 'Disponible' : 'Agotado'}
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            producto.stockSuficiente
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {producto.stockSuficiente ? "Disponible" : "Agotado"}
                         </span>
                       </div>
                       <div className="absolute top-3 left-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          producto.tipo === 'manufacturado'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {producto.tipo === 'manufacturado' ? 'Preparado' : 'Producto'}
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            producto.tipo === "manufacturado"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-purple-100 text-purple-800"
+                          }`}
+                        >
+                          {producto.tipo === "manufacturado"
+                            ? "Preparado"
+                            : "Producto"}
                         </span>
                       </div>
                       {producto.tiempoEstimadoEnMinutos && (
@@ -230,22 +263,25 @@ const Home: React.FC = () => {
                         </h3>
                         <div className="flex items-center">
                           <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600 ml-1">{rating}</span>
+                          <span className="text-sm text-gray-600 ml-1">
+                            {rating}
+                          </span>
                         </div>
                       </div>
                       <p className="text-gray-600 mb-4 text-sm line-clamp-2">
-                        {producto.descripcion || `${producto.denominacion} de excelente calidad`}
+                        {producto.descripcion ||
+                          `${producto.denominacion} de excelente calidad`}
                       </p>
                       <div className="flex items-center text-xs text-gray-500 mb-4">
                         <span className="bg-gray-100 px-2 py-1 rounded">
                           {producto.categoria.denominacion}
                         </span>
-                        {producto.tipo === 'manufacturado' && (
+                        {producto.tipo === "manufacturado" && (
                           <span className="ml-2">
                             {producto.cantidadVendida} vendidos
                           </span>
                         )}
-                        {producto.tipo === 'insumo' && (
+                        {producto.tipo === "insumo" && (
                           <span className="ml-2">
                             Stock: {producto.stockActual}
                           </span>
@@ -261,11 +297,11 @@ const Home: React.FC = () => {
                             disabled={!producto.stockSuficiente}
                             className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
                               producto.stockSuficiente
-                                ? 'bg-[#CD6C50] text-white hover:bg-[#b85a42]'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                ? "bg-[#CD6C50] text-white hover:bg-[#b85a42]"
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
                           >
-                            {producto.stockSuficiente ? 'Pedir' : 'Agotado'}
+                            {producto.stockSuficiente ? "Pedir" : "Agotado"}
                           </button>
                           <button
                             onClick={() => handleDetalleClick(producto)}
@@ -293,20 +329,25 @@ const Home: React.FC = () => {
                 Sobre El Buen Sabor
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                Desde hace más de 10 años, nos dedicamos a preparar las mejores comidas caseras 
-                con ingredientes frescos y recetas tradicionales que han pasado de generación en generación.
+                Desde hace más de 10 años, nos dedicamos a preparar las mejores
+                comidas caseras con ingredientes frescos y recetas tradicionales
+                que han pasado de generación en generación.
               </p>
               <p className="text-lg text-gray-600 mb-8">
-                Además de nuestros platos preparados, también ofrecemos productos de calidad premium 
-                para que puedas disfrutar en casa.
+                Además de nuestros platos preparados, también ofrecemos
+                productos de calidad premium para que puedas disfrutar en casa.
               </p>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-[#CD6C50] mb-2">10+</div>
+                  <div className="text-3xl font-bold text-[#CD6C50] mb-2">
+                    10+
+                  </div>
                   <div className="text-gray-600">Años de experiencia</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-[#CD6C50] mb-2">5000+</div>
+                  <div className="text-3xl font-bold text-[#CD6C50] mb-2">
+                    5000+
+                  </div>
                   <div className="text-gray-600">Clientes satisfechos</div>
                 </div>
               </div>
@@ -315,7 +356,9 @@ const Home: React.FC = () => {
               <div className="w-32 h-32 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-white text-4xl font-bold">EB</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">El Buen Sabor</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                El Buen Sabor
+              </h3>
               <p className="text-gray-600">Comida casera con amor</p>
             </div>
           </div>
@@ -337,7 +380,9 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Horarios</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Horarios
+              </h3>
               <div className="space-y-2 text-gray-600">
                 <div>Lunes a Viernes: 11:00 - 23:00</div>
                 <div>Sábados: 11:00 - 00:00</div>
@@ -350,7 +395,9 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
                 <MapPin className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Ubicación</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Ubicación
+              </h3>
               <div className="space-y-2 text-gray-600">
                 <div>Av. Principal 123</div>
                 <div>Centro, Mendoza</div>
@@ -363,7 +410,9 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-[#CD6C50] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Phone className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Contacto</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Contacto
+              </h3>
               <div className="space-y-2 text-gray-600">
                 <div className="flex items-center justify-center">
                   <Phone className="w-4 h-4 mr-2" />

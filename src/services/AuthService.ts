@@ -87,6 +87,15 @@ export class AuthService {
 
       return response;
     } catch (error: any) {
+      // Manejo específico de usuario desactivado
+      if (
+        error.message?.includes("Usuario desactivado") ||
+        error.message?.includes("USER_DEACTIVATED") ||
+        error.message?.includes("403")
+      ) {
+        throw new Error("USUARIO_DESACTIVADO");
+      }
+
       // Manejo específico de errores comunes
       if (error.message?.includes("Duplicate entry")) {
         try {
