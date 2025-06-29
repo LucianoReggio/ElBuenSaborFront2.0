@@ -26,9 +26,11 @@ export const InsumosList: React.FC<InsumosListProps> = ({
   // Buscador
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<string>("");
+  const [filtroUso, setFiltroUso] = useState<string>(""); // "" | "elaborar" | "venta"
   const [filtros, setFiltros] = useState({
     nombre: "",
     estado: "",
+    uso: "",
   });
 
   // Aplica filtros al hacer click en Buscar
@@ -36,7 +38,15 @@ export const InsumosList: React.FC<InsumosListProps> = ({
     setFiltros({
       nombre: busqueda.trim().toLowerCase(),
       estado: filtroEstado,
+      uso: filtroUso,
     });
+  };
+
+  const handleLimpiar = () => {
+    setBusqueda("");
+    setFiltroEstado("");
+    setFiltroUso("");
+    setFiltros({ nombre: "", estado: "", uso: "" });
   };
 
   const cerrarCompra = () => setCompraInsumoId(null);
@@ -82,7 +92,11 @@ export const InsumosList: React.FC<InsumosListProps> = ({
     // Filtro estado (usando estado visual)
     const estadoVisual = getEstadoVisual(i);
     const estadoOk = filtros.estado ? estadoVisual === filtros.estado : true;
-    return nombreOk && estadoOk;
+    // Filtro uso
+    let usoOk = true;
+    if (filtros.uso === "elaborar") usoOk = i.esParaElaborar;
+    if (filtros.uso === "venta") usoOk = !i.esParaElaborar;
+    return nombreOk && estadoOk && usoOk;
   });
 
   // Columnas tabla
@@ -249,17 +263,27 @@ export const InsumosList: React.FC<InsumosListProps> = ({
             ))}
           </select>
         </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Uso
+          </label>
+          <select
+            className="border border-gray-300 rounded-md p-2 text-sm"
+            value={filtroUso}
+            onChange={(e) => setFiltroUso(e.target.value)}
+          >
+            <option value="">Todos</option>
+            <option value="elaborar">Para Elaborar</option>
+            <option value="venta">Venta Directa</option>
+          </select>
+        </div>
         <Button className="h-10 mt-4 md:mt-0" onClick={handleBuscar}>
           Buscar
         </Button>
         <Button
           className="h-10 mt-4 md:mt-0"
           variant="outline"
-          onClick={() => {
-            setBusqueda("");
-            setFiltroEstado("");
-            setFiltros({ nombre: "", estado: "" });
-          }}
+          onClick={handleLimpiar}
         >
           Limpiar
         </Button>

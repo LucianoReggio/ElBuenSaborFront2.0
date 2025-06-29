@@ -64,6 +64,10 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
     if (!formData.idUnidadMedida) newErrors.idUnidadMedida = "Debe seleccionar una unidad de medida";
     if (!formData.idCategoria) newErrors.idCategoria = "Debe seleccionar una categoría";
     if (formData.stockMaximo <= 0) newErrors.stockMaximo = "El stock máximo debe ser mayor a 0";
+    // Validar precioVenta solo si es para venta directa
+    if (!formData.esParaElaborar && (formData.precioVenta <= 0)) {
+      newErrors.precioVenta = "Debe ingresar un precio de venta válido";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -92,12 +96,15 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
     if (esParaElaborar && formData.imagen) {
       updateField("imagen", undefined);
     }
+    // Si pasa a venta directa, podés resetear el precioVenta a 1 si está en 0
+    if (!esParaElaborar && (!formData.precioVenta || formData.precioVenta <= 0)) {
+      updateField("precioVenta", 1);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Estos campos se pueden mostrar como disabled si no querés que se editen */}
         <FormField
           label="Denominación"
           name="denominacion"
@@ -160,9 +167,26 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             </label>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Los ingredientes para venta directa pueden tener imagen
+            Los ingredientes para venta directa pueden tener imagen y precio propio.
           </p>
         </div>
+
+        {/* SOLO mostrar "Precio de Venta" si es para venta directa */}
+        {!formData.esParaElaborar && (
+          <FormField
+            label="Precio de Venta"
+            name="precioVenta"
+            type="number"
+            value={formData.precioVenta}
+            onChange={(value) => updateField("precioVenta", value)}
+            min={0.01}
+            step={0.01}
+            required
+            disabled={loading}
+            placeholder="Ej: 200"
+            error={errors.precioVenta}
+          />
+        )}
       </div>
 
       {/* Imagen solo si es para venta directa */}
@@ -226,3 +250,5 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
     </form>
   );
 };
+
+export default InsumoForm;
