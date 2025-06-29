@@ -26,4 +26,15 @@ export interface PedidoResponseDTO {
   stockSuficiente: boolean;
 
   observaciones?: string; // opcional
+ // ✅ NUEVO: Resumen de promociones del pedido
+  resumenPromociones?: ResumenPromocionesDTO;
+}
+
+export interface ResumenPromocionesDTO {
+  subtotalOriginal: number;      // Total sin promociones
+  totalDescuentos: number;       // Total de descuentos aplicados
+  subtotalConDescuentos: number; // Total después de promociones
+  cantidadPromociones: number;   // Número de promociones aplicadas
+  nombresPromociones: string[];  // Lista de promociones aplicadas
+  resumenTexto: string;          // "3 promociones aplicadas - Ahorro: $450"
 }

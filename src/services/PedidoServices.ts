@@ -1,5 +1,7 @@
 import { apiClienteService } from "./ApiClienteService";
 import type { PedidoRequestDTO, PedidoResponseDTO } from "../types/pedidos";
+import type { CarritoPreviewDTO } from "../types/promociones";
+import type { ResumenPromocionesDTO } from "../types/pedidos/PedidoResponseDTO";
 
 /**
  * Servicio para operaciones de pedidos
@@ -305,4 +307,79 @@ export class PedidoService {
       horaEstimada: horaEstimada.slice(0, 5), // "HH:mm:ss" -> "HH:mm"
     };
   }
+  /**
+ * Preview del carrito con promociones aplicadas
+ */
+async previewCarrito(pedidoRequest: PedidoRequestDTO): Promise<CarritoPreviewDTO> {
+  try {
+    console.log("🛒 Calculando preview del carrito con promociones...");
+    const response = await apiClienteService.post<CarritoPreviewDTO>(
+      "/pedidos/preview-carrito",
+      pedidoRequest
+    );
+    console.log("✅ Preview del carrito calculado:", response);
+    return response;
+  } catch (error: any) {
+    console.error("❌ Error al calcular preview del carrito:", error);
+    throw this.handleError(error);
+  }
+}
+
+/**
+ * Crear request de pedido con promociones desde items del carrito
+ */
+static crearRequestConPromociones(
+  items: Array<{ 
+    id: number; 
+    cantidad: number; 
+    observaciones?: string;
+    promocionSeleccionada?: number;
+  }>,
+  idCliente: number,
+  tipoEnvio: 'DELIVERY' | 'TAKE_AWAY',
+  idSucursal: number = 1,
+  idDomicilio?: number,
+  observacionesGenerales?: string
+): PedidoRequestDTO {
+  return {
+    idCliente,
+    idSucursal,
+    tipoEnvio,
+    ...(idDomicilio ? { idDomicilio } : {}),
+    detalles: items.map(item => ({
+      idArticulo: item.id,
+      cantidad: item.cantidad,
+      ...(item.observaciones ? { observaciones: item.observaciones } : {}),
+      ...(item.promocionSeleccionada ? { idPromocionSeleccionada: item.promocionSeleccionada } : {})
+    })),
+    ...(observacionesGenerales ? { observaciones: observacionesGenerales } : {})
+  };
+}
+
+/**
+ * Formatear resumen de promociones para mostrar
+ */
+static formatearResumenPromociones(resumen?: ResumenPromocionesDTO): {
+  tienePromociones: boolean;
+  textoResumen: string;
+  ahorroTotal: string;
+  promocionesAplicadas: string[];
+} {
+  if (!resumen || resumen.cantidadPromociones === 0) {
+    return {
+      tienePromociones: false,
+      textoResumen: "Sin promociones aplicadas",
+      ahorroTotal: "$0",
+      promocionesAplicadas: []
+    };
+  }
+
+  return {
+    tienePromociones: true,
+    textoResumen: resumen.resumenTexto,
+    ahorroTotal: `$${resumen.totalDescuentos.toFixed(0)}`,
+    promocionesAplicadas: resumen.nombresPromociones
+  };
+}
+
 }

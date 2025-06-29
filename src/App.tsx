@@ -14,6 +14,7 @@ import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
 import Productos from "./pages/Productos";
 import StockControl from "./pages/StockControl";
+import Promociones from "./pages/Promociones"; // ← Nueva importación
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import RegistroPage from "./pages/Registro";
@@ -26,8 +27,9 @@ import { CarritoProvider } from "./context/CarritoContext";
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import { MiPerfil } from "./pages/MiPerfil";
-import { GestionPedidos } from "./pages/GestionPedidos"; // ← Nueva importación
+import { GestionPedidos } from "./pages/GestionPedidos";
 import Cocina from "./pages/Cocina";
+
 // Componente para manejar el callback de Auth0
 const CallbackPage: React.FC = () => {
   const { isLoading, error } = useAuth0();
@@ -64,14 +66,13 @@ const CallbackPage: React.FC = () => {
     );
   }
 
-  // Si no hay loading ni error, redirigir al home
   return <Navigate to="/" replace />;
 };
 
-// ← COMPONENTE PROTECTEDROUTE MEJORADO PARA MÚLTIPLES ROLES
+// Componente protegido para múltiples roles
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
-  allowedRoles?: string[]; // ← Cambiar a array de roles
+  allowedRoles?: string[];
   fallbackTo?: string;
 }> = ({ children, allowedRoles = ["ADMIN"], fallbackTo = "/" }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -91,15 +92,9 @@ const ProtectedRoute: React.FC<{
     return <Navigate to="/login" replace />;
   }
 
-  // Obtener rol del usuario (compatibilidad con diferentes estructuras)
   const userRole = (user as any)?.usuario?.rol || (user as any)?.rol;
 
-  console.log('🔐 ProtectedRoute - Rol del usuario:', userRole);
-  console.log('🔐 ProtectedRoute - Roles permitidos:', allowedRoles);
-
-  // ← VERIFICAR SI EL ROL ESTÁ EN LA LISTA DE ROLES PERMITIDOS
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    console.log('❌ Acceso denegado - Rol no permitido');
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center p-8">
@@ -128,7 +123,6 @@ const ProtectedRoute: React.FC<{
     );
   }
 
-  console.log('✅ Acceso permitido - Renderizando componente');
   return <>{children}</>;
 };
 
@@ -273,7 +267,25 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             </svg>
             Control Stock
           </NavLink>
-          {/* ← AGREGAR ENLACE A GESTIÓN DE PEDIDOS EN EL SIDEBAR */}
+          
+          {/* ← AGREGAR ENLACE A PROMOCIONES EN EL SIDEBAR */}
+          <NavLink to="/promociones">
+            <svg
+              className="w-5 h-5 mr-3 transition-colors duration-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+              />
+            </svg>
+            Promociones
+          </NavLink>
+          
           <NavLink to="/gestion-pedidos">
             <svg
               className="w-5 h-5 mr-3 transition-colors duration-200"
@@ -291,7 +303,6 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             Gestión Pedidos
           </NavLink>
           
-          {/* ← AGREGAR ENLACE A COCINA EN EL SIDEBAR PARA ADMINS */}
           <NavLink to="/cocina">
             <svg
               className="w-5 h-5 mr-3 transition-colors duration-200"
@@ -337,15 +348,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-// ← LAYOUT ESPECÍFICO PARA COCINA (sin sidebar, fullscreen)
+// Layout específico para cocina (sin sidebar, fullscreen)
 const CocinaLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="min-h-screen bg-gray-50">
-    {/* El navbar se maneja dentro del componente CocinaDashboard */}
     {children}
   </div>
 );
 
-// Componente de Layout para páginas públicas (sin sidebar, pero con Header y Footer)
+// Layout para páginas públicas (sin sidebar, pero con Header y Footer)
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -362,7 +372,6 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
 function App() {
   const { isLoading } = useAuth0();
 
-  // Mostrar loading mientras Auth0 se inicializa
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -452,7 +461,20 @@ function App() {
               </AuthRoute>
             }
           />
-          {/* ← NUEVA RUTA PARA GESTIÓN DE PEDIDOS (ADMIN Y CAJERO) */}
+
+          {/* ← NUEVA RUTA PARA PROMOCIONES (SOLO ADMIN) */}
+          <Route
+            path="/promociones"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminLayout>
+                  <Promociones />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Gestión de pedidos (ADMIN Y CAJERO) */}
           <Route
             path="/gestion-pedidos"
             element={
@@ -464,7 +486,7 @@ function App() {
             }
           />
 
-          {/* ← RUTA PARA COCINA CORREGIDA (COCINERO Y ADMIN) */}
+          {/* Cocina (COCINERO Y ADMIN) */}
           <Route
             path="/cocina"
             element={
@@ -538,7 +560,6 @@ function App() {
             }
           />
           
-         
           <Route
             path="/usuarios"
             element={
@@ -549,7 +570,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-        
 
           {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route
