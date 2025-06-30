@@ -9,6 +9,7 @@ import { RecetaModal } from '../cocina/RecetaModal';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuth } from '../../hooks/useAuth';
 import NavbarCocinero from '../layout/navbar/NavbarCocinero';
+import Header from '../layout/Header';
 
 // Tipo para el usuario transformado
 interface TransformedUser {
@@ -395,17 +396,7 @@ export const CocinaDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar específico de cocina */}
-      <NavbarCocinero
-        user={transformarUsuario(user)}
-        onLogout={handleLogout}
-        totalPedidos={totalPedidos}
-        pedidosPendientes={pedidosPendientes.length}
-        pedidosEnPreparacion={pedidosEnPreparacion.length}
-        onRefresh={handleRefresh}
-        isRefreshing={refreshing || loading}
-        lastUpdate={lastUpdate}
-      />
-
+      <Header></Header>
       {/* Contenido principal */}
       <div className="p-4">
         {/* Header */}

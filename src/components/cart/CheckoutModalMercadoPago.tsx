@@ -12,6 +12,8 @@ import { ClienteService } from '../../services/ClienteService';
 import type { ClienteResponseDTO } from '../../types/clientes/ClienteResponseDTO';
 import type { MetodoPago } from '../../types/mercadopago/MercadoPagoTypes';
 
+import { Gift } from 'lucide-react';
+
 const pedidoService = new PedidoService();
 const mercadoPagoService = new MercadoPagoService();
 
@@ -35,7 +37,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
         console.log('🔍 user (principal):', user);
         console.log('🔍 backendUser:', backendUser);
         console.log('🔍 isAuthenticated:', isAuthenticated);
-        
+
         if (user) {
             console.log('🔍 user.userId:', user.userId);
             console.log('🔍 user.idCliente:', user.idCliente);
@@ -46,7 +48,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             console.log('🔍 user.usuario:', user.usuario);
             console.log('🔍 Todas las propiedades de user:', Object.keys(user));
         }
-        
+
         if (backendUser) {
             console.log('🔍 backendUser.userId:', backendUser.userId);
             console.log('🔍 backendUser.idCliente:', backendUser.idCliente);
@@ -78,13 +80,13 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             console.log('🔍 DEBUG USER OBJECT en cargarDomicilios:', user);
             console.log('🔍 user.userId:', user?.userId);
             console.log('🔍 user.idCliente:', user?.idCliente);
-            
+
             let clienteId = user?.idCliente;
-            
+
             // 🆘 FALLBACK: Si no hay idCliente, obtenerlo del backend
             if (!clienteId) {
                 console.log('⚠️ No hay idCliente en user, obteniendo del backend...');
-                
+
                 try {
                     // Opción 1: Intentar con /clientes/me usando el servicio (que ya tiene Auth0 configurado)
                     console.log('📡 Intentando ClienteService.getMyProfile()...');
@@ -93,7 +95,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                     console.log('✅ idCliente obtenido de /clientes/me:', clienteId);
                 } catch (error1) {
                     console.log('❌ Error con ClienteService.getMyProfile():', error1);
-                    
+
                     // Opción 2: Usar userId si existe (como fallback)
                     if (user?.userId) {
                         console.log('🔄 Intentando con userId como fallback...');
@@ -103,30 +105,30 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                     }
                 }
             }
-            
+
             console.log('🏠 Cargando domicilios para cliente:', clienteId);
-            
+
             if (!clienteId) {
                 console.error('❌ No se pudo obtener ID del cliente de ninguna forma');
                 setError('No se pudo cargar la información del cliente');
                 return;
             }
-            
+
             setLoadingDomicilios(true);
-            
+
             // 🔍 DEBUG: Verificar la llamada al servicio
             console.log('📡 Llamando ClienteService.getById con ID:', clienteId);
             const clienteData = await ClienteService.getById(clienteId);
             console.log('📡 Respuesta del servicio:', clienteData);
-            
+
             setDomicilios(clienteData.domicilios || []);
             console.log('✅ Domicilios cargados:', clienteData.domicilios?.length || 0);
             console.log('✅ Domicilios array:', clienteData.domicilios);
-            
+
         } catch (error: any) {
             console.error('❌ Error al cargar domicilios:', error);
             console.error('❌ Error details:', error.response?.data);
-            
+
             // Fallback: usar domicilios que ya tienes en user si están disponibles
             if (user?.domicilios) {
                 setDomicilios(user.domicilios);
@@ -145,7 +147,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
         console.log('🎯 abierto:', abierto);
         console.log('🎯 user?.idCliente:', user?.idCliente);
         console.log('🎯 isAuthenticated:', isAuthenticated);
-        
+
         // ✅ CAMBIAR: No esperar user?.idCliente, solo que esté autenticado
         if (abierto && isAuthenticated) {
             cargarDomicilios();
@@ -153,7 +155,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     }, [abierto, isAuthenticated]); // ✅ CAMBIAR: solo depender de isAuthenticated
 
     // ==================== RESTO DEL CÓDIGO IGUAL ====================
-    
+
     useEffect(() => {
         if (!abierto) {
             setError(null);
@@ -195,6 +197,15 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                 }
             }
 
+            console.log('🔍 Estado de promociones antes de crear pedido:', {
+                tienePromocionAgrupada: carrito.tienePromocionAgrupada,
+                promocionAgrupada: carrito.promocionAgrupada,
+                descuentoCalculado: carrito.getDescuentoPromocionAgrupada(),
+                items: carrito.items.length,
+                subtotal: carrito.subtotal,
+                total: carrito.total
+            });
+
             // Decidir qué servicio usar según el método de pago
             if (metodoPago === 'EFECTIVO') {
                 await crearPedidoEfectivo();
@@ -204,17 +215,17 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
 
         } catch (err: any) {
             console.error('❌ Error al crear pedido:', err);
-            
+
             // 🔍 DEBUG: Mostrar más detalles del error
             if (err.response) {
                 console.error('❌ Error response:', err.response);
                 console.error('❌ Error response data:', err.response.data);
                 console.error('❌ Error response status:', err.response.status);
             }
-            
+
             // Intentar extraer más información del error
             let errorMessage = err.message || 'Error al procesar el pedido. Intenta de nuevo.';
-            
+
             if (err.response?.data) {
                 if (typeof err.response.data === 'string') {
                     errorMessage = err.response.data;
@@ -224,7 +235,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                     errorMessage = err.response.data.error;
                 }
             }
-            
+
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -234,7 +245,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
     const crearPedidoEfectivo = async () => {
         // ✅ OBTENER idCliente correcto del backend
         let clienteId = user?.idCliente;
-        
+
         if (!clienteId) {
             console.log('⚠️ Obteniendo idCliente del backend para pedido efectivo...');
             try {
@@ -247,7 +258,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                 console.log('⚠️ Usando userId como fallback:', clienteId);
             }
         }
-        
+
         const pedidoRequest = {
             idCliente: clienteId,
             idSucursal: idSucursal,
@@ -261,8 +272,30 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             })),
             ...(carrito.datosEntrega.observaciones?.trim() ? {
                 observaciones: carrito.datosEntrega.observaciones.trim()
+            } : {}),
+
+            // ✅ NUEVO: Incluir promoción agrupada si existe
+            ...(carrito.tienePromocionAgrupada && carrito.promocionAgrupada ? {
+                promocionAgrupada: {
+                    idPromocion: carrito.promocionAgrupada.idPromocion,
+                    denominacion: carrito.promocionAgrupada.denominacion,
+                    tipoDescuento: carrito.promocionAgrupada.tipoDescuento,
+                    valorDescuento: carrito.promocionAgrupada.valorDescuento,
+                    descripcion: carrito.promocionAgrupada.descripcion || '',
+                    descuentoAplicado: carrito.getDescuentoPromocionAgrupada()
+                }
             } : {})
         };
+
+        console.log('💵 Creando pedido con pago en efectivo (CON PROMOCIONES):', pedidoRequest);
+
+        if (carrito.tienePromocionAgrupada) {
+            console.log('🎁 Promoción agrupada incluida:', {
+                nombre: carrito.promocionAgrupada?.denominacion,
+                descuento: carrito.getDescuentoPromocionAgrupada(),
+                tienePromocion: carrito.tienePromocionAgrupada
+            });
+        }
 
         console.log('💵 Creando pedido con pago en efectivo:', pedidoRequest);
         const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
@@ -279,16 +312,16 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
 
     const crearPedidoMercadoPago = async () => {
         console.log('💳 Creando pedido con MercadoPago...');
-        
+
         // ✅ VALIDACIONES PREVIAS
         if (!user?.email || !user?.nombre || !user?.apellido) {
             setError('Datos de usuario incompletos. Actualiza tu perfil.');
             return;
         }
-        
+
         // ✅ OBTENER idCliente correcto ANTES de crear el request
         let clienteId = user?.idCliente;
-        
+
         if (!clienteId) {
             console.log('⚠️ Obteniendo idCliente del backend para MercadoPago...');
             try {
@@ -300,12 +333,12 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                 clienteId = user.userId;
             }
         }
-        
+
         if (!clienteId) {
             setError('No se pudo obtener la información del cliente');
             return;
         }
-        
+
         // 🔍 DEBUG: Verificar datos antes de enviar
         console.log('🔍 Datos del carrito:', {
             items: carrito.items,
@@ -313,7 +346,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             observaciones: carrito.datosEntrega.observaciones,
             domicilioSeleccionado
         });
-        
+
         console.log('🔍 Datos del usuario:', {
             email: user.email,
             nombre: user.nombre,
@@ -321,39 +354,59 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             userId: user.userId,
             clienteId: clienteId
         });
-        
+
         // ✅ CREAR request con todos los campos validados
         const pedidoRequest: any = {
-            idCliente: Number(clienteId), // ✅ Asegurar que sea número
-            idSucursal: Number(idSucursal), // ✅ Asegurar que sea número
+            idCliente: Number(clienteId),
+            idSucursal: Number(idSucursal),
             tipoEnvio: carrito.datosEntrega.tipoEnvio,
             detalles: carrito.items.map(item => ({
                 idArticulo: Number(item.id),
                 cantidad: Number(item.cantidad)
             })),
-            // ✅ Datos del comprador - asegurar que no sean undefined
-            emailComprador: user.email, // ✅ Ya validado arriba
-            nombreComprador: user.nombre, // ✅ Ya validado arriba  
-            apellidoComprador: user.apellido, // ✅ Ya validado arriba
-            // Configuración
+            emailComprador: user.email,
+            nombreComprador: user.nombre,
+            apellidoComprador: user.apellido,
             porcentajeDescuentoTakeAway: 10.0,
             gastosEnvioDelivery: 200.0,
             aplicarDescuentoTakeAway: carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY',
             crearPreferenciaMercadoPago: true,
-            externalReference: `PEDIDO_${Date.now()}_${clienteId}`
+            externalReference: `PEDIDO_${Date.now()}_${clienteId}`,
+
+            ...(carrito.tienePromocionAgrupada && carrito.promocionAgrupada ? {
+                promocionAgrupada: {
+                    idPromocion: carrito.promocionAgrupada.idPromocion,
+                    denominacion: carrito.promocionAgrupada.denominacion,
+                    tipoDescuento: carrito.promocionAgrupada.tipoDescuento,
+                    valorDescuento: carrito.promocionAgrupada.valorDescuento,
+                    descripcion: carrito.promocionAgrupada.descripcion || '',
+                    descuentoAplicado: carrito.getDescuentoPromocionAgrupada(),
+                    subtotalOriginal: carrito.subtotal + carrito.getDescuentoPromocionAgrupada(),
+                    subtotalConDescuento: carrito.subtotal
+                }
+            } : {})
         };
-        
-        // ✅ Agregar campos opcionales solo si tienen valor
+
         if (domicilioSeleccionado) {
             pedidoRequest.idDomicilio = Number(domicilioSeleccionado);
         }
-        
         if (carrito.datosEntrega.observaciones?.trim()) {
             pedidoRequest.observaciones = carrito.datosEntrega.observaciones.trim();
         }
 
-        console.log('💳 Request completo enviado a MercadoPago:', JSON.stringify(pedidoRequest, null, 2));
-        
+        console.log('💳 Request completo enviado a MercadoPago (CON PROMOCIONES):', JSON.stringify(pedidoRequest, null, 2));
+
+        if (carrito.tienePromocionAgrupada) {
+            console.log('🎁 Promoción agrupada incluida en MercadoPago:', {
+                nombre: carrito.promocionAgrupada?.denominacion,
+                descuento: carrito.getDescuentoPromocionAgrupada(),
+                tienePromocion: carrito.tienePromocionAgrupada,
+                promocionCompleta: carrito.promocionAgrupada
+            });
+        } else {
+            console.log('ℹ️ No hay promoción agrupada activa');
+        }
+
         // 🔍 DEBUG: Verificar que todos los campos requeridos estén presentes
         console.log('🔍 Validación de campos:');
         console.log('  - idCliente:', pedidoRequest.idCliente, typeof pedidoRequest.idCliente);
@@ -364,7 +417,7 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
         console.log('  - apellidoComprador:', pedidoRequest.apellidoComprador, typeof pedidoRequest.apellidoComprador);
         console.log('  - detalles length:', pedidoRequest.detalles.length);
         console.log('  - detalles:', pedidoRequest.detalles);
-        
+
         const response = await mercadoPagoService.crearPedidoConMercadoPago(pedidoRequest);
 
         if (!response.exito) {
@@ -380,6 +433,14 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
         } else {
             setError(response.mercadoPago?.errorMercadoPago || 'No se pudo generar el link de pago');
         }
+
+// ✅ AGREGAR esto en crearPedidoEfectivo() ANTES de carrito.limpiarCarrito()
+console.log('🔍 VERIFICACIÓN ANTES DE LIMPIAR CARRITO:', {
+    tienePromocionAgrupada: carrito.tienePromocionAgrupada,
+    promocionAgrupada: carrito.promocionAgrupada,
+    descuentoCalculado: carrito.getDescuentoPromocionAgrupada(),
+    estabaIncluidoEnRequest: !!pedidoRequest.promocionAgrupada
+});
 
         carrito.limpiarCarrito();
     };
@@ -578,6 +639,21 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
                                     <span>${(item.precio * item.cantidad).toFixed(0)}</span>
                                 </div>
                             ))}
+
+{carrito.tienePromocionAgrupada && carrito.promocionAgrupada && (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+        <div className="flex items-center space-x-2 mb-2">
+            <Gift className="w-4 h-4 text-red-600" />
+            <span className="font-medium text-red-800">Promoción Especial Activa</span>
+        </div>
+        <div className="text-sm text-red-700">
+            🎁 {carrito.promocionAgrupada.denominacion}
+        </div>
+        <div className="text-sm text-red-600 mt-1">
+            Descuento aplicado: ${carrito.getDescuentoPromocionAgrupada().toFixed(0)}
+        </div>
+    </div>
+)}
 
                             <div className="border-t pt-2 mt-2 space-y-1">
                                 {/* Subtotal */}
