@@ -1,22 +1,135 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { PedidoResponseDTO } from '../../types/pedidos';
 import { PedidoService } from '../../services/PedidoServices';
+import { PagoService } from '../../services/PagoService'; // ✅ NUEVO
+import { apiClienteService } from '../../services/ApiClienteService'; // ✅ NUEVO
 import { PedidoDetalleModal } from './PedidoDetalleModal';
 
 interface PedidosGestionTableProps {
   pedidos: PedidoResponseDTO[];
   loading: boolean;
   onCambiarEstado: (id: number, nuevoEstado: string) => Promise<void>;
+  onPagoConfirmado?: () => void; // ✅ NUEVO: Callback para refrescar datos
 }
 
 export const PedidosGestionTable: React.FC<PedidosGestionTableProps> = ({
   pedidos,
   loading,
-  onCambiarEstado
+  onCambiarEstado,
+  onPagoConfirmado
 }) => {
   const [selectedPedido, setSelectedPedido] = useState<PedidoResponseDTO | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  
+  // ✅ NUEVO: Estados para manejo de pagos
+  const [pagosPendientes, setPagosPendientes] = useState<{[pedidoId: number]: boolean}>({});
+  const [confirmandoPago, setConfirmandoPago] = useState<number | null>(null);
+  const pagoService = new PagoService();
+
+  // ✅ NUEVO: Verificar pagos pendientes cuando cambian los pedidos
+  useEffect(() => {
+    verificarPagosPendientes();
+  }, [pedidos]);
+
+  // ✅ NUEVO: Función para verificar pagos pendientes en efectivo
+  const verificarPagosPendientes = async () => {
+    console.log('🔍 === INICIANDO VERIFICACIÓN DE PAGOS PENDIENTES ===');
+    console.log('📋 Total de pedidos a verificar:', pedidos.length);
+    console.log('📋 IDs de pedidos:', pedidos.map(p => p.idPedido));
+    
+    const pendientes: {[pedidoId: number]: boolean} = {};
+    
+    for (const pedido of pedidos) {
+      console.log(`\n🎯 === VERIFICANDO PEDIDO #${pedido.idPedido} ===`);
+      
+      try {
+        // Obtener factura del pedido
+        console.log(`📄 Paso 1: Obteniendo factura para pedido ${pedido.idPedido}...`);
+        const factura = await pagoService.getFacturaPedido(pedido.idPedido);
+        console.log(`✅ Paso 1 completado. Factura obtenida:`, factura);
+        
+        // Verificar pagos pendientes
+        console.log(`💳 Paso 2: Verificando pagos pendientes para factura ${factura.idFactura}...`);
+        const tienePendientes = await pagoService.tienePagosPendientesEfectivo(factura.idFactura);
+        console.log(`✅ Paso 2 completado. ¿Tiene pagos pendientes?: ${tienePendientes}`);
+        
+        if (tienePendientes) {
+          pendientes[pedido.idPedido] = true;
+          console.log(`🟡 MARCADO COMO PENDIENTE: Pedido #${pedido.idPedido}`);
+        } else {
+          console.log(`🟢 SIN PAGOS PENDIENTES: Pedido #${pedido.idPedido}`);
+        }
+        
+      } catch (error: any) {
+        console.error(`❌ ERROR en pedido #${pedido.idPedido}:`, error);
+        
+        if (error?.response) {
+          console.error(`📡 Status: ${error.response.status}`);
+          console.error(`📡 Data:`, error.response.data);
+          
+          if (error.response.status === 404) {
+            console.error(`🚨 ENDPOINT NO ENCONTRADO para pedido ${pedido.idPedido}`);
+          }
+        }
+      }
+    }
+    
+    console.log('\n📊 === RESUMEN FINAL ===');
+    console.log('🟡 Pedidos con pagos pendientes:', Object.keys(pendientes).length);
+    console.log('📋 Lista detallada:', pendientes);
+    console.log('🔍 Si no ves pagos pendientes, revisa:');
+    console.log('   1. ¿Se crearon pagos en efectivo en la BD?');
+    console.log('   2. ¿Los pagos tienen el ID de factura correcto?');
+    console.log('   3. ¿Los pagos están en estado PENDIENTE?');
+    console.log('   4. ¿El endpoint /pagos/factura/{id} funciona?');
+    
+    setPagosPendientes(pendientes);
+  };
+
+  // ✅ NUEVO: Función para confirmar pago en efectivo
+  const confirmarPagoEfectivo = async (pedido: PedidoResponseDTO) => {
+    try {
+      setConfirmandoPago(pedido.idPedido);
+      
+      // Obtener factura del pedido
+      const factura = await pagoService.getFacturaPedido(pedido.idPedido);
+      
+      // Obtener pagos pendientes en efectivo
+      const pagosPendientesEfectivo = await pagoService.getPagosPendientesEfectivo(factura.idFactura);
+      
+      if (pagosPendientesEfectivo.length === 0) {
+        alert('No hay pagos en efectivo pendientes para este pedido');
+        return;
+      }
+
+      // Confirmar cada pago pendiente en efectivo
+      for (const pago of pagosPendientesEfectivo) {
+        await pagoService.confirmarPagoEfectivo(pago.idPago);
+        console.log(`✅ Pago ${pago.idPago} confirmado`);
+      }
+
+      // Actualizar estado local
+      setPagosPendientes(prev => {
+        const updated = { ...prev };
+        delete updated[pedido.idPedido];
+        return updated;
+      });
+
+      // Notificar al componente padre para refrescar datos
+      if (onPagoConfirmado) {
+        onPagoConfirmado();
+      }
+
+      alert(`¡Pago en efectivo confirmado! Total: ${pagosPendientesEfectivo.reduce((total, p) => total + p.monto, 0)}`);
+      
+    } catch (error: any) {
+      console.error('❌ Error al confirmar pago:', error);
+      alert('Error al confirmar el pago. Intenta de nuevo.');
+    } finally {
+      setConfirmandoPago(null);
+    }
+  };
 
   const formatearPrecio = (precio: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -37,7 +150,7 @@ export const PedidosGestionTable: React.FC<PedidosGestionTableProps> = ({
     try {
       setProcessingId(pedido.idPedido);
       await onCambiarEstado(pedido.idPedido, nuevoEstado);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al cambiar estado:', error);
       alert('Error al cambiar el estado del pedido');
     } finally {
@@ -118,6 +231,44 @@ export const PedidosGestionTable: React.FC<PedidosGestionTableProps> = ({
     setModalOpen(true);
   };
 
+  // ✅ NUEVO: Función de debug manual
+  const debugPedidoEspecifico = async (pedidoId: number) => {
+    console.log(`\n🔧 === DEBUG MANUAL PEDIDO #${pedidoId} ===`);
+    
+    try {
+      // 1. Verificar factura
+      console.log('1️⃣ Obteniendo factura...');
+      const factura = await pagoService.getFacturaPedido(pedidoId);
+      console.log('✅ Factura obtenida:', factura);
+      
+      // 2. Verificar pagos de la factura
+      console.log('2️⃣ Obteniendo pagos de la factura...');
+      const pagos = await pagoService.getPagosByFactura(factura.idFactura);
+      console.log('✅ Pagos obtenidos:', pagos);
+      
+      // 3. Verificar si alguno es efectivo y pendiente
+      console.log('3️⃣ Analizando pagos...');
+      const efectivoPendientes = pagos.filter(p => p.formaPago === 'EFECTIVO' && p.estado === 'PENDIENTE');
+      console.log('💵 Pagos en efectivo pendientes:', efectivoPendientes);
+      
+      // 4. Verificar todos los pagos del sistema
+      console.log('4️⃣ Verificando todos los pagos del sistema...');
+      const todosPagos = await apiClienteService.get('/pagos/debug/todos-los-pagos');
+      console.log('📊 Todos los pagos del sistema:', todosPagos);
+      
+      alert(`Debug completado para pedido #${pedidoId}. Revisa la consola para detalles.`);
+      
+    } catch (error: any) {
+      console.error('❌ Error en debug:', error);
+      alert(`Error en debug del pedido #${pedidoId}. Revisa la consola.`);
+    }
+  };
+
+  // ✅ NUEVO: Función para verificar si debe mostrar botón de pago
+  const debeMostrarBotonPago = (pedido: PedidoResponseDTO): boolean => {
+    return pagosPendientes[pedido.idPedido] === true;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -167,12 +318,22 @@ export const PedidosGestionTable: React.FC<PedidosGestionTableProps> = ({
                 const fechaHora = formatearFechaHora(pedido.fecha);
                 const acciones = getAccionesDisponibles(pedido);
                 const isProcessing = processingId === pedido.idPedido;
+                const isConfirmandoPago = confirmandoPago === pedido.idPedido;
+                const tienePagoPendiente = debeMostrarBotonPago(pedido);
 
                 return (
                   <tr key={pedido.idPedido} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        #{pedido.idPedido}
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          #{pedido.idPedido}
+                        </div>
+                        {/* ✅ NUEVO: Indicador de pago pendiente */}
+                        {tienePagoPendiente && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            💵 Pago pendiente
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -218,6 +379,30 @@ export const PedidosGestionTable: React.FC<PedidosGestionTableProps> = ({
                       >
                         Ver detalle
                       </button>
+
+                      {/* ✅ NUEVO: Botón de debug temporal */}
+                      <button
+                        onClick={() => debugPedidoEspecifico(pedido.idPedido)}
+                        className="text-purple-600 hover:text-purple-900 px-3 py-1 border border-purple-600 rounded-md hover:bg-purple-50 transition-colors"
+                        title="Debug: Ver información detallada de pagos"
+                      >
+                        🔧 Debug
+                      </button>
+
+                      {/* ✅ NUEVO: Botón para confirmar pago en efectivo */}
+                      {tienePagoPendiente && (
+                        <button
+                          onClick={() => confirmarPagoEfectivo(pedido)}
+                          disabled={isConfirmandoPago}
+                          className="text-white px-3 py-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-600"
+                        >
+                          {isConfirmandoPago ? (
+                            <span className="animate-spin">⏳</span>
+                          ) : (
+                            <>💵 Confirmar Pago</>
+                          )}
+                        </button>
+                      )}
 
                       {acciones.map((accion, index) => (
                         <button

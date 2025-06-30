@@ -12,7 +12,7 @@ import type { ArticuloInsumoRequestDTO } from "../types/insumos/ArticuloInsumoRe
 import type { UnidadMedidaDTO } from "../services";
 
 export const Insumos: React.FC = () => {
-  const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo } =
+  const { insumos, loading, error, createInsumo, updateInsumo, deleteInsumo, refresh } =
     useInsumos();
 
   const { categorias } = useCategorias();
@@ -132,6 +132,7 @@ export const Insumos: React.FC = () => {
       (i) => i.estadoStock === "BAJO" || i.estadoStock === "CRITICO"
     ).length,
     stockCritico: insumos.filter((i) => i.estadoStock === "CRITICO").length,
+    ventaDirecta: insumos.filter((i) => !i.esParaElaborar).length,
   };
 
   if (loading || loadingUnidades) {
@@ -171,7 +172,7 @@ export const Insumos: React.FC = () => {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
           <div className="text-sm text-gray-600">Total Ingredientes</div>
@@ -194,7 +195,14 @@ export const Insumos: React.FC = () => {
           </div>
           <div className="text-sm text-gray-600">Stock Crítico</div>
         </div>
+         <div className="bg-white p-4 rounded-lg shadow">
+          <div className="text-2xl font-bold text-pink-600">
+            {stats.ventaDirecta}
+          </div>
+          <div className="text-sm text-gray-600">Venta Directa</div>
+        </div>
       </div>
+
 
       {/* Alertas de Stock */}
       {stats.stockCritico > 0 && (
@@ -219,6 +227,7 @@ export const Insumos: React.FC = () => {
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onRefresh={refresh}
       />
 
       {/* Modal de Insumo */}

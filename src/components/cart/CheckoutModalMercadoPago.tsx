@@ -14,8 +14,12 @@ import type { MetodoPago } from '../../types/mercadopago/MercadoPagoTypes';
 
 import { Gift } from 'lucide-react';
 
+import { PagoService } from '../../services/PagoService';
+import { apiClienteService } from '../../services/ApiClienteService';
+
 const pedidoService = new PedidoService();
 const mercadoPagoService = new MercadoPagoService();
+const pagoService = new PagoService();
 
 interface CheckoutModalMercadoPagoProps {
     abierto: boolean;
@@ -297,18 +301,46 @@ const CheckoutModalMercadoPago: React.FC<CheckoutModalMercadoPagoProps> = ({
             });
         }
 
-        console.log('💵 Creando pedido con pago en efectivo:', pedidoRequest);
-        const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
+    console.log('💵 Creando pedido con pago en efectivo:', pedidoRequest);
+    const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
 
-        setPedidoCreado(pedidoCreado);
-        setExito('¡Pedido creado exitosamente! Puedes pagar en efectivo al momento de la entrega.');
+    // ✅ NUEVO: Crear pago en efectivo automáticamente
+    try {
+        console.log('💳 Creando pago en efectivo para pedido:', pedidoCreado.idPedido);
+        
+        // Obtener la factura del pedido recién creado
+        const factura = await pagoService.getFacturaPedido(pedidoCreado.idPedido);
+        console.log('📄 Factura obtenida:', factura);
 
-        carrito.limpiarCarrito();
-        setTimeout(() => {
-            onExito({ pedido: pedidoCreado, metodoPago: 'EFECTIVO' });
-            onCerrar();
-        }, 2000);
-    };
+        // Crear el pago en efectivo
+        const pagoRequest = {
+            facturaId: factura.idFactura,
+            formaPago: 'EFECTIVO',
+            monto: factura.totalVenta,
+            moneda: 'ARS',
+            descripcion: `Pago en efectivo - Pedido #${pedidoCreado.idPedido} - ${carrito.datosEntrega.tipoEnvio}`
+        };
+
+        console.log('💰 Creando pago con datos:', pagoRequest);
+        
+        const pagoCreado = await apiClienteService.post('/pagos', pagoRequest);
+        console.log('✅ Pago en efectivo creado exitosamente:', pagoCreado);
+
+    } catch (pagoError: any) {
+        console.error('❌ Error al crear pago en efectivo:', pagoError);
+        console.log('⚠️ El pedido se creó correctamente. El pago se puede crear manualmente.');
+        // No fallar el proceso completo
+    }
+
+    setPedidoCreado(pedidoCreado);
+    setExito('¡Pedido creado exitosamente! Puedes pagar en efectivo al momento de la entrega.');
+
+    carrito.limpiarCarrito();
+    setTimeout(() => {
+        onExito({ pedido: pedidoCreado, metodoPago: 'EFECTIVO' });
+        onCerrar();
+    }, 2000);
+};
 
     const crearPedidoMercadoPago = async () => {
         console.log('💳 Creando pedido con MercadoPago...');

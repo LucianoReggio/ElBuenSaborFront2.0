@@ -1,7 +1,8 @@
-// src/components/delivery/PedidoDetalleModal.tsx
-import React from 'react';
+// src/components/delivery/PedidoDetalleModal.tsx (Actualizado)
+import React, { useState, useEffect } from 'react';
 import { X, MapPin, Phone, Clock, DollarSign, Package, Truck } from 'lucide-react';
 import type { PedidoResponseDTO } from '../../types/pedidos';
+import { PagoService, type PagoResponseDTO } from '../../services/PagoService'; // ✅ NUEVO
 
 interface PedidoDetalleModalProps {
   pedido: PedidoResponseDTO;
@@ -18,6 +19,119 @@ export default function PedidoDetalleModal({
   onEntregar,
   isEntregando = false
 }: PedidoDetalleModalProps) {
+  // ✅ NUEVO: Estados para manejo de pagos
+  const [pagosFactura, setPagosFactura] = useState<PagoResponseDTO[]>([]);
+  const [loadingPagos, setLoadingPagos] = useState(false);
+  const [confirmandoPago, setConfirmandoPago] = useState<number | null>(null);
+  const [facturaInfo, setFacturaInfo] = useState<{ idFactura: number; totalVenta: number } | null>(null);
+  const pagoService = new PagoService();
+
+  // ✅ NUEVO: Cargar pagos cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && pedido?.idPedido) {
+      cargarFacturaYPagos();
+    }
+  }, [isOpen, pedido?.idPedido]);
+
+  // ✅ NUEVO: Función para cargar factura y pagos
+  const cargarFacturaYPagos = async () => {
+    if (!pedido?.idPedido) return;
+
+    try {
+      setLoadingPagos(true);
+      
+      // Primero obtener la factura
+      const factura = await pagoService.getFacturaPedido(pedido.idPedido);
+      setFacturaInfo(factura);
+      
+      // Luego obtener los pagos de esa factura
+      const pagos = await pagoService.getPagosByFactura(factura.idFactura);
+      setPagosFactura(pagos);
+      console.log('💳 Pagos cargados:', pagos);
+    } catch (error: any) {
+      console.error('❌ Error al cargar factura y pagos:', error);
+      setPagosFactura([]);
+      setFacturaInfo(null);
+    } finally {
+      setLoadingPagos(false);
+    }
+  };
+
+  // ✅ NUEVO: Función para cargar solo pagos (reutilizar facturaInfo existente)
+  const cargarPagosFactura = async () => {
+    if (!facturaInfo?.idFactura) return;
+
+    try {
+      setLoadingPagos(true);
+      const pagos = await pagoService.getPagosByFactura(facturaInfo.idFactura);
+      setPagosFactura(pagos);
+      console.log('💳 Pagos recargados:', pagos);
+    } catch (error: any) {
+      console.error('❌ Error al recargar pagos:', error);
+      setPagosFactura([]);
+    } finally {
+      setLoadingPagos(false);
+    }
+  };
+
+  // ✅ NUEVO: Función para confirmar pago específico
+  const confirmarPago = async (pago: PagoResponseDTO) => {
+    try {
+      setConfirmandoPago(pago.idPago);
+      
+      await pagoService.confirmarPagoEfectivo(pago.idPago);
+      
+      // Recargar pagos para mostrar estado actualizado
+      await cargarPagosFactura();
+
+      alert(`¡Pago confirmado! Monto: $${pago.monto}`);
+      
+    } catch (error: any) {
+      console.error('❌ Error al confirmar pago:', error);
+      alert('Error al confirmar el pago. Intenta de nuevo.');
+    } finally {
+      setConfirmandoPago(null);
+    }
+  };
+
+  // ✅ NUEVO: Función para confirmar pago y entregar pedido
+  const confirmarPagoYEntregar = async () => {
+    try {
+      // Primero confirmar todos los pagos pendientes en efectivo
+      const pagosPendientes = pagosFactura.filter(pago => 
+        pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE'
+      );
+
+      if (pagosPendientes.length > 0) {
+        for (const pago of pagosPendientes) {
+          await pagoService.confirmarPagoEfectivo(pago.idPago);
+        }
+        console.log('✅ Todos los pagos confirmados');
+      }
+
+      // Luego marcar como entregado
+      onEntregar(pedido.idPedido);
+      
+    } catch (error: any) {
+      console.error('❌ Error al confirmar pago y entregar:', error);
+      alert('Error al confirmar el pago. Intenta de nuevo.');
+    }
+  };
+
+  // ✅ NUEVO: Verificar si hay pagos pendientes en efectivo
+  const tienePagosPendientesEfectivo = () => {
+    return pagosFactura.some(pago => 
+      pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE'
+    );
+  };
+
+  // ✅ NUEVO: Obtener pagos pendientes en efectivo
+  const getPagosPendientesEfectivo = () => {
+    return pagosFactura.filter(pago => 
+      pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE'
+    );
+  };
+
   if (!isOpen) return null;
 
   // Formatear fecha y hora
@@ -50,6 +164,12 @@ export default function PedidoDetalleModal({
             <p className="text-sm text-gray-600 mt-1">
               {fecha} a las {hora}
             </p>
+            {/* ✅ NUEVO: Indicador de pago pendiente */}
+            {tienePagosPendientesEfectivo() && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-2">
+                💵 Pago en efectivo pendiente
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -60,6 +180,42 @@ export default function PedidoDetalleModal({
         </div>
 
         <div className="p-6 space-y-6">
+          
+          {/* ✅ NUEVO: Alerta de pago pendiente */}
+          {tienePagosPendientesEfectivo() && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <DollarSign className="w-5 h-5 text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Pago en Efectivo Pendiente
+                  </h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Este pedido tiene un pago en efectivo pendiente de confirmación. 
+                    Debes confirmar el pago antes de marcar como entregado.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {getPagosPendientesEfectivo().map((pago) => (
+                      <div key={pago.idPago} className="flex items-center justify-between bg-white p-2 rounded border">
+                        <span className="text-sm font-medium">
+                          💵 Monto: ${pago.monto} - {pago.descripcion}
+                        </span>
+                        <button
+                          onClick={() => confirmarPago(pago)}
+                          disabled={confirmandoPago === pago.idPago}
+                          className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50"
+                        >
+                          {confirmandoPago === pago.idPago ? '⏳' : '✅ Confirmar'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Información del Cliente */}
           <div className="bg-gray-50 rounded-lg p-4">
@@ -201,23 +357,45 @@ export default function PedidoDetalleModal({
           >
             Cerrar
           </button>
-          <button
-            onClick={() => onEntregar(pedido.idPedido)}
-            disabled={isEntregando}
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {isEntregando ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Entregando...
-              </>
-            ) : (
-              <>
-                <Truck className="w-4 h-4 mr-2" />
-                Marcar como Entregado
-              </>
-            )}
-          </button>
+          
+          {/* ✅ NUEVO: Botón condicional basado en estado de pago */}
+          {tienePagosPendientesEfectivo() ? (
+            <button
+              onClick={confirmarPagoYEntregar}
+              disabled={isEntregando || confirmandoPago !== null}
+              className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isEntregando || confirmandoPago !== null ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Confirmar Pago y Entregar
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => onEntregar(pedido.idPedido)}
+              disabled={isEntregando}
+              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isEntregando ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Entregando...
+                </>
+              ) : (
+                <>
+                  <Truck className="w-4 h-4 mr-2" />
+                  Marcar como Entregado
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

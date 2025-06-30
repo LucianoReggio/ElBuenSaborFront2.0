@@ -8,7 +8,11 @@ import { ClienteService } from '../../services/ClienteService';
 import type { PedidoRequestDTO } from '../../types/pedidos/PedidoRequestDTO';
 import type { ClienteResponseDTO } from '../../types/clientes/ClienteResponseDTO';
 
+import { PagoService } from '../../services/PagoService';
+import { apiClienteService } from '../../services/ApiClienteService';
+
 const pedidoService = new PedidoService();
+const pagoService = new PagoService(); // ✅ NUEVO
 
 interface CheckoutModalProps {
   abierto: boolean;
@@ -241,6 +245,36 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
       // Crear el pedido
       const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
       
+console.log('✅ Pedido creado exitosamente:', pedidoCreado);
+
+    // ✅ NUEVO: Crear pago en efectivo automáticamente
+    try {
+      console.log('💵 Creando pago en efectivo para el pedido...');
+      
+      // Obtener la factura del pedido
+      const factura = await pagoService.getFacturaPedido(pedidoCreado.idPedido);
+      console.log('📄 Factura obtenida para pago:', factura);
+
+      // Crear el pago en efectivo - SIN TIPOS ESPECÍFICOS
+      const pagoRequest = {
+        facturaId: factura.idFactura,
+        formaPago: 'EFECTIVO',
+        monto: factura.totalVenta,
+        moneda: 'ARS',
+        descripcion: `Pago en efectivo - Pedido #${pedidoCreado.idPedido} - ${carrito.datosEntrega.tipoEnvio}`
+      };
+
+      console.log('💳 Datos del pago a crear:', pagoRequest);
+      
+      const pagoCreado = await apiClienteService.post('/pagos', pagoRequest);
+      console.log('✅ Pago en efectivo creado exitosamente:', pagoCreado);
+
+    } catch (pagoError: any) {
+      console.error('❌ Error al crear pago en efectivo:', pagoError);
+      console.log('⚠️ El pedido se creó correctamente. El pago se puede crear manualmente desde gestión.');
+      // No fallar todo el proceso
+    }
+
       console.log('✅ Pedido creado exitosamente:', pedidoCreado);
       console.log('📝 Observaciones en respuesta:', pedidoCreado.observaciones);
 
