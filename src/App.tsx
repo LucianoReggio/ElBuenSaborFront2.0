@@ -7,12 +7,13 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import InformesPage from './pages/InformesPage';
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "./hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
-import Productos from "./pages/Productos";
+import { Productos} from "./pages/Productos";
 import StockControl from "./pages/StockControl";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
@@ -354,6 +355,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/informes" element={<InformesPage />} />
           <Route
             path="/cocina"
             element={
