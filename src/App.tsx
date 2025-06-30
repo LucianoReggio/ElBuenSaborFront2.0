@@ -35,7 +35,8 @@ import {
   ShoppingBag, // Productos
   ClipboardList, // Gestión Pedidos
   Flame,      // Cocina
-  Users       // Usuarios
+  Users,
+  BadgePercent
 } from "lucide-react";
 
 
@@ -228,6 +229,10 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <NavLink to="/usuarios" className="flex items-center gap-3">
             <Users className="w-5 h-5" />
             Usuarios
+          </NavLink>
+          <NavLink to="/promociones" className="flex items-center gap-3">
+            <BadgePercent className="w-5 h-5" />
+            Promociones
           </NavLink>
         </div>
       </nav>
