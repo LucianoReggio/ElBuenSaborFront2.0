@@ -11,28 +11,29 @@ export class EstadisticasService {
 
   // Este método ya es estático, lo mantenemos igual
   static async getRankingProductos(
-    fechaDesde: string,
-    fechaHasta: string,
-    limit: number = 10
-  ): Promise<RankingProductoDTO[]> {
-    try {
-      const response = await apiClienteService.get<RankingProductoDTO[]>(
-        `${this.endpoint}/ranking-productos`,
-        {
-          params: {
-            fechaDesde,
-            fechaHasta,
-            limit,
-          }
-        }
-      );
-      return response;
-    } catch (error: any) {
-      throw error instanceof Error
-        ? error
-        : new Error("Error en el servicio de estadísticas");
-    }
+  fechaDesde: string,
+  fechaHasta: string,
+  limit: number = 10
+): Promise<RankingProductoDTO[]> {
+  try {
+    // ✅ LA LLAMADA CORRECTA:
+    // El objeto con los parámetros se pasa directamente como segundo argumento.
+    // ApiClienteService se encargará de convertirlo a la URL correcta.
+    const response = await apiClienteService.get<RankingProductoDTO[]>(
+      `${this.endpoint}/ranking-productos`,
+      {
+        fechaDesde,
+        fechaHasta,
+        limit,
+      }
+    );
+    return response;
+  } catch (error: any) {
+    throw error instanceof Error
+      ? error
+      : new Error("Error en el servicio de estadísticas");
   }
+}
 
   // --- 👇 ASEGÚRATE DE QUE ESTE MÉTODO TENGA LA PALABRA 'static' 👇 ---
    static async getMovimientosMonetarios(
