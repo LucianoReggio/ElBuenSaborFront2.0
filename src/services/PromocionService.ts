@@ -4,6 +4,7 @@ import type {
   PromocionResponseDTO, 
   PromocionAplicacionDTO 
 } from "../types/promociones";
+import type { PromocionCompletaDTO } from "../types/promociones";
 
 /**
  * Servicio para operaciones de promociones
@@ -30,6 +31,23 @@ export class PromocionService {
       throw this.handleError(error);
     }
   }
+
+  /**
+ * Obtener promociones vigentes completas con artículos agrupados
+ */
+async getPromocionesVigentesCompletas(): Promise<PromocionCompletaDTO[]> {
+  try {
+    console.log("🎯 Obteniendo promociones vigentes completas...");
+    const response = await apiClienteService.get<PromocionCompletaDTO[]>(
+      `${this.endpoint}/vigentes-completas`
+    );
+    console.log("✅ Promociones vigentes completas obtenidas:", response.length);
+    return response;
+  } catch (error: any) {
+    console.error("❌ Error al obtener promociones vigentes completas:", error);
+    throw this.handleError(error);
+  }
+}
 
   /**
    * Obtener promociones disponibles para un artículo específico
