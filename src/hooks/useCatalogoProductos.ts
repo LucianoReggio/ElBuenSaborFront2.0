@@ -1,8 +1,11 @@
 // src/hooks/useCatalogoProductos.ts
 import { useState, useEffect, useCallback } from "react";
-// ✅ SE AÑADEN LAS IMPORTACIONES NECESARIAS
-import { ProductoService } from '../services/ProductoService'; 
-import { InsumoService } from '../services/InsumoService';
+
+import { productoService, insumoService } from "../services/apiInstance";
+
+
+
+
 import type { ArticuloManufacturadoResponseDTO } from "../types/productos/ArticuloManufacturadoResponseDTO";
 import type { ArticuloInsumoResponseDTO } from "../types/insumos/ArticuloInsumoResponseDTO";
 
@@ -30,9 +33,7 @@ export interface ProductoCatalogo {
   estadoStock?: string;
 }
 
-// ✅ SE CREAN LAS INSTANCIAS DE AMBOS SERVICIOS
-const productoService = new ProductoService();
-const insumoService = new InsumoService();
+
 
 export const useCatalogoProductos = () => {
   const [productos, setProductos] = useState<ProductoCatalogo[]>([]);
