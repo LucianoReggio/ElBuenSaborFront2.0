@@ -37,7 +37,8 @@ import {
   ClipboardList, // Gestión Pedidos
   Flame,      // Cocina
   Users,
-  BadgePercent
+  BadgePercent,
+  BookCopy
 } from "lucide-react";
 
 
@@ -235,6 +236,10 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <BadgePercent className="w-5 h-5" />
             Promociones
           </NavLink>
+            <NavLink to="/informes" className="flex items-center gap-3">
+            <BookCopy className="w-5 h-5" />
+            Informes
+          </NavLink>
         </div>
       </nav>
       <main className="flex-1 overflow-y-auto bg-[#F7F7F5] bg-opacity-50">
@@ -376,8 +381,17 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/informes" element={<InformesPage />} />
-
+          
+          <Route
+            path="/informes"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminLayout>
+                  <InformesPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Cocina (COCINERO Y ADMIN) */}
           <Route
             path="/cocina"
