@@ -5,11 +5,15 @@ import type {
   PromocionResponseDTO,
   PromocionAplicacionDTO
 } from '../types/promociones';
+import type { PromocionCompletaDTO } from '../types/promociones';
 
 export const usePromociones = (cargarTodas = false, cargarVigentes = false) => {
   // Estados principales
   const [promociones, setPromociones] = useState<PromocionResponseDTO[]>([]);
   const [promocionesVigentes, setPromocionesVigentes] = useState<PromocionResponseDTO[]>([]);
+
+  const [promocionesCompletas, setPromocionesCompletas] = useState<PromocionCompletaDTO[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +51,16 @@ export const usePromociones = (cargarTodas = false, cargarVigentes = false) => {
       console.error('Error cargando promociones vigentes:', err);
     }
   }, []);
+
+// Cargar promociones vigentes completas (cliente)
+const cargarPromocionesVigentesCompletas = useCallback(async () => {
+  try {
+    const data = await promocionService.getPromocionesVigentesCompletas();
+    setPromocionesCompletas(data);
+  } catch (err: any) {
+    console.error('Error cargando promociones vigentes completas:', err);
+  }
+}, []);
 
   // Obtener promoción por ID
   const obtenerPromocion = useCallback(async (id: number): Promise<PromocionResponseDTO | null> => {
@@ -270,18 +284,20 @@ export const usePromociones = (cargarTodas = false, cargarVigentes = false) => {
   // ==================== EFECTOS ====================
   
   useEffect(() => {
-    if (cargarTodas) {
-      cargarPromociones();
-    }
-    if (cargarVigentes) {
-      cargarPromocionesVigentes();
-    }
-  }, [cargarTodas, cargarVigentes, cargarPromociones, cargarPromocionesVigentes]);
+  if (cargarTodas) {
+    cargarPromociones();
+  }
+  if (cargarVigentes) {
+    cargarPromocionesVigentes();
+    cargarPromocionesVigentesCompletas(); // ✅ AGREGAR ESTA LÍNEA
+  }
+}, [cargarTodas, cargarVigentes, cargarPromociones, cargarPromocionesVigentes, cargarPromocionesVigentesCompletas]);
 
   return {
     // Estados
     promociones,
     promocionesVigentes,
+    promocionesCompletas,
     loading,
     error,
     

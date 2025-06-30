@@ -36,7 +36,8 @@ import {
   ShoppingBag, // Productos
   ClipboardList, // Gestión Pedidos
   Flame,      // Cocina
-  Users       // Usuarios
+  Users,
+  BadgePercent
 } from "lucide-react";
 
 
@@ -85,7 +86,7 @@ const CallbackPage: React.FC = () => {
   return <Navigate to="/" replace />;
 };
 
-// ProtectedRoute optimizado
+// Componente protegido para múltiples roles
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -230,9 +231,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <Users className="w-5 h-5" />
             Usuarios
           </NavLink>
-            <NavLink to="/promociones" className="flex items-center gap-3">
-            <Users className="w-5 h-5" />
-            promociones
+          <NavLink to="/promociones" className="flex items-center gap-3">
+            <BadgePercent className="w-5 h-5" />
+            Promociones
           </NavLink>
         </div>
       </nav>
@@ -251,7 +252,7 @@ const CocinaLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
-// Componente de Layout para páginas públicas
+// Layout para páginas públicas (sin sidebar, pero con Header y Footer)
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -441,6 +442,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
           <Route
             path="/usuarios"
             element={
@@ -452,7 +454,7 @@ function App() {
             }
           />
 
-          {/* Rutas de Delivery */}
+          {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route
             path="/delivery"
             element={
