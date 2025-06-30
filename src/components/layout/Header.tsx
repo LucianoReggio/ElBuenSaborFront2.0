@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "../../hooks/useAuth";
 // Importar todos los navbars
 import NavbarInvitado from "./navbar/NavbarInvitado";
@@ -29,15 +30,15 @@ interface ExtendedUserData extends UserData {
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loginWithRedirect } = useAuth0();
 
-  // CRÍTICO: Todos los hooks deben ejecutarse ANTES de cualquier return
   const { isAuthenticated, isLoading, user, backendUser, logout } = useAuth();
-  const [forceUpdate, setForceUpdate] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Escuchar cambios del perfil de usuario
   useEffect(() => {
     const handleProfileUpdate = () => {
-      setForceUpdate((prev) => !prev);
+      setForceUpdate((prev) => prev + 1);
     };
 
     window.addEventListener("userProfileUpdated", handleProfileUpdate);
@@ -45,20 +46,55 @@ const Header: React.FC = () => {
       window.removeEventListener("userProfileUpdated", handleProfileUpdate);
   }, []);
 
+  // Escuchar cambios en backendUser
+  useEffect(() => {
+    if (backendUser) {
+      setForceUpdate((prev) => prev + 1);
+    }
+  }, [
+    backendUser?.nombre,
+    backendUser?.apellido,
+    backendUser?.email,
+    backendUser?.telefono,
+  ]);
+
   // Rutas donde NO debe aparecer ninguna navbar
-  const noNavbarRoutes = ["/login", "/registro", "/callback"];
+  const noNavbarRoutes = ["/login", "/registro", "/callback", "/auth-complete"];
   const shouldShowNavbar = !noNavbarRoutes.includes(location.pathname);
 
-  // Funciones helper (después de todos los hooks)
-  const handleLogin = () => navigate("/login");
-  const handleRegister = () => navigate("/registro");
-  const handleSearch = (query: string) => {
-    console.log("Buscar:", query);
-    // Implementar lógica de búsqueda si es necesario
+  // Lógica unificada de autenticación
+  const handleUnifiedAuth = async () => {
+    try {
+      await loginWithRedirect({
+        appState: {
+          returnTo: "/auth-complete",
+          flow: "unified",
+        },
+      });
+    } catch (error) {
+      console.error("Auth error:", error);
+    }
   };
+
+  const handleGoogleAuth = async () => {
+    try {
+      await loginWithRedirect({
+        authorizationParams: {
+          connection: "google-oauth2",
+        },
+        appState: {
+          returnTo: "/auth-complete",
+          flow: "google",
+        },
+      });
+    } catch (error) {
+      console.error("Google auth error:", error);
+    }
+  };
+
+  // Funciones helper
   const handleLogout = () => logout();
 
-  // Función helper para obtener el rol del usuario
   const getUserRole = (): string => {
     return (
       backendUser?.usuario?.rol ||
@@ -76,25 +112,31 @@ const Header: React.FC = () => {
     }
   };
 
-  // Función helper para crear datos de usuario optimizada
   const createUserData = (): UserData => {
-    // Priorizar datos del backend si son válidos
-    if (
-      backendUser?.nombre &&
-      !backendUser.nombre.includes("@") &&
-      backendUser.nombre !== "Usuario"
-    ) {
-      return {
-        nombre: backendUser.nombre,
-        apellido: backendUser.apellido || "",
-        email: backendUser.email || (user as any)?.email || "",
-        rol: getUserRole(),
-        imagen: backendUser.imagen,
-      };
+    // Priorizar datos del backend si existen y son válidos
+    if (backendUser && backendUser.nombre && backendUser.apellido) {
+      const isValidName =
+        backendUser.nombre !== "Usuario" && !backendUser.nombre.includes("@");
+      const isValidSurname =
+        backendUser.apellido !== "Auth0" && backendUser.apellido.trim() !== "";
+
+      if (isValidName || isValidSurname) {
+        return {
+          nombre: isValidName
+            ? backendUser.nombre
+            : (user as any)?.given_name || "Usuario",
+          apellido: isValidSurname
+            ? backendUser.apellido
+            : (user as any)?.family_name || "",
+          email: backendUser.email || (user as any)?.email || "",
+          rol: getUserRole(),
+          imagen: backendUser.imagen,
+        };
+      }
     }
 
     // Fallback a datos de Auth0
-    const auth0User = user as any; // Type assertion para acceder a propiedades de Auth0
+    const auth0User = user as any;
     return {
       nombre:
         auth0User?.given_name || auth0User?.name?.split(" ")[0] || "Usuario",
@@ -108,7 +150,6 @@ const Header: React.FC = () => {
     };
   };
 
-  // Función helper para crear datos extendidos
   const createExtendedUserData = (): ExtendedUserData => {
     const baseData = createUserData();
     return {
@@ -124,10 +165,9 @@ const Header: React.FC = () => {
     if (!isAuthenticated || (!backendUser && !user)) {
       return (
         <NavbarInvitado
-          onLogin={handleLogin}
-          onRegister={handleRegister}
+          onAuth={handleUnifiedAuth}
+          onGoogleAuth={handleGoogleAuth}
           onHome={handleHome}
-          onSearch={handleSearch}
         />
       );
     }
@@ -176,13 +216,11 @@ const Header: React.FC = () => {
             user={createExtendedUserData()}
             onLogout={handleLogout}
             onHome={handleHome}
-            onSearch={handleSearch}
           />
         );
     }
   };
 
-  // IMPORTANTE: Todos los returns condicionales deben estar AL FINAL
   if (!shouldShowNavbar) {
     return null;
   }
@@ -203,7 +241,7 @@ const Header: React.FC = () => {
     );
   }
 
-  return <header>{renderNavbar()}</header>;
+  return <header key={forceUpdate}>{renderNavbar()}</header>;
 };
 
 export default Header;

@@ -16,8 +16,6 @@ import Productos from "./pages/Productos";
 import StockControl from "./pages/StockControl";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
-import RegistroPage from "./pages/Registro";
-import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
 import ProductoDetalle from "./pages/ProductoDetalle";
 import Catalogo from "./pages/Catalogo";
@@ -30,13 +28,13 @@ import { GestionPedidos } from "./pages/GestionPedidos";
 import Cocina from "./pages/Cocina";
 import {
   LayoutGrid, // Rubros
-  Box,        // Ingredientes
+  Box, // Ingredientes
   ShoppingBag, // Productos
   ClipboardList, // Gestión Pedidos
-  Flame,      // Cocina
-  Users       // Usuarios
+  Flame, // Cocina
+  Users, // Usuarios
 } from "lucide-react";
-
+import AuthComplete from "./pages/AuthComplete";
 
 // Componente de Loading
 const LoadingScreen: React.FC<{ message?: string }> = ({
@@ -171,10 +169,11 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 // Componente para el elemento de navegación activo
-const NavLink: React.FC<{ to: string; children: React.ReactNode; className?: string }> =  ({
-  to,
-  children,
-}) => {
+const NavLink: React.FC<{
+  to: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
@@ -202,7 +201,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <div className="text-xs font-semibold text-[#99AAB3] uppercase tracking-wide mb-4 px-2">
             Menú Principal
           </div>
-          
+
           <NavLink to="/categorias" className="flex items-center gap-3">
             <LayoutGrid className="w-5 h-5" />
             Rubros
@@ -271,6 +270,9 @@ function App() {
         <Routes>
           <Route path="/callback" element={<CallbackPage />} />
 
+          {/* Nueva ruta unificada */}
+          <Route path="/auth-complete" element={<AuthComplete />} />
+
           {/* Rutas públicas */}
           <Route
             path="/"
@@ -301,22 +303,6 @@ function App() {
             element={
               <PublicLayout>
                 <ProductoDetalle />
-              </PublicLayout>
-            }
-          />
-          <Route
-            path="/registro"
-            element={
-              <PublicLayout>
-                <RegistroPage />
-              </PublicLayout>
-            }
-          />
-          <Route
-            path="/login"
-            element={
-              <PublicLayout>
-                <LoginPage />
               </PublicLayout>
             }
           />
@@ -357,10 +343,7 @@ function App() {
           <Route
             path="/cocina"
             element={
-              <ProtectedRoute
-                allowedRoles={["COCINERO", "ADMIN"]}
-                fallbackTo="/"
-              >
+              <ProtectedRoute allowedRoles={["COCINERO", "ADMIN"]}>
                 <CocinaLayout>
                   <Cocina />
                 </CocinaLayout>
@@ -432,10 +415,7 @@ function App() {
           <Route
             path="/delivery"
             element={
-              <ProtectedRoute
-                allowedRoles={["DELIVERY"]}
-                fallbackTo="/catalogo"
-              >
+              <ProtectedRoute allowedRoles={["DELIVERY"]}>
                 <PublicLayout>
                   <DeliveryDashboard />
                 </PublicLayout>
@@ -448,16 +428,16 @@ function App() {
             path="*"
             element={
               <PublicLayout>
-                <div className="bg-white p-8 rounded-lg shadow-sm text-center border border-[#99AAB3] border-opacity-20 m-8">
+                <div className="bg-white p-8 rounded-lg shadow-sm text-center border border-gray-200 m-8">
                   <h2 className="text-2xl font-bold text-[#CD6C50] mb-4">
                     Página no encontrada
                   </h2>
-                  <p className="text-[#99AAB3] mb-6">
+                  <p className="text-gray-600 mb-6">
                     La página que buscas no existe.
                   </p>
                   <Link
                     to="/"
-                    className="inline-flex items-center px-6 py-3 bg-[#CD6C50] text-white rounded-md hover:bg-[#E29C44] transition-all duration-200 shadow-sm font-medium"
+                    className="inline-flex items-center px-6 py-3 bg-[#CD6C50] text-white rounded-md hover:bg-[#b85a42] transition-all duration-200 shadow-sm font-medium"
                   >
                     <svg
                       className="w-4 h-4 mr-2"

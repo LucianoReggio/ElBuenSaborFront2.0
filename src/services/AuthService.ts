@@ -253,46 +253,9 @@ export class AuthService {
   }
 
   /**
-   * Actualización de roles con token específico
-   */
-  static async refreshRolesWithToken(
-    token: string
-  ): Promise<RefreshRolesResponse> {
-    const response = await fetch(
-      "http://localhost:8080/api/auth0/refresh-roles",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: "Error desconocido" }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  }
-
-  /**
    * Limpiar cache manualmente
    */
   static clearCache(): void {
     this.pendingRequests.clear();
-  }
-
-  /**
-   * Obtener estado del cache
-   */
-  static getCacheStatus(): { pendingRequests: number; cacheKeys: string[] } {
-    return {
-      pendingRequests: this.pendingRequests.size,
-      cacheKeys: Array.from(this.pendingRequests.keys()),
-    };
   }
 }

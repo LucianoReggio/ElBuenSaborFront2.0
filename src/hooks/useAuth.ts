@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { AuthService } from "../services/AuthService";
+import { ClienteService } from "../services/ClienteService";
 import { apiClienteService } from "../services/ApiClienteService";
 
 interface BackendUser {
@@ -102,43 +103,71 @@ export const useAuth = () => {
       }));
 
       try {
-        const response = await AuthService.processAuth0Login({
-          email: auth0User.email,
-          name: auth0User.name,
-          given_name: auth0User.given_name,
-          family_name: auth0User.family_name,
-          picture: auth0User.picture,
-        });
+        // Intentar obtener perfil completo primero
+        try {
+          const perfilCompleto = await ClienteService.getMyProfile();
 
-        if (response.success && mounted.current) {
-          setAuthState((prev) => ({
-            ...prev,
-            backendUser: response.data,
-            isSynced: true,
-            syncError: null,
-            isProcessing: false,
-          }));
-          window.dispatchEvent(new Event("userProfileUpdated"));
+          // Mapear a BackendUser
+          const backendUserData: BackendUser = {
+            idCliente: perfilCompleto.idCliente,
+            userId: perfilCompleto.idUsuario,
+            nombre: perfilCompleto.nombre,
+            apellido: perfilCompleto.apellido,
+            email: perfilCompleto.email,
+            telefono: perfilCompleto.telefono,
+            fechaNacimiento: perfilCompleto.fechaNacimiento,
+            domicilios: perfilCompleto.domicilios || [],
+            imagen: perfilCompleto.imagen,
+            usuario: {
+              email: perfilCompleto.email,
+              rol: perfilCompleto.rol || "CLIENTE",
+            },
+            rol: perfilCompleto.rol || "CLIENTE",
+          };
+
+          if (mounted.current) {
+            setAuthState((prev) => ({
+              ...prev,
+              backendUser: backendUserData,
+              isSynced: true,
+              syncError: null,
+              isProcessing: false,
+            }));
+
+            window.dispatchEvent(new Event("userProfileUpdated"));
+          }
+        } catch (perfilError) {
+          // Si no tiene perfil, hacer el proceso de login/creación
+          const response = await AuthService.processAuth0Login({
+            email: auth0User.email,
+            name: auth0User.name,
+            given_name: auth0User.given_name,
+            family_name: auth0User.family_name,
+            picture: auth0User.picture,
+          });
+
+          if (response.success && mounted.current) {
+            setAuthState((prev) => ({
+              ...prev,
+              backendUser: response.data,
+              isSynced: true,
+              syncError: null,
+              isProcessing: false,
+            }));
+            window.dispatchEvent(new Event("userProfileUpdated"));
+          }
         }
       } catch (error: any) {
         if (!mounted.current) return;
 
         // Manejo específico de usuario desactivado
         if (error.message === "USUARIO_DESACTIVADO") {
-          console.error("❌ Usuario desactivado");
-
-          // Mostrar alerta inmediata
           alert(
             "Tu cuenta ha sido desactivada. Contacta al administrador para más información."
           );
-
-          // Forzar logout de Auth0
           auth0Logout({
-            logoutParams: {
-              returnTo: window.location.origin,
-            },
+            logoutParams: { returnTo: window.location.origin },
           });
-
           return;
         }
 
@@ -216,6 +245,8 @@ export const useAuth = () => {
     auth0User?.sub,
     authState.isSynced,
     authState.initialized,
+    getAccessTokenSilently,
+    auth0Logout,
   ]);
 
   // Reset en logout
@@ -270,10 +301,12 @@ export const useAuth = () => {
 
       try {
         setAuthState((prev) => ({ ...prev, isProcessing: true }));
+
         const response = await AuthService.completeProfile(clienteData);
 
         const updatedUser: BackendUser = {
           idCliente: response.idCliente,
+          userId: response.idUsuario,
           nombre: response.nombre,
           apellido: response.apellido,
           email: response.email,
@@ -281,8 +314,11 @@ export const useAuth = () => {
           fechaNacimiento: response.fechaNacimiento,
           domicilios: response.domicilios || [],
           imagen: response.imagen,
-          usuario: { email: response.email, rol: "CLIENTE" },
-          rol: "CLIENTE",
+          usuario: {
+            email: response.email,
+            rol: response.rol || "CLIENTE",
+          },
+          rol: response.rol || "CLIENTE",
         };
 
         setAuthState((prev) => ({
@@ -293,7 +329,13 @@ export const useAuth = () => {
           isProcessing: false,
         }));
 
-        window.dispatchEvent(new Event("userProfileUpdated"));
+        // Eventos para asegurar propagación
+        const dispatchUpdate = () =>
+          window.dispatchEvent(new Event("userProfileUpdated"));
+        dispatchUpdate();
+        setTimeout(dispatchUpdate, 100);
+        setTimeout(dispatchUpdate, 500);
+
         return response;
       } catch (error: any) {
         setAuthState((prev) => ({ ...prev, isProcessing: false }));
@@ -313,17 +355,20 @@ export const useAuth = () => {
     }
 
     const user = authState.backendUser;
-    return (
-      !user.telefono?.trim() ||
-      !user.domicilios?.length ||
-      !user.fechaNacimiento ||
-      !user.nombre?.trim() ||
-      !user.apellido?.trim() ||
-      user.nombre === "Usuario" ||
-      user.apellido === "Auth0" ||
-      user.nombre.includes("@") ||
-      user.idCliente === 0
-    );
+
+    const checks = {
+      noTelefono: !user.telefono?.trim(),
+      noDomicilios: !user.domicilios?.length,
+      noFechaNacimiento: !user.fechaNacimiento,
+      noNombre: !user.nombre?.trim(),
+      noApellido: !user.apellido?.trim(),
+      nombrePorDefecto: user.nombre === "Usuario",
+      apellidoPorDefecto: user.apellido === "Auth0",
+      nombreEsEmail: user.nombre?.includes("@"),
+      clienteInvalido: user.idCliente === 0,
+    };
+
+    return Object.values(checks).some((check) => check);
   }, [auth0IsAuthenticated, authState.isSynced, authState.backendUser]);
 
   const getCurrentProfile = useCallback(async () => {

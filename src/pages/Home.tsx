@@ -21,15 +21,6 @@ const Home: React.FC = () => {
     useState<ProductoCatalogo | null>(null);
   const carrito = useCarritoContext();
 
-  // Debug imagen header
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => console.log("✅ Imagen cargada correctamente");
-    img.onerror = () =>
-      console.error("❌ Error al cargar la imagen desde /Header.jpg");
-    img.src = "/Header.jpg";
-  }, []);
-
   // Productos destacados usando useMemo para evitar recálculos innecesarios
   const featuredProducts = useMemo(() => {
     if (productos.length > 0) {
@@ -59,7 +50,7 @@ const Home: React.FC = () => {
 
   // Rating (solo para manufacturados, para insumos usar un valor fijo)
   const getProductRating = (producto: ProductoCatalogo) => {
-    if (producto.tipo === "insumo") return 4.5; // Rating fijo para insumos
+    if (producto.tipo === "insumo") return 4.5;
 
     const cantidadVendida = producto.cantidadVendida;
     if (cantidadVendida >= 100) return 4.9;
@@ -96,9 +87,9 @@ const Home: React.FC = () => {
   // Obtener icono por tipo de producto
   const getProductIcon = (producto: ProductoCatalogo) => {
     if (producto.tipo === "manufacturado") {
-      return "🍽️"; // Plato para productos manufacturados
+      return "🍽️";
     }
-    return "🛒"; // Carrito para insumos de venta
+    return "🛒";
   };
 
   return (

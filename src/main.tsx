@@ -4,7 +4,7 @@ import { Auth0Provider } from "@auth0/auth0-react";
 import "./index.css";
 import App from "./App.tsx";
 
-// Configuración de Auth0
+// Configuración de Auth0 para flujo unificado
 const auth0Config = {
   domain: "dev-ik2kub20ymu4sfpr.us.auth0.com",
   clientId: "4u4F4fKQrsD9Bvvh9ODZ0tnqzR431TBV",
@@ -13,19 +13,13 @@ const auth0Config = {
     audience: "https://APIElBuenSabor",
     scope: "openid profile email",
   },
-  // Configuración adicional para optimizar Auth0
   cacheLocation: "localstorage" as const,
   useRefreshTokens: true,
   useRefreshTokensFallback: false,
 
-  // Callback para manejar redirección después del login
+  // Callback para manejar flujo unificado
   onRedirectCallback: (appState?: any) => {
-    console.log("🔄 Auth0 redirect callback:", appState);
-
-    // Redirigir a la URL de destino o home
-    const targetUrl = appState?.targetUrl || appState?.returnTo || "/";
-
-    // Usar replace para evitar problemas de navegación
+    const targetUrl = appState?.returnTo || "/auth-complete";
     window.history.replaceState({}, document.title, targetUrl);
   },
 };

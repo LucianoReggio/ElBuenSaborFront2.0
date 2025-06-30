@@ -3,6 +3,7 @@ import type { DomicilioResponseDTO } from "./DomicilioDTO";
 
 export interface ClienteResponseDTO {
   idCliente: number;
+  idUsuario: number;
   nombre: string;
   apellido: string;
   email: string;
@@ -10,4 +11,5 @@ export interface ClienteResponseDTO {
   fechaNacimiento: string; // ISO date string
   domicilios: DomicilioResponseDTO[]; // ✅ Actualizado para usar DomicilioResponseDTO
   imagen?: ImagenDTO;
+  rol: string;
 }
