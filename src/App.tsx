@@ -7,13 +7,15 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import InformesPage from "./pages/InformesPage";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "./hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
-import Productos from "./pages/Productos";
+import { Productos } from "./pages/Productos";
 import StockControl from "./pages/StockControl";
+import Promociones from "./pages/Promociones"; // ← Nueva importación
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import Home from "./pages/Home";
@@ -32,7 +34,9 @@ import {
   ShoppingBag, // Productos
   ClipboardList, // Gestión Pedidos
   Flame, // Cocina
-  Users, // Usuarios
+  Users,
+  BadgePercent,
+  BookCopy,
 } from "lucide-react";
 import AuthComplete from "./pages/AuthComplete";
 
@@ -80,7 +84,7 @@ const CallbackPage: React.FC = () => {
   return <Navigate to="/" replace />;
 };
 
-// ProtectedRoute optimizado
+// Componente protegido para múltiples roles
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -226,6 +230,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <Users className="w-5 h-5" />
             Usuarios
           </NavLink>
+          <NavLink to="/promociones" className="flex items-center gap-3">
+            <BadgePercent className="w-5 h-5" />
+            Promociones
+          </NavLink>
+          <NavLink to="/informes" className="flex items-center gap-3">
+            <BookCopy className="w-5 h-5" />
+            Informes
+          </NavLink>
         </div>
       </nav>
       <main className="flex-1 overflow-y-auto bg-[#F7F7F5] bg-opacity-50">
@@ -236,12 +248,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-// Layout específico para cocina
+// Layout específico para cocina (sin sidebar, fullscreen)
 const CocinaLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => <div className="min-h-screen bg-gray-50">{children}</div>;
 
-// Componente de Layout para páginas públicas
+// Layout para páginas públicas (sin sidebar, pero con Header y Footer)
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -329,7 +341,19 @@ function App() {
             }
           />
 
-          {/* Rutas administrativas */}
+          {/* ← NUEVA RUTA PARA PROMOCIONES (SOLO ADMIN) */}
+          <Route
+            path="/promociones"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminLayout>
+                  <Promociones />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Gestión de pedidos (ADMIN Y CAJERO) */}
           <Route
             path="/gestion-pedidos"
             element={
@@ -340,6 +364,18 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/informes"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminLayout>
+                  <InformesPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Cocina (COCINERO Y ADMIN) */}
           <Route
             path="/cocina"
             element={
@@ -400,6 +436,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/usuarios"
             element={
@@ -411,7 +448,7 @@ function App() {
             }
           />
 
-          {/* Rutas de Delivery */}
+          {/* Rutas de Delivery (requieren rol DELIVERY) */}
           <Route
             path="/delivery"
             element={
