@@ -5,4 +5,5 @@ export interface UsuarioGridDTO {
   rol: string;
   nombre: string;
   apellido: string;
+  activo: boolean;
 }

@@ -72,11 +72,11 @@ export const Modal: React.FC<ModalProps> = ({
         style={{ backgroundColor: "#F7F7F5" }}
       >
         {/* Header */}
-        <div 
+        <div
           className="flex justify-between items-center px-6 py-4 border-b rounded-t-xl"
-          style={{ 
+          style={{
             borderColor: "#E29C44",
-            backgroundColor: "#CD6C50"
+            backgroundColor: "#CD6C50",
           }}
         >
           <h2 className="text-xl font-semibold" style={{ color: "#F7F7F5" }}>
@@ -85,9 +85,9 @@ export const Modal: React.FC<ModalProps> = ({
           <button
             onClick={onClose}
             className="transition-all duration-200 p-2 rounded-lg hover:opacity-80"
-            style={{ 
+            style={{
               color: "#F7F7F5",
-              backgroundColor: "rgba(247, 247, 245, 0.1)"
+              backgroundColor: "rgba(247, 247, 245, 0.1)",
             }}
             aria-label="Cerrar modal"
           >
@@ -108,7 +108,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div 
+        <div
           className="flex-1 overflow-y-auto px-6 py-6"
           style={{ color: "#443639" }}
         >
