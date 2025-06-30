@@ -27,7 +27,6 @@ interface ToggleUserResponse {
 class UsuarioService {
   async getGrillaUsuarios(): Promise<UsuarioGridDTO[]> {
     console.log("🔍 UsuarioService - usando apiClienteService global");
-    console.log("🔍 Debug info:", apiClienteService.getDebugInfo());
     return apiClienteService.get<UsuarioGridDTO[]>("/usuarios/grilla");
   }
 
