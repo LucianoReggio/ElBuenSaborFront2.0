@@ -158,14 +158,6 @@ const MisPedidos: React.FC = () => {
       console.log('✅ Pedidos recibidos:', pedidosUsuario);
       console.log('📊 Cantidad de pedidos:', pedidosUsuario.length);
 
-      // ✅ DEBUG: Buscar pedido #63
-      const pedido63 = pedidosUsuario.find(p => p.idPedido === 63);
-      if (pedido63) {
-        console.log('🔍 PEDIDO #63 CON PROMOCIÓN:', JSON.stringify(pedido63, null, 2));
-      } else {
-        console.log('❌ Pedido #63 no encontrado');
-      }
-
       setPedidos(pedidosUsuario);
       console.log('📋 Pedidos cargados:', pedidosUsuario.length);
 
