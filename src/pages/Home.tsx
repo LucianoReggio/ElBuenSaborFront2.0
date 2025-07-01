@@ -5,11 +5,26 @@ import {
   useCatalogoProductos,
   type ProductoCatalogo,
 } from "../hooks/useCatalogoProductos";
-import { Star, Clock, MapPin, Phone, Mail, ShoppingCart, Tag } from "lucide-react";
+import {
+  Star,
+  Clock,
+  MapPin,
+  Phone,
+  Mail,
+  ShoppingCart,
+  Tag,
+} from "lucide-react";
 import CarritoModal from "../components/cart/CarritoModal";
 import ProductoDetalleModal from "../components/productos/ProductoDetalleModal";
-// ✅ CAMBIO PRINCIPAL: Usar hook mejorado con promociones
-import { useCarritoMercadoPago } from "../hooks/useCarritoMercadoPago";
+
+// ✅ CAMBIO PRINCIPAL: Usar Context Unificado
+import {
+  useCarritoItems,
+  useCarritoTotales,
+  useCarritoPromociones,
+  useCarritoUnificado,
+} from "../context/CarritoUnificadoContext";
+
 import { UserDeactivatedAlert } from "../components/common/UserDeactivatedAlert";
 
 const Home: React.FC = () => {
@@ -18,10 +33,14 @@ const Home: React.FC = () => {
   const { productos, loading, getProductosDestacados } = useCatalogoProductos();
 
   const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [productoDetalle, setProductoDetalle] = useState<ProductoCatalogo | null>(null);
-  
-  // ✅ CAMBIO: Usar hook con promociones en lugar de useCarritoContext
-  const carrito = useCarritoMercadoPago();
+  const [productoDetalle, setProductoDetalle] =
+    useState<ProductoCatalogo | null>(null);
+
+  // ✅ NUEVO: Usar hooks especializados del Context Unificado
+  const { agregarItem, cantidadTotal, estaVacio } = useCarritoItems();
+  const { total, tieneDescuentos } = useCarritoTotales();
+  const { cargarPromocionesParaItem, getPromocionesDisponibles } =
+    useCarritoPromociones();
 
   // Productos destacados usando useMemo para evitar recálculos innecesarios
   const featuredProducts = useMemo(() => {
@@ -62,7 +81,7 @@ const Home: React.FC = () => {
     return 4.0;
   };
 
-  // Agregar producto al carrito y abrir modal
+  // ✅ ACTUALIZADO: Agregar producto al carrito usando Context Unificado
   const handleOrderClick = (producto: ProductoCatalogo) => {
     const productoParaCarrito = {
       idArticulo: producto.id,
@@ -77,13 +96,14 @@ const Home: React.FC = () => {
       tipo: producto.tipo,
     };
 
-    carrito.agregarItem(productoParaCarrito as any);
-    
-    // ✅ NUEVA FUNCIONALIDAD: Auto-cargar promociones para el producto agregado
+    // ✅ NUEVA SINTAXIS: Context Unificado
+    agregarItem(productoParaCarrito, 1);
+
+    // ✅ ACTUALIZADO: Auto-cargar promociones
     if (producto.id) {
-      carrito.cargarPromocionesParaItem(producto.id);
+      cargarPromocionesParaItem(producto.id);
     }
-    
+
     setCarritoAbierto(true);
   };
 
@@ -100,32 +120,36 @@ const Home: React.FC = () => {
     return "🛒";
   };
 
-  // ✅ NUEVA FUNCIÓN: Verificar si un producto tiene promociones
+  // ✅ ACTUALIZADO: Verificar promociones usando Context Unificado
   const getPromocionInfo = (producto: ProductoCatalogo) => {
-    const promociones = carrito.getPromocionesDisponibles(producto.id);
+    const promociones = getPromocionesDisponibles(producto.id);
     if (promociones.length === 0) return null;
 
     // Obtener la mejor promoción (mayor descuento)
     const mejorPromocion = promociones.reduce((mejor, actual) => {
-      const descuentoActual = actual.tipoDescuento === 'PORCENTUAL' 
-        ? actual.valorDescuento 
-        : (actual.valorDescuento / producto.precioVenta) * 100;
-      
-      const descuentoMejor = mejor.tipoDescuento === 'PORCENTUAL' 
-        ? mejor.valorDescuento 
-        : (mejor.valorDescuento / producto.precioVenta) * 100;
+      const descuentoActual =
+        actual.tipoDescuento === "PORCENTUAL"
+          ? actual.valorDescuento
+          : (actual.valorDescuento / producto.precioVenta) * 100;
+
+      const descuentoMejor =
+        mejor.tipoDescuento === "PORCENTUAL"
+          ? mejor.valorDescuento
+          : (mejor.valorDescuento / producto.precioVenta) * 100;
 
       return descuentoActual > descuentoMejor ? actual : mejor;
     });
 
     return {
       promocion: mejorPromocion,
-      textoDescuento: mejorPromocion.tipoDescuento === 'PORCENTUAL' 
-        ? `${mejorPromocion.valorDescuento}% OFF`
-        : `$${mejorPromocion.valorDescuento} OFF`,
-      precioConDescuento: mejorPromocion.tipoDescuento === 'PORCENTUAL'
-        ? producto.precioVenta * (1 - mejorPromocion.valorDescuento / 100)
-        : producto.precioVenta - mejorPromocion.valorDescuento
+      textoDescuento:
+        mejorPromocion.tipoDescuento === "PORCENTUAL"
+          ? `${mejorPromocion.valorDescuento}% OFF`
+          : `$${mejorPromocion.valorDescuento} OFF`,
+      precioConDescuento:
+        mejorPromocion.tipoDescuento === "PORCENTUAL"
+          ? producto.precioVenta * (1 - mejorPromocion.valorDescuento / 100)
+          : producto.precioVenta - mejorPromocion.valorDescuento,
     };
   };
 
@@ -213,13 +237,15 @@ const Home: React.FC = () => {
               {featuredProducts.map((producto) => {
                 const imagenUrl = getProductImage(producto);
                 const rating = getProductRating(producto);
-                // ✅ NUEVA FUNCIONALIDAD: Obtener info de promociones
+                // ✅ ACTUALIZADO: Obtener info de promociones
                 const promocionInfo = getPromocionInfo(producto);
-                
+
                 return (
-                  <div key={`${producto.tipo}-${producto.id}`} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 relative">
-                    
-                    {/* ✅ NUEVO: Badge de promoción */}
+                  <div
+                    key={`${producto.tipo}-${producto.id}`}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 relative"
+                  >
+                    {/* ✅ Badge de promoción */}
                     {promocionInfo && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
@@ -261,7 +287,7 @@ const Home: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="absolute top-3 right-3">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -273,20 +299,24 @@ const Home: React.FC = () => {
                           {producto.stockSuficiente ? "Disponible" : "Agotado"}
                         </span>
                       </div>
-                      
+
                       {/* Badge de tipo de producto */}
                       {!promocionInfo && (
                         <div className="absolute top-3 left-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            producto.tipo === 'manufacturado'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {producto.tipo === 'manufacturado' ? 'Preparado' : 'Producto'}
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              producto.tipo === "manufacturado"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-purple-100 text-purple-800"
+                            }`}
+                          >
+                            {producto.tipo === "manufacturado"
+                              ? "Preparado"
+                              : "Producto"}
                           </span>
                         </div>
                       )}
-                      
+
                       {producto.tiempoEstimadoEnMinutos && (
                         <div className="absolute bottom-3 left-3">
                           <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-sm flex items-center">
@@ -328,7 +358,7 @@ const Home: React.FC = () => {
                         )}
                       </div>
                       <div className="flex items-center justify-between">
-                        {/* ✅ NUEVO: Mostrar precio con y sin promoción */}
+                        {/* ✅ Mostrar precio con y sin promoción */}
                         <div className="flex flex-col">
                           {promocionInfo ? (
                             <>
@@ -496,7 +526,7 @@ const Home: React.FC = () => {
         onCerrar={() => setCarritoAbierto(false)}
       />
 
-      {/* ✅ BOTÓN FLOTANTE MEJORADO con información de promociones */}
+      {/* ✅ BOTÓN FLOTANTE ACTUALIZADO con Context Unificado */}
       <button
         onClick={() => setCarritoAbierto(true)}
         className="fixed bottom-8 right-8 z-50 bg-[#CD6C50] hover:bg-[#b85a42] text-white p-4 rounded-full shadow-2xl flex items-center gap-2 transition"
@@ -504,15 +534,15 @@ const Home: React.FC = () => {
         title="Ver carrito"
       >
         <ShoppingCart className="w-7 h-7" />
-        {carrito.cantidadTotal > 0 && (
+        {cantidadTotal > 0 && (
           <div className="flex flex-col items-center">
             <span className="bg-white text-[#CD6C50] font-bold text-sm rounded-full px-2 py-1 shadow">
-              {carrito.cantidadTotal}
+              {cantidadTotal}
             </span>
-            {/* ✅ NUEVO: Mostrar descuentos en el botón flotante */}
-            {carrito.tienePromociones() && (
+            {/* ✅ ACTUALIZADO: Mostrar descuentos en el botón flotante */}
+            {tieneDescuentos && (
               <span className="bg-green-500 text-white text-xs px-1 rounded mt-1">
-                -{carrito.getTotalDescuentosPromociones().toFixed(0)}
+                🎁
               </span>
             )}
           </div>

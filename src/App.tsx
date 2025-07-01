@@ -15,25 +15,28 @@ import Categorias from "./pages/Categorias";
 import Insumos from "./pages/Insumos";
 import { Productos } from "./pages/Productos";
 import StockControl from "./pages/StockControl";
-import Promociones from "./pages/Promociones"; // ← Nueva importación
+import Promociones from "./pages/Promociones";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import Home from "./pages/Home";
 import ProductoDetalle from "./pages/ProductoDetalle";
 import Catalogo from "./pages/Catalogo";
 import Usuarios from "./pages/Usuarios";
-import { CarritoProvider } from "./context/CarritoContext";
+
+// ✅ CORREGIDO: Solo usar el Context Unificado
+import { CarritoUnificadoProvider } from "./context/CarritoUnificadoContext";
+
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import { MiPerfil } from "./pages/MiPerfil";
 import { GestionPedidos } from "./pages/GestionPedidos";
 import Cocina from "./pages/Cocina";
 import {
-  LayoutGrid, // Rubros
-  Box, // Ingredientes
-  ShoppingBag, // Productos
-  ClipboardList, // Gestión Pedidos
-  Flame, // Cocina
+  LayoutGrid,
+  Box,
+  ShoppingBag,
+  ClipboardList,
+  Flame,
   Users,
   BadgePercent,
   BookCopy,
@@ -277,7 +280,8 @@ function App() {
   }
 
   return (
-    <CarritoProvider>
+    // ✅ CORREGIDO: Solo usar el Context Unificado
+    <CarritoUnificadoProvider>
       <Router>
         <Routes>
           <Route path="/callback" element={<CallbackPage />} />
@@ -341,7 +345,7 @@ function App() {
             }
           />
 
-          {/* ← NUEVA RUTA PARA PROMOCIONES (SOLO ADMIN) */}
+          {/* RUTA PARA PROMOCIONES (SOLO ADMIN) */}
           <Route
             path="/promociones"
             element={
@@ -375,6 +379,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Cocina (COCINERO Y ADMIN) */}
           <Route
             path="/cocina"
@@ -386,6 +391,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Rutas administrativas */}
           <Route
             path="/dashboard"
             element={
@@ -436,7 +443,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/usuarios"
             element={
@@ -497,7 +503,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </CarritoProvider>
+    </CarritoUnificadoProvider>
   );
 }
 
