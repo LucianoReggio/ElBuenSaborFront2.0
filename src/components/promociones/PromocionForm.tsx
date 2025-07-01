@@ -150,32 +150,6 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     setProductosSeleccionados(prev => prev.filter(p => p.id !== id));
   };
 
-  // ✅ Agregar nueva imagen promocional
-  const agregarImagenPromocional = () => {
-    const nuevaImagen: ImagenDTO = {
-      idImagen: undefined,
-      denominacion: `Imagen promocional ${imagenesPromocionales.length + 1}`,
-      url: '' // Se llenará cuando se suba la imagen
-    };
-    setImagenesPromocionales(prev => [...prev, nuevaImagen]);
-  };
-
-  // ✅ Actualizar imagen promocional específica
-  const actualizarImagenPromocional = (index: number, imagen: ImagenDTO | null) => {
-    if (imagen) {
-      setImagenesPromocionales(prev => 
-        prev.map((img, i) => i === index ? imagen : img)
-      );
-    } else {
-      // Eliminar imagen
-      removerImagenPromocional(index);
-    }
-  };
-
-  // ✅ Remover imagen promocional
-  const removerImagenPromocional = (index: number) => {
-    setImagenesPromocionales(prev => prev.filter((_, i) => i !== index));
-  };
 
   // Validar formulario
   const validarFormulario = (): string | null => {
@@ -553,55 +527,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
       </div>
 
       {/* ✅ IMÁGENES PROMOCIONALES - MEJORADO CON COMPONENTE DE CARGA */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Imágenes promocionales (opcional)
-        </label>
-        
-        {/* Lista de imágenes actuales */}
-        {imagenesPromocionales.length > 0 && (
-          <div className="space-y-4 mb-4">
-            {imagenesPromocionales.map((imagen, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">
-                    Imagen {index + 1}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => removerImagenPromocional(index)}
-                    className="text-red-600 hover:text-red-800 p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <ImageUpload
-                  currentImage={imagen.url ? imagen : null}
-                  onImageChange={(nuevaImagen) => actualizarImagenPromocional(index, nuevaImagen)}
-                  placeholder="Seleccionar imagen promocional"
-                  className="w-full"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Botón para agregar nueva imagen */}
-        <Button
-          type="button"
-          onClick={agregarImagenPromocional}
-          variant="outline"
-          className="w-full"
-        >
-          + Agregar imagen promocional
-        </Button>
-
-        <p className="text-xs text-gray-500 mt-2">
-          Las imágenes se utilizarán para mostrar la promoción en el catálogo y páginas promocionales
-        </p>
-      </div>
-
+      
       {/* Estado activo */}
       <div className="flex items-center space-x-3">
         <input
