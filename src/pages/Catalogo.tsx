@@ -426,66 +426,6 @@ const Catalogo: React.FC = () => {
     setFiltroPromocion("TODAS");
   };
 
-  const mostrarInfoPromocion = (promocion: PromocionCompletaDTO) => {
-    const info = formatearPromocionCompleta(promocion);
-
-    if (!info.esValidaCalcular) {
-      return null;
-    }
-
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="font-semibold text-red-800">
-              {promocion.denominacion}
-            </h4>
-            <p className="text-red-600 text-sm">{info.textoDescuento}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-red-700 text-sm">Ahorras</div>
-            <div className="text-lg font-bold text-red-800">
-              ${info.descuentoCalculado.toFixed(0)}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <span className="text-gray-600">Precio normal: </span>
-            <span className="line-through">
-              ${info.subtotalOriginal.toFixed(0)}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">Con promoción: </span>
-            <span className="font-bold text-green-600">
-              ${info.precioFinal.toFixed(0)}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-2 text-xs text-gray-600">
-          📦 Incluye:{" "}
-          {promocion.articulos.map((a) => a.denominacion).join(", ")}
-        </div>
-
-        {promocion.horaDesde && promocion.horaHasta && (
-          <div className="mt-1 text-xs text-orange-600">
-            ⏰ Válida de {promocion.horaDesde} a {promocion.horaHasta}
-          </div>
-        )}
-
-        <button
-          onClick={() => handlePromocionAgrupadaClick(promocion)}
-          className="mt-3 w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
-        >
-          🎁 Agregar Promoción Completa
-        </button>
-      </div>
-    );
-  };
-
   const categorias = getCategorias();
 
   // ✅ COMPONENTE: Card de producto mejorada
