@@ -6,7 +6,7 @@ import type { ImagenDTO } from "../../types/common/ImagenDTO";
 import { Button } from "../common/Button";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
-import { ImageUpload } from "../common/ImageUpload";
+import { ArticleImageUpload } from "../common/ArticleImageUpload";
 import type { UnidadMedidaDTO } from "../../services";
 import { CategoriaSelector } from "../common/CategoriaSelector";
 
@@ -196,16 +196,18 @@ export const InsumoForm: React.FC<InsumoFormProps> = ({
             Imagen del Ingrediente
           </h3>
           <div className="max-w-md">
-            <ImageUpload
+            <ArticleImageUpload
+              idArticulo={insumo?.idArticulo}
               currentImage={formData.imagen}
               onImageChange={handleImageChange}
-              placeholder="Selecciona una imagen del ingrediente para venta"
-              maxSize={5}
-              disabled={loading}
+              mode="immediate" // Para que funcione inmediatamente
+              onImageUploaded={(result) => {
+                console.log('✅ Imagen subida:', result);
+              }}
+              onError={(error) => {
+                console.error('❌ Error con imagen:', error);
+              }}
             />
-            {errors.imagen && (
-              <p className="mt-2 text-sm text-red-600">{errors.imagen}</p>
-            )}
             <p className="mt-2 text-sm text-gray-500">
               La imagen ayuda a los clientes a identificar el producto en el catálogo.
             </p>

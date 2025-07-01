@@ -158,6 +158,7 @@ const MisPedidos: React.FC = () => {
       console.log('✅ Pedidos recibidos:', pedidosUsuario);
       console.log('📊 Cantidad de pedidos:', pedidosUsuario.length);
 
+
       setPedidos(pedidosUsuario);
       console.log('📋 Pedidos cargados:', pedidosUsuario.length);
 
@@ -467,36 +468,36 @@ const MisPedidos: React.FC = () => {
                       </div>
                     </div>
 
-                    {detectarPromocionesEnPedido(pedido).tienePromociones && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
-                          <Gift className="w-5 h-5 mr-2 text-red-600" />
-                          Promociones Aplicadas
-                        </h4>
-                        <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg p-4">
-                          <div className="text-sm text-red-700">
-                            {detectarPromocionesEnPedido(pedido).resumenTexto}
-                          </div>
-
-                          {detectarPromocionesEnPedido(pedido).nombresPromociones.length > 0 && (
-                            <div className="mt-2">
-                              <div className="text-xs text-red-600 font-medium">Promociones:</div>
-                              <ul className="text-xs text-red-600 ml-4">
-                                {detectarPromocionesEnPedido(pedido).nombresPromociones.map((nombre, index) => (
-                                  <li key={index}>• {nombre}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {detectarPromocionesEnPedido(pedido).descuentoTotal > 0 && (
-                            <div className="mt-2 text-sm font-bold text-red-800">
-                              💰 Total ahorrado: ${detectarPromocionesEnPedido(pedido).descuentoTotal.toFixed(0)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+{detectarPromocionesEnPedido(pedido).tienePromociones && (
+  <div className="mb-6">
+    <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+      <Gift className="w-5 h-5 mr-2 text-red-600" />
+      Promociones Aplicadas
+    </h4>
+    <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg p-4">
+      <div className="text-sm text-red-700">
+        {detectarPromocionesEnPedido(pedido).resumenTexto}
+      </div>
+      
+      {detectarPromocionesEnPedido(pedido).nombresPromociones.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs text-red-600 font-medium">Promociones:</div>
+          <ul className="text-xs text-red-600 ml-4">
+            {detectarPromocionesEnPedido(pedido).nombresPromociones.map((nombre, index) => (
+              <li key={index}>• {nombre}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {detectarPromocionesEnPedido(pedido).descuentoTotal > 0 && (
+        <div className="mt-2 text-sm font-bold text-red-800">
+          💰 Total ahorrado: ${detectarPromocionesEnPedido(pedido).descuentoTotal.toFixed(0)}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
                     {/* Domicilio si es delivery */}
                     {pedido.tipoEnvio === 'DELIVERY' && pedido.domicilio && (

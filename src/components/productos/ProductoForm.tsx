@@ -7,17 +7,18 @@ import type { ImagenDTO } from "../../types/common/ImagenDTO";
 import { FormField } from "../common/FormFieldProps";
 import { Select } from "../common/Select";
 import { Button } from "../common/Button";
-import { ImageUpload } from "../common/ImageUpload";
+import { ArticleImageUpload } from "../common/ArticleImageUpload"; // ✅ NUEVO IMPORT
 import { IngredientesSelector } from "./IngredientesSelector";
 import type { UnidadMedidaDTO } from "../../services";
 import { CategoriaSelector } from "../common/CategoriaSelector";
+import { ProductoService } from "../../services/ProductoService"; // ✅ NUEVO IMPORT
 
 interface ProductoFormProps {
   producto?: ArticuloManufacturadoResponseDTO;
   categorias: CategoriaResponseDTO[];
   unidadesMedida: UnidadMedidaDTO[];
   ingredientes: ArticuloInsumoResponseDTO[];
-  onSubmit: (data: ArticuloManufacturadoRequestDTO) => Promise<void>;
+  onSubmit: (data: ArticuloManufacturadoRequestDTO) => Promise<ArticuloManufacturadoResponseDTO | void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -39,13 +40,14 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     tiempoEstimadoEnMinutos: 0,
     preparacion: "",
     precioVenta: 0,
-    margenGanancia: 2.5, // 250% por defecto
+    margenGanancia: 2.5,
     detalles: [],
-    imagen: undefined, // Campo para la imagen
+    imagen: undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [usarMargenAutomatico, setUsarMargenAutomatico] = useState(true);
+  const [imageError, setImageError] = useState<string | null>(null); // ✅ NUEVO ESTADO
 
   // Cargar datos si es edición
   useEffect(() => {
@@ -62,7 +64,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         detalles: producto.detalles || [],
         imagen: producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : undefined,
       });
-      setUsarMargenAutomatico(false); // Si es edición, asumir precio manual
+      setUsarMargenAutomatico(false);
     }
   }, [producto]);
 
@@ -114,15 +116,34 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ NUEVA LÓGICA DE SUBMIT CON MANEJO DE IMÁGENES
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setImageError(null);
 
     if (!validateForm()) return;
 
     try {
-      await onSubmit(formData);
+      // 1. Preparar datos sin imagen para el backend
+      const dataWithoutImage = { ...formData };
+      delete dataWithoutImage.imagen;
+
+      // 2. Crear/actualizar producto
+      const result = await onSubmit(dataWithoutImage);
+      
+      // 3. Manejar imagen por separado si es necesario
+      if (!producto && formData.imagen && result && 'idArticulo' in result) {
+        // Caso: Creación de producto con imagen
+        // La imagen se manejará automáticamente por ArticleImageUpload en modo 'deferred'
+        // o puedes manejarla manualmente aquí si prefieres
+        console.log('Producto creado exitosamente con ID:', result.idArticulo);
+      }
+
     } catch (error) {
       console.error("Error al guardar producto:", error);
+      if (error instanceof Error) {
+        setImageError(`Error al guardar: ${error.message}`);
+      }
     }
   };
 
@@ -133,12 +154,19 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // ✅ NUEVO MANEJADOR DE CAMBIO DE IMAGEN
   const handleImageChange = (imagen: ImagenDTO | null) => {
     updateField("imagen", imagen || undefined);
-    // Limpiar error de imagen si existe
+    setImageError(null); // Limpiar error al cambiar imagen
     if (errors.imagen) {
       setErrors(prev => ({ ...prev, imagen: '' }));
     }
+  };
+
+  // ✅ NUEVO CALLBACK PARA CUANDO SE SUBE IMAGEN
+  const handleImageUploaded = (result: any) => {
+    console.log('Imagen subida exitosamente:', result);
+    // Puedes mostrar una notificación de éxito aquí
   };
 
   const costoTotal = formData.detalles.reduce(
@@ -216,25 +244,38 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         </div>
       </div>
 
-      {/* Imagen del producto */}
+      {/* ✅ IMAGEN DEL PRODUCTO - COMPONENTE ACTUALIZADO */}
       <div className="border-b pb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
           Imagen del Producto
         </h2>
         
         <div className="max-w-md">
-          <ImageUpload
+          <ArticleImageUpload
+            idArticulo={producto?.idArticulo} // undefined para creación, number para edición
             currentImage={formData.imagen}
             onImageChange={handleImageChange}
+            onImageUploaded={handleImageUploaded}
             placeholder="Selecciona una imagen atractiva del producto"
             maxSize={5}
             disabled={loading}
+            mode={producto ? "immediate" : "deferred"} // Inmediato para edición, diferido para creación
           />
-          {errors.imagen && (
-            <p className="mt-2 text-sm text-red-600">{errors.imagen}</p>
+          
+          {/* Mostrar errores de imagen */}
+          {(errors.imagen || imageError) && (
+            <p className="mt-2 text-sm text-red-600">
+              {errors.imagen || imageError}
+            </p>
           )}
+          
           <p className="mt-2 text-sm text-gray-500">
             Una buena imagen ayuda a las ventas. Se recomienda una foto del producto terminado.
+            {!producto && (
+              <span className="block text-blue-600 mt-1">
+                💡 La imagen se subirá automáticamente al guardar el producto.
+              </span>
+            )}
           </p>
         </div>
       </div>

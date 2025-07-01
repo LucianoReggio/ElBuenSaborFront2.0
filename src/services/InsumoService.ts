@@ -70,7 +70,115 @@ export class InsumoService {
     }
   }
 
-  // Métodos específicos para insumos
+  // ==================== NUEVOS MÉTODOS PARA MANEJO DE IMÁGENES ====================
+
+  /**
+   * ✅ Sube imagen para un insumo específico
+   */
+  async uploadImagen(
+    id: number,
+    file: File,
+    denominacion: string = 'Imagen del producto'
+  ): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('denominacion', denominacion);
+
+      const response = await fetch(`http://localhost:8080/api${this.endpoint}/${id}/imagen`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // No incluir Content-Type para FormData, el browser lo maneja automáticamente
+          // Aquí deberías incluir el token de Auth0 si es necesario
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al subir imagen');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * ✅ Actualiza imagen de un insumo (elimina anterior + sube nueva)
+   */
+  async updateImagen(
+    id: number,
+    file: File,
+    denominacion: string = 'Imagen del producto'
+  ): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('denominacion', denominacion);
+
+      const response = await fetch(`http://localhost:8080/api${this.endpoint}/${id}/imagen`, {
+        method: 'PUT',
+        body: formData,
+        headers: {
+          // Aquí deberías incluir el token de Auth0 si es necesario
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar imagen');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * ✅ Elimina todas las imágenes de un insumo
+   */
+  async deleteImagenes(id: number): Promise<any> {
+    try {
+      const response = await fetch(`http://localhost:8080/api${this.endpoint}/${id}/imagenes`, {
+        method: 'DELETE',
+        headers: {
+          // Aquí deberías incluir el token de Auth0 si es necesario
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al eliminar imágenes');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * ✅ Obtiene todas las imágenes de un insumo
+   */
+  async getImagenes(id: number): Promise<any[]> {
+    try {
+      const response = await fetch(`http://localhost:8080/api${this.endpoint}/${id}/imagenes`);
+
+      if (!response.ok) {
+        throw new Error('Error al obtener imágenes');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  // ==================== MÉTODOS ESPECÍFICOS EXISTENTES ====================
+
   async getInsumosParaElaborar(): Promise<ArticuloInsumoResponseDTO[]> {
     try {
       return await apiClienteService.get<ArticuloInsumoResponseDTO[]>(
