@@ -218,80 +218,129 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ abierto, onCerrar, onExit
         }
       }
 
-      // Crear el request del pedido
-      const pedidoRequest: PedidoRequestDTO = {
-        idCliente: userId,
-        idSucursal: idSucursal,
-        tipoEnvio: carrito.datosEntrega.tipoEnvio,
-        // SOLO incluir domicilio si es delivery Y está seleccionado
-        ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? { 
-          idDomicilio: domicilioSeleccionado 
-        } : {}),
-        detalles: carrito.items.map(item => ({
-          idArticulo: item.id,
-          cantidad: item.cantidad
-        })),
-        // Incluir observaciones si hay alguna
-        ...(observaciones.trim() ? { observaciones: observaciones.trim() } : {})
-      };
+      const pedidoRequest: PedidoRequestDTO = { // O PedidoEfectivoRequestDTO si usas Opción 2
+            // ==================== CAMPOS BÁSICOS ====================
+            idCliente: userId,
+            idSucursal: idSucursal,
+            tipoEnvio: carrito.datosEntrega.tipoEnvio,
+            ...(carrito.datosEntrega.tipoEnvio === 'DELIVERY' && domicilioSeleccionado ? { 
+                idDomicilio: domicilioSeleccionado 
+            } : {}),
+            detalles: carrito.items.map(item => ({
+                idArticulo: item.id,
+                cantidad: item.cantidad
+            })),
+            ...(observaciones.trim() ? { observaciones: observaciones.trim() } : {}),
 
-      // 🚨 LOGS IMPORTANTES PARA DEBUG
-      console.log('🛒 PEDIDO REQUEST COMPLETO:', JSON.stringify(pedidoRequest, null, 2));
-      console.log('📝 Observaciones enviadas:', `"${observaciones}"`);
-      console.log('🏠 ID Domicilio enviado:', domicilioSeleccionado);
-      console.log('🚚 Tipo de envío:', carrito.datosEntrega.tipoEnvio);
-      console.log('👤 ID Cliente:', userId);
+            // ==================== 🆕 CAMPOS CRÍTICOS PARA DESCUENTOS ====================
+            porcentajeDescuentoTakeAway: 10.0,
+            gastosEnvioDelivery: 200.0,
+            aplicarDescuentoTakeAway: carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY',
 
-      // Crear el pedido
-      const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
-      
-console.log('✅ Pedido creado exitosamente:', pedidoCreado);
+            // ==================== 🆕 CONFIGURACIÓN ADICIONAL ====================
+            calcularAutomaticamente: true,
+            validarStock: true,
 
-    // ✅ NUEVO: Crear pago en efectivo automáticamente
-    try {
-      console.log('💵 Creando pago en efectivo para el pedido...');
-      
-      // Obtener la factura del pedido
-      const factura = await pagoService.getFacturaPedido(pedidoCreado.idPedido);
-      console.log('📄 Factura obtenida para pago:', factura);
+            // ==================== 🆕 SI USAS OPCIÓN 2 (PedidoEfectivoRequestDTO) ====================
+            // metodoPago: 'EFECTIVO',
+            // crearPagoAutomatico: true,
+        };
 
-      // Crear el pago en efectivo - SIN TIPOS ESPECÍFICOS
-      const pagoRequest = {
-        facturaId: factura.idFactura,
-        formaPago: 'EFECTIVO',
-        monto: factura.totalVenta,
-        moneda: 'ARS',
-        descripcion: `Pago en efectivo - Pedido #${pedidoCreado.idPedido} - ${carrito.datosEntrega.tipoEnvio}`
-      };
+        // ✅ LOGS CRÍTICOS PARA VERIFICAR QUE SE ENVÍAN LOS CAMPOS CORRECTOS
+        console.log('🛒 === VERIFICACIÓN CRÍTICA - PEDIDO EFECTIVO ===');
+        console.log('🔢 ID Cliente:', pedidoRequest.idCliente);
+        console.log('🏪 Tipo de envío:', pedidoRequest.tipoEnvio);
+        console.log('💰 ¿Aplicar descuento TAKE_AWAY?:', pedidoRequest.aplicarDescuentoTakeAway);
+        console.log('📊 Porcentaje descuento:', pedidoRequest.porcentajeDescuentoTakeAway);
+        console.log('🚚 Gastos envío delivery:', pedidoRequest.gastosEnvioDelivery);
+        
+        // ✅ VERIFICACIÓN DE QUE LOS CAMPOS ESTÁN PRESENTES
+        if (pedidoRequest.tipoEnvio === 'TAKE_AWAY') {
+            console.log('✅ TAKE_AWAY detectado - Verificando campos de descuento:');
+            console.log('  - aplicarDescuentoTakeAway:', pedidoRequest.aplicarDescuentoTakeAway);
+            console.log('  - porcentajeDescuentoTakeAway:', pedidoRequest.porcentajeDescuentoTakeAway);
+            
+            if (!pedidoRequest.aplicarDescuentoTakeAway) {
+                console.error('❌ ERROR: aplicarDescuentoTakeAway debería ser true para TAKE_AWAY');
+            }
+            if (!pedidoRequest.porcentajeDescuentoTakeAway) {
+                console.error('❌ ERROR: porcentajeDescuentoTakeAway no está definido');
+            }
+        }
+        
+        console.log('📋 Request completo enviado al backend:', JSON.stringify(pedidoRequest, null, 2));
 
-      console.log('💳 Datos del pago a crear:', pagoRequest);
-      
-      const pagoCreado = await apiClienteService.post('/pagos', pagoRequest);
-      console.log('✅ Pago en efectivo creado exitosamente:', pagoCreado);
+        // ✅ ENVIAR AL BACKEND - ASEGURARSE DE QUE USA EL ENDPOINT CORRECTO
+        const pedidoCreado = await pedidoService.crearPedido(pedidoRequest);
+        
+        console.log('✅ Pedido creado exitosamente:', pedidoCreado);
+        console.log('💰 Total del pedido creado:', pedidoCreado.total);
 
-    } catch (pagoError: any) {
-      console.error('❌ Error al crear pago en efectivo:', pagoError);
-      console.log('⚠️ El pedido se creó correctamente. El pago se puede crear manualmente desde gestión.');
-      // No fallar todo el proceso
-    }
+        // ✅ VERIFICAR SI EL DESCUENTO SE APLICÓ EN EL BACKEND
+        if (carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY') {
+            const subtotalEsperado = carrito.subtotal;
+            const descuentoEsperado = subtotalEsperado * 0.1;
+            const totalEsperado = subtotalEsperado - descuentoEsperado;
+            
+            console.log('🧮 VERIFICACIÓN DE DESCUENTO:');
+            console.log('  - Subtotal frontend:', subtotalEsperado);
+            console.log('  - Descuento esperado (10%):', descuentoEsperado);
+            console.log('  - Total esperado:', totalEsperado);
+            console.log('  - Total del backend:', pedidoCreado.total);
+            
+            if (Math.abs(pedidoCreado.total - totalEsperado) > 1) {
+                console.warn('⚠️ POSIBLE PROBLEMA: Total del backend no coincide con el esperado');
+                console.warn('¿El backend está aplicando el descuento?');
+            } else {
+                console.log('✅ Descuento aplicado correctamente en el backend');
+            }
+        }
 
-      console.log('✅ Pedido creado exitosamente:', pedidoCreado);
-      console.log('📝 Observaciones en respuesta:', pedidoCreado.observaciones);
+        // ✅ CREAR PAGO EN EFECTIVO AUTOMÁTICAMENTE
+        try {
+            console.log('💵 Creando pago en efectivo para el pedido...');
+            
+            const factura = await pagoService.getFacturaPedido(pedidoCreado.idPedido);
+            console.log('📄 Factura obtenida para pago:', factura);
 
-      // Limpiar carrito
-      carrito.limpiarCarrito();
-      
-      // Notificar éxito
-      onExito();
-      onCerrar();
+            const pagoRequest = {
+                facturaId: factura.idFactura,
+                formaPago: 'EFECTIVO',
+                monto: factura.totalVenta,
+                moneda: 'ARS',
+                descripcion: `Pago en efectivo - Pedido #${pedidoCreado.idPedido} - ${carrito.datosEntrega.tipoEnvio}`
+            };
+
+            console.log('💳 Datos del pago a crear:', pagoRequest);
+            
+            const pagoCreado = await apiClienteService.post('/pagos', pagoRequest);
+            console.log('✅ Pago en efectivo creado exitosamente:', pagoCreado);
+
+        } catch (pagoError: any) {
+            console.error('❌ Error al crear pago en efectivo:', pagoError);
+            console.log('⚠️ El pedido se creó correctamente. El pago se puede crear manualmente.');
+        }
+
+        // Limpiar carrito y notificar éxito
+        carrito.limpiarCarrito();
+        onExito();
+        onCerrar();
 
     } catch (err: any) {
-      console.error('❌ Error al crear pedido:', err);
-      setError(err.message || 'Error al procesar el pedido. Intenta de nuevo.');
+        console.error('❌ Error al crear pedido:', err);
+        
+        // ✅ DEBUG ADICIONAL EN CASO DE ERROR
+        if (err.response) {
+            console.error('❌ Error response:', err.response);
+            console.error('❌ Error response data:', err.response.data);
+            console.error('❌ Error response status:', err.response.status);
+        }
+        
+        setError(err.message || 'Error al procesar el pedido. Intenta de nuevo.');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   // Obtener datos del usuario para mostrar
   const userData = getUserData();

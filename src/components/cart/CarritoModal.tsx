@@ -299,11 +299,18 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
     });
   };
 
-  return (
+   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      {/* ✅ CAMBIO PRINCIPAL: Altura dinámica y mejor manejo del espacio */}
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col" 
+           style={{ 
+             height: '90vh', 
+             maxHeight: '800px',
+             minHeight: '500px' 
+           }}>
 
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-[#CD6C50] to-[#e07d5f] text-white">
+        {/* Header - FIJO */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-[#CD6C50] to-[#e07d5f] text-white flex-shrink-0">
           <div className="flex items-center space-x-3">
             <ShoppingCart className="w-6 h-6" />
             <div>
@@ -327,9 +334,10 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* ✅ ÁREA PRINCIPAL SCROLLEABLE - ocupará el espacio disponible */}
+        <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
           {carrito.estaVacio ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex flex-col items-center justify-center h-full text-center">
               <ShoppingCart className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-xl font-semibold text-gray-500 mb-2">Tu carrito está vacío</h3>
               <p className="text-gray-400 mb-6">¡Agrega algunos productos deliciosos!</p>
@@ -343,7 +351,7 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
           ) : (
             <div className="p-6">
 
-              {/* ✅ BANNER PROMOCIÓN AGRUPADA FORZADO */}
+              {/* Banner promoción agrupada */}
               {tienePromocionAgrupadaForzada && promocionAgrupadaActiva && (
                 <div className="p-6 border-b border-gray-200 mb-6">
                   <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-lg p-4">
@@ -396,6 +404,7 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
                 </div>
               )}
 
+              {/* Lista de productos */}
               <div className="space-y-4">
                 {carrito.items.map((item) => (
                   <div 
@@ -411,180 +420,190 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
                   </div>
                 ))}
               </div>
+
+              {/* ✅ AGREGAR ESPACIO AL FINAL para evitar que el último item se corte */}
+              <div className="h-6"></div>
             </div>
           )}
         </div>
 
+        {/* ✅ FOOTER FIJO - siempre visible */}
         {!carrito.estaVacio && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="border-t border-gray-200 bg-gray-50 flex-shrink-0">
+            {/* ✅ CONTENIDO DEL FOOTER CON ALTURA MÁXIMA CONTROLADA */}
+            <div className="p-6 max-h-80 overflow-y-auto">
 
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Tipo de entrega</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleTipoEnvioChange('TAKE_AWAY')}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY'
-                    ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
-                    : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                >
-                  <Store className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
-                  <div className="text-sm font-medium">Retiro en local</div>
-                  <div className="text-xs text-green-600 font-bold">✨ 10% descuento</div>
-                </button>
+              {/* Tipo de entrega */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-3">Tipo de entrega</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleTipoEnvioChange('TAKE_AWAY')}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${carrito.datosEntrega.tipoEnvio === 'TAKE_AWAY'
+                      ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <Store className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
+                    <div className="text-sm font-medium">Retiro en local</div>
+                    <div className="text-xs text-green-600 font-bold">✨ 10% descuento</div>
+                  </button>
 
-                <button
-                  onClick={() => handleTipoEnvioChange('DELIVERY')}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${carrito.datosEntrega.tipoEnvio === 'DELIVERY'
-                    ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
-                    : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                >
-                  <Truck className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
-                  <div className="text-sm font-medium">Delivery</div>
-                  <div className="text-xs text-gray-500">+$200</div>
-                </button>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Observaciones (opcional)
-              </label>
-              <textarea
-                value={observaciones}
-                onChange={(e) => handleObservacionesChange(e.target.value)}
-                placeholder="Ej: Sin cebolla, extra queso..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent resize-none"
-                rows={2}
-              />
-            </div>
-
-            {/* ✅ RESUMEN DE TOTALES FORZADO */}
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-3">
-                <Calculator className="w-5 h-5 text-[#CD6C50]" />
-                <h3 className="font-semibold text-gray-800">Resumen del pedido</h3>
-                {carrito.cargandoTotales && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#CD6C50]"></div>
-                )}
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>${carrito.subtotal.toFixed(0)}</span>
-                </div>
-                
-                {/* ✅ DESCUENTO DE PROMOCIÓN AGRUPADA FORZADO */}
-                {descuentoPromocionForzado > 0 && (
-                  <div className="flex justify-between text-red-600 font-medium">
-                    <span className="flex items-center">
-                      <Gift className="w-3 h-3 mr-1" />
-                      🎁 {promocionAgrupadaActiva?.denominacion || 'Promoción especial'} ({promocionAgrupadaActiva?.valorDescuento || 10}% OFF)
-                    </span>
-                    <span>-${descuentoPromocionForzado.toFixed(0)}</span>
-                  </div>
-                )}
-                
-                {/* ✅ DESCUENTO RETIRO */}
-                {carrito.tieneDescuentoRetiro && carrito.descuentoRetiro > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span className="flex items-center">
-                      <Tag className="w-3 h-3 mr-1" />
-                      💰 Descuento retiro (10%)
-                    </span>
-                    <span>-${carrito.descuentoRetiro.toFixed(0)}</span>
-                  </div>
-                )}
-
-                {!tienePromocionAgrupadaForzada && carrito.tienePromociones() && carrito.getTotalDescuentosPromociones() > 0 && (
-                  <div className="flex justify-between text-purple-600">
-                    <span className="flex items-center">
-                      <Gift className="w-3 h-3 mr-1" />
-                      Promociones aplicadas
-                    </span>
-                    <span>-${carrito.getTotalDescuentosPromociones().toFixed(0)}</span>
-                  </div>
-                )}
-
-                {carrito.costoEnvio > 0 && (
-                  <div className="flex justify-between text-gray-600">
-                    <span className="flex items-center">
-                      <Truck className="w-3 h-3 mr-1" />
-                      Envío
-                    </span>
-                    <span>+${carrito.costoEnvio.toFixed(0)}</span>
-                  </div>
-                )}
-
-                {carrito.tiempoEstimadoTotal > 0 && (
-                  <div className="flex justify-between text-gray-600">
-                    <span className="flex items-center">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Tiempo estimado
-                    </span>
-                    <span>{carrito.tiempoEstimadoTotal} min</span>
-                  </div>
-                )}
-
-                <div className="border-t pt-2">
-                  <div className="flex justify-between text-xl font-bold text-gray-800">
-                    <span>Total</span>
-                    <span className="text-[#CD6C50]">
-                      ${Math.max(0, carrito.subtotal - (descuentoPromocionForzado + carrito.descuentoRetiro) + carrito.costoEnvio).toFixed(0)}
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => handleTipoEnvioChange('DELIVERY')}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${carrito.datosEntrega.tipoEnvio === 'DELIVERY'
+                      ? 'border-[#CD6C50] bg-[#CD6C50] bg-opacity-10'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <Truck className="w-5 h-5 mx-auto mb-2 text-[#CD6C50]" />
+                    <div className="text-sm font-medium">Delivery</div>
+                    <div className="text-xs text-gray-500">+$200</div>
+                  </button>
                 </div>
               </div>
 
-              {(carrito.tieneDescuento || tienePromocionAgrupadaForzada) && (
-                <div className="mt-3 space-y-2">
-                  {tienePromocionAgrupadaForzada && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-700 text-sm">
-                        🎁 <strong>Promoción especial aplicada:</strong> {promocionAgrupadaActiva?.denominacion}
-                      </p>
+              {/* Observaciones */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observaciones (opcional)
+                </label>
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => handleObservacionesChange(e.target.value)}
+                  placeholder="Ej: Sin cebolla, extra queso..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CD6C50] focus:border-transparent resize-none"
+                  rows={2}
+                />
+              </div>
+
+              {/* Resumen de totales */}
+              <div className="mb-6">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Calculator className="w-5 h-5 text-[#CD6C50]" />
+                  <h3 className="font-semibold text-gray-800">Resumen del pedido</h3>
+                  {carrito.cargandoTotales && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#CD6C50]"></div>
+                  )}
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span>${carrito.subtotal.toFixed(0)}</span>
+                  </div>
+                  
+                  {descuentoPromocionForzado > 0 && (
+                    <div className="flex justify-between text-red-600 font-medium">
+                      <span className="flex items-center">
+                        <Gift className="w-3 h-3 mr-1" />
+                        🎁 {promocionAgrupadaActiva?.denominacion || 'Promoción especial'} ({promocionAgrupadaActiva?.valorDescuento || 10}% OFF)
+                      </span>
+                      <span>-${descuentoPromocionForzado.toFixed(0)}</span>
+                    </div>
+                  )}
+                  
+                  {carrito.tieneDescuentoRetiro && carrito.descuentoRetiro > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span className="flex items-center">
+                        <Tag className="w-3 h-3 mr-1" />
+                        💰 Descuento retiro (10%)
+                      </span>
+                      <span>-${carrito.descuentoRetiro.toFixed(0)}</span>
                     </div>
                   )}
 
-                  {carrito.tieneDescuentoRetiro && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-green-700 text-sm">
-                        ✨ 10% descuento por retiro en local
-                      </p>
+                  {!tienePromocionAgrupadaForzada && carrito.tienePromociones() && carrito.getTotalDescuentosPromociones() > 0 && (
+                    <div className="flex justify-between text-purple-600">
+                      <span className="flex items-center">
+                        <Gift className="w-3 h-3 mr-1" />
+                        Promociones aplicadas
+                      </span>
+                      <span>-${carrito.getTotalDescuentosPromociones().toFixed(0)}</span>
                     </div>
                   )}
-                </div>
-              )}
 
-              {carrito.errorTotales && (
-                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-orange-700 text-sm">
-                    ⚠️ {carrito.errorTotales}
-                  </p>
+                  {carrito.costoEnvio > 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span className="flex items-center">
+                        <Truck className="w-3 h-3 mr-1" />
+                        Envío
+                      </span>
+                      <span>+${carrito.costoEnvio.toFixed(0)}</span>
+                    </div>
+                  )}
+
+                  {carrito.tiempoEstimadoTotal > 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Tiempo estimado
+                      </span>
+                      <span>{carrito.tiempoEstimadoTotal} min</span>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between text-xl font-bold text-gray-800">
+                      <span>Total</span>
+                      <span className="text-[#CD6C50]">
+                        ${Math.max(0, carrito.subtotal - (descuentoPromocionForzado + carrito.descuentoRetiro) + carrito.costoEnvio).toFixed(0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {(carrito.tieneDescuento || tienePromocionAgrupadaForzada) && (
+                  <div className="mt-3 space-y-2">
+                    {tienePromocionAgrupadaForzada && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-700 text-sm">
+                          🎁 <strong>Promoción especial aplicada:</strong> {promocionAgrupadaActiva?.denominacion}
+                        </p>
+                      </div>
+                    )}
+
+                    {carrito.tieneDescuentoRetiro && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-green-700 text-sm">
+                          ✨ 10% descuento por retiro en local
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {carrito.errorTotales && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-orange-700 text-sm">
+                      ⚠️ {carrito.errorTotales}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={onCerrar}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
-              >
-                Seguir comprando
-              </button>
-              <button
-                onClick={handleFinalizarCompra}
-                className="flex-1 px-6 py-3 bg-[#CD6C50] text-white rounded-lg hover:bg-[#b85a42] transition-colors duration-200 font-medium relative"
-              >
-                Finalizar compra
-                {(tienePromocionAgrupadaForzada || estadisticasPromociones.tienePromociones) && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                    🎁
-                  </span>
-                )}
-              </button>
+            {/* ✅ BOTONES COMPLETAMENTE FIJOS EN LA PARTE INFERIOR */}
+            <div className="border-t border-gray-200 p-6 bg-white">
+              <div className="flex space-x-3">
+                <button
+                  onClick={onCerrar}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                >
+                  Seguir comprando
+                </button>
+                <button
+                  onClick={handleFinalizarCompra}
+                  className="flex-1 px-6 py-3 bg-[#CD6C50] text-white rounded-lg hover:bg-[#b85a42] transition-colors duration-200 font-medium relative"
+                >
+                  Finalizar compra
+                  {(tienePromocionAgrupadaForzada || estadisticasPromociones.tienePromociones) && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                      🎁
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -598,5 +617,6 @@ const CarritoModal: React.FC<CarritoModalProps> = ({ abierto, onCerrar }) => {
     </div>
   );
 };
+
 
 export default CarritoModal;
