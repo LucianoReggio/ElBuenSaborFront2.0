@@ -13,7 +13,7 @@ export interface PromocionCompletaDTO {
   fechaHasta: string;
   horaDesde: string;
   horaHasta: string;
-  tipoDescuento: 'PORCENTUAL' | 'FIJO';
+  tipoDescuento: "PORCENTUAL" | "MONTO_FIJO";
   valorDescuento: number;
   articulos: ArticuloBasicoDTO[];
 }
