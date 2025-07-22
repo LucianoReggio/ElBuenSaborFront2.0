@@ -10,6 +10,9 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Gift,
+  Tag,
+  Percent
 } from "lucide-react";
 import { PedidoService } from "../services/PedidoServices";
 import { ClienteService } from "../services/ClienteService"; // ✅ AGREGAR IMPORT
@@ -19,8 +22,6 @@ import type { PedidoResponseDTO } from "../types/pedidos/PedidoResponseDTO";
 // 🆕 NUEVO: Importaciones para facturas
 import { BotonDescargarFacturaPdf } from "../components/facturas/BotonDescargarFactura";
 import { useFacturas } from "../hooks/useFacturas";
-
-import { Gift, Tag, Percent } from "lucide-react";
 
 const pedidoService = new PedidoService();
 
@@ -75,15 +76,75 @@ const PromocionesBadge: React.FC<{ pedido: PedidoResponseDTO }> = ({
 };
 
 const ProductoConPromocion: React.FC<{ detalle: any }> = ({ detalle }) => {
-  const tienePromocion =
+  // 🆕 LÓGICA MEJORADA: Detectar promociones de múltiples formas
+  const tienePromocionAplicada = Boolean(
     detalle.tienePromocion ||
     detalle.promocionAplicada ||
-    (detalle.descuentoPromocion && detalle.descuentoPromocion > 0);
+    (detalle.descuentoPromocion && detalle.descuentoPromocion > 0)
+  );
+
+  // 🆕 LÓGICA MEJORADA: Calcular precios originales y finales
+  const precioOriginal = detalle.precioUnitarioOriginal || detalle.precioUnitario || 0;
+  const precioFinal = detalle.precioUnitarioFinal || detalle.precioUnitario || 0;
+  const subtotalOriginal = detalle.subtotalOriginal || (precioOriginal * detalle.cantidad) || 0;
+  const subtotalFinal = detalle.subtotal || 0;
+  
+  // 🆕 LÓGICA MEJORADA: Determinar si mostrar precio tachado
+  const deberMostrarDescuento = tienePromocionAplicada && (
+    precioOriginal !== precioFinal || 
+    subtotalOriginal !== subtotalFinal ||
+    (detalle.descuentoPromocion && detalle.descuentoPromocion > 0)
+  );
+
+  // ✅ NUEVO: Calcular ahorro real para evitar mostrar 0s
+  const ahorroCalculado = subtotalOriginal > subtotalFinal ? (subtotalOriginal - subtotalFinal) : 0;
+
+  // ✅ ULTRA SEGURO: Validaciones boolean explícitas
+  const promocionValida = Boolean(
+    detalle.promocionAplicada && 
+    detalle.promocionAplicada.denominacion && 
+    detalle.promocionAplicada.denominacion.trim().length > 0
+  );
+  
+  const descuentoValidoSinPromocion = Boolean(
+    !detalle.promocionAplicada && 
+    detalle.descuentoPromocion && 
+    detalle.descuentoPromocion > 0
+  );
+
+  // ✅ ULTRA SEGURO: Validar cantidad
+  const cantidad = detalle.cantidad && detalle.cantidad > 0 ? detalle.cantidad : 1;
+
+  // ✅ ULTRA SEGURO: Validar observaciones
+  const tieneObservacionesValidas = Boolean(
+    detalle.observaciones && 
+    detalle.observaciones.toString().trim().length > 0 && 
+    detalle.observaciones.toString().trim() !== '0' &&
+    detalle.observaciones.toString().toLowerCase() !== 'null'
+  );
+
+  // ✅ ULTRA SEGURO: Validar tiempo de preparación
+  const tieneTiempoPreparacion = Boolean(
+    detalle.tiempoPreparacion && 
+    detalle.tiempoPreparacion > 0
+  );
+
+  // 🔍 DEBUG: Log para identificar el problema
+  console.log(`🔍 DEBUG ULTRA SEGURO ${detalle.denominacionArticulo}:`, {
+    cantidad: detalle.cantidad,
+    cantidadFinal: cantidad,
+    observaciones: detalle.observaciones,
+    tieneObservacionesValidas,
+    tiempoPreparacion: detalle.tiempoPreparacion,
+    tieneTiempoPreparacion,
+    tienePromocionAplicada,
+    todoElDetalle: detalle
+  });
 
   return (
     <div
       className={`flex justify-between items-center rounded-lg p-4 ${
-        tienePromocion
+        tienePromocionAplicada
           ? "bg-gradient-to-r from-red-50 to-pink-50 border border-red-200"
           : "bg-white"
       }`}
@@ -91,46 +152,256 @@ const ProductoConPromocion: React.FC<{ detalle: any }> = ({ detalle }) => {
       <div>
         <div className="flex items-center space-x-2">
           <span className="font-medium text-gray-800">
-            {detalle.denominacionArticulo}
+            {detalle.denominacionArticulo || 'Producto'}
           </span>
-          <span className="text-gray-500">x{detalle.cantidad}</span>
-          {tienePromocion && (
+          {/* ✅ CANTIDAD SEGURA: Siempre mostrar cantidad válida */}
+          <span className="text-gray-500">x{cantidad}</span>
+          {/* ✅ PROMOCIÓN SEGURA: Solo si tienePromocionAplicada es true */}
+          {tienePromocionAplicada === true && (
             <div className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium flex items-center">
               <Gift className="w-3 h-3 mr-1" />
               Promoción
             </div>
           )}
         </div>
-        {detalle.promocionAplicada && (
+        
+        {/* ✅ PROMOCIÓN VÁLIDA: Solo si promocionValida es true */}
+        {promocionValida === true && (
           <div className="text-sm text-red-600 mt-1">
-            {detalle.promocionAplicada.denominacion} - Ahorro: ${detalle.descuentoPromocion?.toFixed(0) || 0}
+            {detalle.promocionAplicada.denominacion} - Ahorro: ${(detalle.descuentoPromocion || 0).toFixed(0)}
           </div>
         )}
-        {detalle.tiempoPreparacion > 0 && (
+        
+        {/* ✅ DESCUENTO SIN PROMOCIÓN: Solo si descuentoValidoSinPromocion es true */}
+        {descuentoValidoSinPromocion === true && (
+          <div className="text-sm text-red-600 mt-1">
+            Descuento aplicado: ${detalle.descuentoPromocion.toFixed(0)}
+          </div>
+        )}
+        
+        {/* ✅ OBSERVACIONES SEGURAS: Solo si tieneObservacionesValidas es true */}
+        {tieneObservacionesValidas === true && (
+          <div className="text-sm text-gray-600 italic mt-1">
+            Obs: {detalle.observaciones}
+          </div>
+        )}
+        
+        {/* ✅ TIEMPO SEGURO: Solo si tieneTiempoPreparacion es true */}
+        {tieneTiempoPreparacion === true && (
           <div className="text-sm text-gray-500 flex items-center mt-1">
             <Clock className="w-3 h-3 mr-1" />
             {detalle.tiempoPreparacion} min
           </div>
         )}
       </div>
+      
       <div className="text-right">
-        {tienePromocion &&
-        detalle.precioUnitarioOriginal !== detalle.precioUnitarioFinal ? (
+        {/* ✅ PRECIOS SEGUROS: Solo si deberMostrarDescuento Y ahorroCalculado > 0 */}
+        {deberMostrarDescuento === true && ahorroCalculado > 0 ? (
           <div>
+            {/* Precio/subtotal original tachado */}
             <div className="text-sm text-gray-500 line-through">
-              $
-              {detalle.subtotalOriginal?.toFixed(0) ||
-                (detalle.precioUnitarioOriginal * detalle.cantidad).toFixed(0)}
+              ${subtotalOriginal.toFixed(0)}
             </div>
+            {/* Precio/subtotal final */}
             <div className="font-semibold text-gray-800">
-              ${detalle.subtotal.toFixed(0)}
+              ${subtotalFinal.toFixed(0)}
+            </div>
+            {/* Ahorro calculado */}
+            <div className="text-xs text-red-600 font-medium">
+              Ahorro: ${ahorroCalculado.toFixed(0)}
             </div>
           </div>
         ) : (
+          /* ✅ PRECIO NORMAL SEGURO */
           <span className="font-semibold text-gray-800">
-            ${detalle.subtotal.toFixed(0)}
+            ${subtotalFinal.toFixed(0)}
           </span>
         )}
+      </div>
+    </div>
+  );
+};
+
+// ✅ NUEVO: Componente para mostrar descuento TAKE_AWAY
+const DescuentoTakeAwayInfo: React.FC<{ pedido: PedidoResponseDTO }> = ({ pedido }) => {
+  // Solo mostrar si es TAKE_AWAY
+  if (pedido.tipoEnvio !== "TAKE_AWAY") {
+    return null;
+  }
+
+  // Calcular descuento TAKE_AWAY
+  const resumenPromociones = detectarPromocionesEnPedido(pedido);
+  const subtotalConPromociones = resumenPromociones.subtotalOriginal - resumenPromociones.descuentoTotal;
+  const porcentajeTakeAway = 10; // 10% de descuento TAKE_AWAY
+  const descuentoTakeAwayCalculado = subtotalConPromociones * (porcentajeTakeAway / 100);
+  
+  // Verificar que el descuento se aplicó (comparando totales)
+  const totalEsperadoSinTakeAway = subtotalConPromociones;
+  const totalConTakeAway = pedido.total;
+  const descuentoReal = totalEsperadoSinTakeAway - totalConTakeAway;
+  
+  // Solo mostrar si hay descuento significativo
+  if (Math.abs(descuentoReal - descuentoTakeAwayCalculado) > 5) {
+    // Los números no coinciden exactamente, podría no tener descuento TAKE_AWAY
+    // Pero si hay alguna diferencia, mostrarla
+    if (descuentoReal < 5) {
+      return null;
+    }
+  }
+
+  return (
+    <div className="mb-6">
+      <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+        <Store className="w-5 h-5 mr-2 text-orange-600" />
+        Descuento Retiro en Local
+      </h4>
+      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-orange-800">
+              🏪 10% OFF por Retiro en Local
+            </div>
+            <div className="text-xs text-orange-600 mt-1">
+              Descuento sobre subtotal con promociones: ${subtotalConPromociones.toFixed(0)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-orange-800">
+              -${descuentoReal.toFixed(0)}
+            </div>
+            <div className="text-xs text-orange-600">
+              ({porcentajeTakeAway}% OFF)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ✅ NUEVO: Componente para mostrar costo de delivery
+const CostoDeliveryInfo: React.FC<{ pedido: PedidoResponseDTO }> = ({ pedido }) => {
+  // Solo mostrar si es DELIVERY
+  if (pedido.tipoEnvio !== "DELIVERY") {
+    return null;
+  }
+
+  const costoDelivery = 200; // Costo fijo de delivery
+
+  return (
+    <div className="mb-6">
+      <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+        <Truck className="w-5 h-5 mr-2 text-purple-600" />
+        Costo de Envío
+      </h4>
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-purple-800">
+              🚚 Envío a Domicilio
+            </div>
+            <div className="text-xs text-purple-600 mt-1">
+              Costo fijo de delivery a tu domicilio
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-purple-800">
+              +${costoDelivery}
+            </div>
+            <div className="text-xs text-purple-600">
+              (Envío)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ✅ MODIFICADO: Componente de resumen de totales mejorado
+const ResumenTotales: React.FC<{ pedido: PedidoResponseDTO }> = ({ pedido }) => {
+  const resumenPromociones = detectarPromocionesEnPedido(pedido);
+  const subtotalConPromociones = resumenPromociones.subtotalOriginal - resumenPromociones.descuentoTotal;
+  
+  // Calcular descuento TAKE_AWAY si aplica
+  let descuentoTakeAway = 0;
+  if (pedido.tipoEnvio === "TAKE_AWAY") {
+    const totalEsperadoSinTakeAway = subtotalConPromociones;
+    descuentoTakeAway = totalEsperadoSinTakeAway - pedido.total;
+    // Redondear para evitar decimales extraños
+    descuentoTakeAway = Math.max(0, Math.round(descuentoTakeAway));
+  }
+
+  // Detectar costo de delivery
+  let costoDelivery = 0;
+  if (pedido.tipoEnvio === "DELIVERY") {
+    // Calcular costo delivery basado en diferencia de totales
+    const totalSinEnvio = subtotalConPromociones;
+    const totalConEnvio = pedido.total;
+    costoDelivery = totalConEnvio - totalSinEnvio;
+    costoDelivery = Math.max(0, Math.round(costoDelivery));
+    
+    // Si la diferencia no es significativa, asumir $200
+    if (costoDelivery < 50) {
+      costoDelivery = 200;
+    }
+  }
+
+  return (
+    <div className="border-t pt-4 space-y-3 mt-6">
+      <h4 className="font-semibold text-gray-800 mb-3">Resumen del Pedido</h4>
+      
+      {/* Subtotal original */}
+      <div className="flex justify-between text-gray-700">
+        <span>Subtotal original:</span>
+        <span className="font-medium">${resumenPromociones.subtotalOriginal.toFixed(0)}</span>
+      </div>
+
+      {/* Descuentos promociones */}
+      {resumenPromociones.descuentoTotal > 0 && (
+        <div className="flex justify-between text-red-600">
+          <span>- Descuentos promociones:</span>
+          <span className="font-medium">-${resumenPromociones.descuentoTotal.toFixed(0)}</span>
+        </div>
+      )}
+
+      {/* Subtotal con promociones */}
+      {resumenPromociones.descuentoTotal > 0 && (
+        <div className="flex justify-between text-gray-700 border-b pb-2">
+          <span>Subtotal con promociones:</span>
+          <span className="font-medium">${subtotalConPromociones.toFixed(0)}</span>
+        </div>
+      )}
+
+      {/* Descuento TAKE_AWAY */}
+      {descuentoTakeAway > 0 && (
+        <div className="flex justify-between text-orange-600">
+          <span>- Descuento Retiro en Local (10%):</span>
+          <span className="font-medium">-${descuentoTakeAway.toFixed(0)}</span>
+        </div>
+      )}
+
+      {/* Costo de delivery */}
+      {costoDelivery > 0 && pedido.tipoEnvio === "DELIVERY" && (
+        <div className="flex justify-between text-purple-600">
+          <span>+ Costo de envío:</span>
+          <span className="font-medium">+${costoDelivery.toFixed(0)}</span>
+        </div>
+      )}
+
+      {/* Total final */}
+      <div className="flex justify-between items-center text-xl font-bold text-[#CD6C50] pt-3 border-t-2">
+        <span>Total del Pedido:</span>
+        <span>${pedido.total.toFixed(0)}</span>
+      </div>
+
+      {/* Mensaje informativo */}
+      <div className="text-xs text-gray-500 text-center pt-2">
+        {pedido.tipoEnvio === "TAKE_AWAY" 
+          ? "🏪 ¡Ahorraste con el retiro en local!" 
+          : "🚚 Incluye costo de envío a domicilio"
+        }
       </div>
     </div>
   );
@@ -531,7 +802,7 @@ const MisPedidos: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Detalles expandidos (tu código original sin cambios) */}
+                {/* ✅ MODIFICADO: Detalles expandidos con nuevos componentes */}
                 {expandido && (
                   <div className="p-6 bg-gray-50">
                     {/* Productos */}
@@ -549,6 +820,7 @@ const MisPedidos: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Promociones Aplicadas */}
                     {detectarPromocionesEnPedido(pedido).tienePromociones && (
                       <div className="mb-6">
                         <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
@@ -589,6 +861,12 @@ const MisPedidos: React.FC = () => {
                       </div>
                     )}
 
+                    {/* ✅ NUEVO: Descuento TAKE_AWAY */}
+                    <DescuentoTakeAwayInfo pedido={pedido} />
+
+                    {/* ✅ NUEVO: Costo de Delivery */}
+                    <CostoDeliveryInfo pedido={pedido} />
+
                     {/* Domicilio si es delivery */}
                     {pedido.tipoEnvio === "DELIVERY" && pedido.domicilio && (
                       <div className="mb-6">
@@ -611,7 +889,7 @@ const MisPedidos: React.FC = () => {
                     )}
 
                     {/* Información de contacto */}
-                    <div>
+                    <div className="mb-6">
                       <h4 className="font-semibold text-gray-800 mb-2">
                         Información de contacto
                       </h4>
@@ -624,6 +902,9 @@ const MisPedidos: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* ✅ NUEVO: Resumen de totales mejorado */}
+                    <ResumenTotales pedido={pedido} />
                   </div>
                 )}
               </div>

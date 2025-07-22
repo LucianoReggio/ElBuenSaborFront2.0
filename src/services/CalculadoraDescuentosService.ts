@@ -1,9 +1,9 @@
-// 📁 CREAR: src/services/CalculadoraDescuentosService.ts
+// src/services/CalculadoraDescuentosService.ts - FIX PARA PROMOCIONES
 
 import type { PromocionResponseDTO } from "../types/promociones";
 import type { ItemCarrito } from "../types/auxiliares/ItemCarrito";
 
-// ==================== INTERFACES PARA TU PROYECTO ====================
+// ==================== INTERFACES (mantener las existentes) ====================
 
 export interface PromocionAplicada {
   idPromocion: number;
@@ -37,8 +37,10 @@ export interface ConfiguracionDescuentos {
 }
 
 export interface TotalesCalculados {
-  // Subtotales
+  // Subtotales separados
   subtotalOriginal: number;
+  subtotalProductosEnPromo: number; // ✅ NUEVO: Solo productos en promoción agrupada
+  subtotalProductosSinPromo: number; // ✅ NUEVO: Solo productos SIN promoción agrupada
   subtotalConPromociones: number;
   subtotalConDescuentoTakeAway: number;
 
@@ -72,7 +74,7 @@ export interface DescuentoCalculado {
   razonInvalido?: string;
 }
 
-// ==================== CALCULADORA PRINCIPAL ====================
+// ==================== CALCULADORA PRINCIPAL CORREGIDA ====================
 
 export class CalculadoraDescuentosService {
   // Configuración por defecto
@@ -83,12 +85,8 @@ export class CalculadoraDescuentosService {
     tipoEnvio: "TAKE_AWAY",
   };
 
-  // ==================== PROMOCIONES INDIVIDUALES ====================
+  // ==================== MÉTODOS INDIVIDUALES (sin cambios) ====================
 
-  /**
-   * ✅ PRIMER MÉTODO A IMPLEMENTAR: Calcula el descuento de una promoción individual
-   * Este reemplaza toda la lógica duplicada en tus componentes
-   */
   static calcularDescuentoPromocion(
     promocion: PromocionResponseDTO,
     precioUnitario: number,
@@ -102,7 +100,6 @@ export class CalculadoraDescuentosService {
       cantidad,
     });
 
-    // Validaciones básicas
     if (!promocion.estaVigente) {
       return {
         montoDescuento: 0,
@@ -125,14 +122,12 @@ export class CalculadoraDescuentosService {
       };
     }
 
-    // Calcular descuento según tipo
     const totalSinDescuento = precioUnitario * cantidad;
     let montoDescuento = 0;
 
     if (promocion.tipoDescuento === "PORCENTUAL") {
       montoDescuento = totalSinDescuento * (promocion.valorDescuento / 100);
     } else {
-      // MONTO_FIJO
       montoDescuento = Math.min(
         promocion.valorDescuento * cantidad,
         totalSinDescuento
@@ -143,12 +138,6 @@ export class CalculadoraDescuentosService {
     const precioFinal = precioUnitario - descuentoPorUnidad;
     const porcentajeDescuento = (montoDescuento / totalSinDescuento) * 100;
 
-    console.log("✅ Descuento calculado:", {
-      montoDescuento,
-      precioFinal,
-      porcentajeDescuento: `${porcentajeDescuento.toFixed(1)}%`,
-    });
-
     return {
       montoDescuento,
       precioOriginal: precioUnitario,
@@ -158,70 +147,83 @@ export class CalculadoraDescuentosService {
     };
   }
 
-  // ==================== PROMOCIÓN AGRUPADA ====================
-
-  /**
-   * ✅ SEGUNDO MÉTODO: Calcula el descuento de una promoción agrupada
-   */
+  // ✅ CORREGIDO: Promoción agrupada se aplica solo a SUS productos
   static calcularDescuentoPromocionAgrupada(
     promocionAgrupada: PromocionAgrupada,
-    subtotalOriginal: number
+    itemsEnPromocion: ItemCarrito[] // ✅ CAMBIO: Solo items que están en la promoción
   ): DescuentoCalculado {
     console.log("🎁 Calculando descuento promoción agrupada:", {
       promocion: promocionAgrupada.denominacion,
       tipo: promocionAgrupada.tipoDescuento,
       valor: promocionAgrupada.valorDescuento,
-      subtotal: subtotalOriginal,
+      itemsEnPromo: itemsEnPromocion.length,
     });
 
-    if (subtotalOriginal <= 0) {
+    if (itemsEnPromocion.length === 0) {
       return {
         montoDescuento: 0,
-        precioOriginal: subtotalOriginal,
-        precioFinal: subtotalOriginal,
+        precioOriginal: 0,
+        precioFinal: 0,
         porcentajeDescuento: 0,
         esValido: false,
-        razonInvalido: "Subtotal inválido",
+        razonInvalido: "No hay items en la promoción",
+      };
+    }
+
+    // ✅ CALCULAR SUBTOTAL SOLO DE PRODUCTOS EN LA PROMOCIÓN
+    const subtotalPromocion = itemsEnPromocion.reduce(
+      (sum, item) => sum + (item.precio * item.cantidad), 
+      0
+    );
+
+    console.log("💰 Subtotal SOLO productos en promoción:", subtotalPromocion);
+
+    if (subtotalPromocion <= 0) {
+      return {
+        montoDescuento: 0,
+        precioOriginal: subtotalPromocion,
+        precioFinal: subtotalPromocion,
+        porcentajeDescuento: 0,
+        esValido: false,
+        razonInvalido: "Subtotal de promoción inválido",
       };
     }
 
     let montoDescuento = 0;
 
     if (promocionAgrupada.tipoDescuento === "PORCENTUAL") {
-      montoDescuento =
-        subtotalOriginal * (promocionAgrupada.valorDescuento / 100);
+      montoDescuento = subtotalPromocion * (promocionAgrupada.valorDescuento / 100);
     } else {
-      montoDescuento = Math.min(
-        promocionAgrupada.valorDescuento,
-        subtotalOriginal
-      );
+      montoDescuento = Math.min(promocionAgrupada.valorDescuento, subtotalPromocion);
     }
 
-    const precioFinal = subtotalOriginal - montoDescuento;
-    const porcentajeDescuento = (montoDescuento / subtotalOriginal) * 100;
+    const precioFinal = subtotalPromocion - montoDescuento;
+    const porcentajeDescuento = (montoDescuento / subtotalPromocion) * 100;
+
+    console.log("✅ Descuento promoción agrupada calculado:", {
+      subtotalPromocion,
+      montoDescuento,
+      porcentajeDescuento: `${porcentajeDescuento.toFixed(1)}%`
+    });
 
     return {
       montoDescuento,
-      precioOriginal: subtotalOriginal,
+      precioOriginal: subtotalPromocion,
       precioFinal,
       porcentajeDescuento,
       esValido: true,
     };
   }
 
-  // ==================== DESCUENTO TAKE_AWAY ====================
-
-  /**
-   * ✅ TERCER MÉTODO: Calcula el descuento automático para TAKE_AWAY
-   */
+  // ✅ CORREGIDO: TAKE_AWAY se aplica sobre el subtotal con promociones aplicadas
   static calcularDescuentoTakeAway(
-    subtotal: number,
+    subtotalConPromociones: number, // ✅ CAMBIO: Subtotal después de aplicar promociones
     configuracion: Partial<ConfiguracionDescuentos> = {}
   ): DescuentoCalculado {
     const config = { ...this.CONFIG_DEFAULT, ...configuracion };
 
     console.log("🏪 Calculando descuento TAKE_AWAY:", {
-      subtotal,
+      subtotalConPromociones: subtotalConPromociones,
       aplicar: config.aplicarDescuentoTakeAway,
       porcentaje: config.porcentajeDescuentoTakeAway,
       tipoEnvio: config.tipoEnvio,
@@ -230,37 +232,37 @@ export class CalculadoraDescuentosService {
     if (
       !config.aplicarDescuentoTakeAway ||
       config.tipoEnvio !== "TAKE_AWAY" ||
-      subtotal <= 0
+      subtotalConPromociones <= 0
     ) {
       return {
         montoDescuento: 0,
-        precioOriginal: subtotal,
-        precioFinal: subtotal,
+        precioOriginal: subtotalConPromociones,
+        precioFinal: subtotalConPromociones,
         porcentajeDescuento: 0,
         esValido: false,
         razonInvalido: "No aplica descuento TAKE_AWAY",
       };
     }
 
-    const montoDescuento =
-      subtotal * (config.porcentajeDescuentoTakeAway / 100);
-    const precioFinal = subtotal - montoDescuento;
+    const montoDescuento = subtotalConPromociones * (config.porcentajeDescuentoTakeAway / 100);
+    const precioFinal = subtotalConPromociones - montoDescuento;
+
+    console.log("✅ Descuento TAKE_AWAY calculado:", {
+      base: subtotalConPromociones,
+      descuento: montoDescuento
+    });
 
     return {
       montoDescuento,
-      precioOriginal: subtotal,
+      precioOriginal: subtotalConPromociones,
       precioFinal,
       porcentajeDescuento: config.porcentajeDescuentoTakeAway,
       esValido: true,
     };
   }
 
-  // ==================== CÁLCULO COMPLETO DE CARRITO ====================
+  // ==================== MÉTODO PRINCIPAL CORREGIDO ====================
 
-  /**
-   * ✅ MÉTODO PRINCIPAL: Calcula todos los totales del carrito con promociones
-   * Este es el método que reemplazará toda la lógica dispersa en tus hooks
-   */
   static calcularTotalesCarrito(
     items: ItemCarrito[],
     promocionesSeleccionadas: Map<number, number> = new Map(),
@@ -270,26 +272,54 @@ export class CalculadoraDescuentosService {
   ): TotalesCalculados {
     const config = { ...this.CONFIG_DEFAULT, ...configuracion };
 
-    console.log("💰 === CALCULANDO TOTALES COMPLETOS ===");
+    console.log("💰 === CALCULANDO TOTALES CORREGIDOS ===");
     console.log("Items:", items.length);
     console.log("Promociones seleccionadas:", promocionesSeleccionadas.size);
-    console.log(
-      "Promoción agrupada:",
-      promocionAgrupada?.denominacion || "Ninguna"
-    );
+    console.log("Promoción agrupada:", promocionAgrupada?.denominacion || "Ninguna");
 
-    // 1. Subtotal original
+    // 1. Subtotal original completo
     const subtotalOriginal = items.reduce(
       (sum, item) => sum + item.precio * item.cantidad,
       0
     );
     console.log("💰 Subtotal original:", subtotalOriginal);
 
-    // 2. Aplicar promociones individuales
+    // ✅ 2. SEPARAR ITEMS EN PROMOCIÓN AGRUPADA VS. RESTO
+    let itemsEnPromocionAgrupada: ItemCarrito[] = [];
+    let itemsFueraDePromocionAgrupada: ItemCarrito[] = [];
+
+    if (promocionAgrupada) {
+      // Identificar qué items están en la promoción agrupada
+      const idsEnPromocion = new Set(
+        promocionAgrupada.articulos.map(art => art.idArticulo)
+      );
+
+      itemsEnPromocionAgrupada = items.filter(item => idsEnPromocion.has(item.id));
+      itemsFueraDePromocionAgrupada = items.filter(item => !idsEnPromocion.has(item.id));
+    } else {
+      // Si no hay promoción agrupada, todos están fuera
+      itemsFueraDePromocionAgrupada = [...items];
+    }
+
+    const subtotalProductosEnPromo = itemsEnPromocionAgrupada.reduce(
+      (sum, item) => sum + item.precio * item.cantidad, 0
+    );
+    const subtotalProductosSinPromo = itemsFueraDePromocionAgrupada.reduce(
+      (sum, item) => sum + item.precio * item.cantidad, 0
+    );
+
+    console.log("📊 Separación de productos:", {
+      enPromoAgrupada: itemsEnPromocionAgrupada.length,
+      fueraDePromoAgrupada: itemsFueraDePromocionAgrupada.length,
+      subtotalEnPromo: subtotalProductosEnPromo,
+      subtotalFueraPromo: subtotalProductosSinPromo
+    });
+
+    // 3. Aplicar promociones individuales (solo a productos FUERA de promo agrupada)
     const promocionesAplicadas: PromocionAplicada[] = [];
     let descuentoPromociones = 0;
 
-    for (const item of items) {
+    for (const item of itemsFueraDePromocionAgrupada) { // ✅ Solo productos fuera de promo agrupada
       const idPromocionSeleccionada = promocionesSeleccionadas.get(item.id);
 
       if (idPromocionSeleccionada) {
@@ -324,12 +354,12 @@ export class CalculadoraDescuentosService {
 
     console.log("🎯 Descuento promociones individuales:", descuentoPromociones);
 
-    // 3. Aplicar promoción agrupada
+    // ✅ 4. APLICAR PROMOCIÓN AGRUPADA (solo a sus productos)
     let descuentoPromocionAgrupada = 0;
-    if (promocionAgrupada) {
+    if (promocionAgrupada && itemsEnPromocionAgrupada.length > 0) {
       const descuentoAgrupada = this.calcularDescuentoPromocionAgrupada(
         promocionAgrupada,
-        subtotalOriginal
+        itemsEnPromocionAgrupada // ✅ Solo productos de la promoción
       );
 
       if (descuentoAgrupada.esValido) {
@@ -339,40 +369,36 @@ export class CalculadoraDescuentosService {
 
     console.log("🎁 Descuento promoción agrupada:", descuentoPromocionAgrupada);
 
-    // 4. Subtotal con promociones
-    const subtotalConPromociones =
-      subtotalOriginal - descuentoPromociones - descuentoPromocionAgrupada;
+    // 5. Subtotal con promociones aplicadas
+    const subtotalConPromociones = subtotalOriginal - descuentoPromociones - descuentoPromocionAgrupada;
 
-    // 5. Aplicar descuento TAKE_AWAY
+    // ✅ 6. APLICAR DESCUENTO TAKE_AWAY (sobre subtotal CON promociones aplicadas)
     let descuentoTakeAway = 0;
     let subtotalConDescuentoTakeAway = subtotalConPromociones;
 
     if (config.aplicarDescuentoTakeAway && config.tipoEnvio === "TAKE_AWAY") {
+      // ✅ CORREGIDO: TAKE_AWAY se aplica sobre subtotal DESPUÉS de promociones
       const descuentoCalculado = this.calcularDescuentoTakeAway(
-        subtotalOriginal,
+        subtotalConPromociones, // ✅ Subtotal después de aplicar promociones
         config
       );
 
       if (descuentoCalculado.esValido) {
         descuentoTakeAway = descuentoCalculado.montoDescuento;
-        subtotalConDescuentoTakeAway =
-          subtotalConPromociones - descuentoTakeAway;
+        subtotalConDescuentoTakeAway = subtotalConPromociones - descuentoTakeAway;
       }
     }
 
-    console.log("🏪 Descuento TAKE_AWAY:", descuentoTakeAway);
+    console.log("🏪 Descuento TAKE_AWAY (sobre subtotal con promociones):", descuentoTakeAway);
 
-    // 6. Gastos de envío
-    const gastosEnvio =
-      config.tipoEnvio === "DELIVERY" ? config.gastosEnvioDelivery : 0;
-    console.log("🚚 Gastos envío:", gastosEnvio);
+    // 7. Gastos de envío
+    const gastosEnvio = config.tipoEnvio === "DELIVERY" ? config.gastosEnvioDelivery : 0;
 
-    // 7. Totales finales
-    const descuentoTotal =
-      descuentoPromociones + descuentoPromocionAgrupada + descuentoTakeAway;
+    // 8. Totales finales
+    const descuentoTotal = descuentoPromociones + descuentoPromocionAgrupada + descuentoTakeAway;
     const totalFinal = Math.max(0, subtotalConDescuentoTakeAway + gastosEnvio);
 
-    // 8. Generar resumen
+    // 9. Generar resumen
     const resumenDescuentos = this.generarResumenDescuentos(
       descuentoPromociones,
       descuentoPromocionAgrupada,
@@ -383,6 +409,8 @@ export class CalculadoraDescuentosService {
 
     const resultado: TotalesCalculados = {
       subtotalOriginal,
+      subtotalProductosEnPromo, // ✅ NUEVO
+      subtotalProductosSinPromo, // ✅ NUEVO
       subtotalConPromociones,
       subtotalConDescuentoTakeAway,
       descuentoPromociones,
@@ -397,19 +425,18 @@ export class CalculadoraDescuentosService {
       configuracion: config,
     };
 
-    console.log("💰 === TOTALES FINALES ===");
+    console.log("💰 === TOTALES FINALES CORREGIDOS ===");
     console.log("Subtotal original:", subtotalOriginal);
+    console.log("- Productos en promo agrupada:", subtotalProductosEnPromo);
+    console.log("- Productos sin promo agrupada:", subtotalProductosSinPromo);
     console.log("Descuento total:", descuentoTotal);
     console.log("Total final:", totalFinal);
 
     return resultado;
   }
 
-  // ==================== UTILIDADES ====================
+  // ==================== UTILIDADES (sin cambios) ====================
 
-  /**
-   * Genera resumen textual de descuentos aplicados
-   */
   private static generarResumenDescuentos(
     descuentoPromociones: number,
     descuentoPromocionAgrupada: number,
@@ -419,7 +446,6 @@ export class CalculadoraDescuentosService {
   ): string {
     const descuentos: string[] = [];
 
-    // Promociones individuales
     if (descuentoPromociones > 0) {
       const cantidadPromociones = promocionesAplicadas.length;
       descuentos.push(
@@ -429,16 +455,12 @@ export class CalculadoraDescuentosService {
       );
     }
 
-    // Promoción agrupada
     if (descuentoPromocionAgrupada > 0 && promocionAgrupada) {
       descuentos.push(
-        `${
-          promocionAgrupada.denominacion
-        } (-$${descuentoPromocionAgrupada.toFixed(0)})`
+        `${promocionAgrupada.denominacion} (-$${descuentoPromocionAgrupada.toFixed(0)})`
       );
     }
 
-    // Descuento TAKE_AWAY
     if (descuentoTakeAway > 0) {
       descuentos.push(
         `10% retiro en local (-$${descuentoTakeAway.toFixed(0)})`
@@ -449,16 +471,10 @@ export class CalculadoraDescuentosService {
       return "Sin descuentos aplicados";
     }
 
-    const totalDescuento =
-      descuentoPromociones + descuentoPromocionAgrupada + descuentoTakeAway;
-    return `${descuentos.join(", ")} • Total ahorro: $${totalDescuento.toFixed(
-      0
-    )}`;
+    const totalDescuento = descuentoPromociones + descuentoPromocionAgrupada + descuentoTakeAway;
+    return `${descuentos.join(", ")} • Total ahorro: $${totalDescuento.toFixed(0)}`;
   }
 
-  /**
-   * ✅ UTILIDAD: Valida si una promoción es aplicable a un artículo
-   */
   static validarPromocionAplicable(
     promocion: PromocionResponseDTO,
     idArticulo: number,
@@ -488,16 +504,10 @@ export class CalculadoraDescuentosService {
     return { esAplicable: true };
   }
 
-  /**
-   * ✅ UTILIDAD: Formatea un monto para mostrar
-   */
   static formatearMonto(monto: number): string {
     return `$${monto.toFixed(0)}`;
   }
 
-  /**
-   * ✅ UTILIDAD: Formatea un porcentaje para mostrar
-   */
   static formatearPorcentaje(porcentaje: number): string {
     return `${porcentaje.toFixed(1)}%`;
   }

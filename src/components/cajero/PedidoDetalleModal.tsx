@@ -1,368 +1,240 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { X, Package, Clock, MapPin, Phone } from 'lucide-react';
 import type { PedidoResponseDTO } from '../../types/pedidos';
-import { PedidoService } from '../../services/PedidoServices';
-import { PagoService, type PagoResponseDTO } from '../../services/PagoService'; // ✅ NUEVO
 
 interface PedidoDetalleModalProps {
-  pedido: PedidoResponseDTO | null;
+  pedido: PedidoResponseDTO | null;  // 🆕 Permitir null
   isOpen: boolean;
   onClose: () => void;
-  onPagoConfirmado?: () => void; // ✅ NUEVO: Callback para refrescar datos
 }
 
-export const PedidoDetalleModal: React.FC<PedidoDetalleModalProps> = ({
-  pedido,
-  isOpen,
-  onClose,
-  onPagoConfirmado
+const PedidoDetalleModal: React.FC<PedidoDetalleModalProps> = ({ 
+  pedido, 
+  isOpen, 
+  onClose 
 }) => {
-  // ✅ NUEVO: Estados para manejo de pagos
-  const [pagosFactura, setPagosFactura] = useState<PagoResponseDTO[]>([]);
-  const [loadingPagos, setLoadingPagos] = useState(false);
-  const [confirmandoPago, setConfirmandoPago] = useState<number | null>(null);
-  const [facturaInfo, setFacturaInfo] = useState<{ idFactura: number; totalVenta: number } | null>(null);
-  const pagoService = new PagoService();
+  // 🔥 DEBUG MANUAL - Agrega esta línea
+  console.log('🚀 Modal ejecutándose:', { isOpen, pedido: pedido?.idPedido });
 
-  // ✅ NUEVO: Cargar pagos cuando se abre el modal
-  useEffect(() => {
-    if (isOpen && pedido?.idPedido) {
-      cargarFacturaYPagos();
-    }
-  }, [isOpen, pedido?.idPedido]);
-
-  // ✅ NUEVO: Función para cargar factura y pagos
-  const cargarFacturaYPagos = async () => {
-    if (!pedido?.idPedido) return;
-
-    try {
-      setLoadingPagos(true);
-      
-      // Primero obtener la factura
-      const factura = await pagoService.getFacturaPedido(pedido.idPedido);
-      setFacturaInfo(factura);
-      
-      // Luego obtener los pagos de esa factura
-      const pagos = await pagoService.getPagosByFactura(factura.idFactura);
-      setPagosFactura(pagos);
-      console.log('💳 Pagos cargados:', pagos);
-    } catch (error: any) {
-      console.error('❌ Error al cargar factura y pagos:', error);
-      setPagosFactura([]);
-      setFacturaInfo(null);
-    } finally {
-      setLoadingPagos(false);
-    }
-  };
-
-  // ✅ NUEVO: Función para cargar solo pagos (reutilizar facturaInfo existente)
-  const cargarPagosFactura = async () => {
-    if (!facturaInfo?.idFactura) return;
-
-    try {
-      setLoadingPagos(true);
-      const pagos = await pagoService.getPagosByFactura(facturaInfo.idFactura);
-      setPagosFactura(pagos);
-      console.log('💳 Pagos recargados:', pagos);
-    } catch (error: any) {
-      console.error('❌ Error al recargar pagos:', error);
-      setPagosFactura([]);
-    } finally {
-      setLoadingPagos(false);
-    }
-  };
-
-  // ✅ NUEVO: Función para confirmar pago específico
-  const confirmarPago = async (pago: PagoResponseDTO) => {
-    try {
-      setConfirmandoPago(pago.idPago);
-      
-      await pagoService.confirmarPagoEfectivo(pago.idPago);
-      
-      // Recargar pagos para mostrar estado actualizado
-      await cargarPagosFactura();
-      
-      // Notificar al componente padre
-      if (onPagoConfirmado) {
-        onPagoConfirmado();
-      }
-
-      alert(`¡Pago confirmado! Monto: ${pago.monto}`);
-      
-    } catch (error: any) {
-      console.error('❌ Error al confirmar pago:', error);
-      alert('Error al confirmar el pago. Intenta de nuevo.');
-    } finally {
-      setConfirmandoPago(null);
-    }
-  };
-
-  // ✅ NUEVO: Verificar si hay pagos pendientes en efectivo
-  const tienePagosPendientesEfectivo = () => {
-    return pagosFactura.some(pago => 
-      pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE'
-    );
-  };
-
-  // ✅ NUEVO: Obtener pagos pendientes en efectivo
-  const getPagosPendientesEfectivo = () => {
-    return pagosFactura.filter(pago => 
-      pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE'
-    );
-  };
-
+  // 🛡️ DEFENSA: No renderizar si el modal está cerrado o no hay pedido
   if (!isOpen || !pedido) return null;
 
-  const estadoInfo = PedidoService.formatearEstado(pedido.estado);
-  const tiempos = PedidoService.formatearTiempos(pedido.fecha, pedido.horaEstimadaFinalizacion);
+  const formatearPrecio = (precio: number) => `${precio.toLocaleString()}`;
+  
+  const formatearFecha = (fecha: string) => {
+    return new Date(fecha).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(precio);
+  const getEstadoBadgeColor = (estado: string) => {
+    const colores = {
+      PENDIENTE: 'bg-yellow-100 text-yellow-800',
+      PREPARACION: 'bg-blue-100 text-blue-800', 
+      LISTO: 'bg-green-100 text-green-800',
+      ENTREGADO: 'bg-green-100 text-green-800',
+      CANCELADO: 'bg-red-100 text-red-800'
+    };
+    return colores[estado as keyof typeof colores] || 'bg-gray-100 text-gray-800';
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Pedido #{pedido.idPedido}
-              </h2>
-              <div className="flex items-center gap-2 mt-2">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  estadoInfo.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                  estadoInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                  estadoInfo.color === 'green' ? 'bg-green-100 text-green-800' :
-                  estadoInfo.color === 'red' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {estadoInfo.icono} {estadoInfo.texto}
-                </span>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  pedido.tipoEnvio === 'DELIVERY' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
-                }`}>
-                  {pedido.tipoEnvio === 'DELIVERY' ? '🚚 Delivery' : '📦 Take Away'}
-                </span>
-                {/* ✅ NUEVO: Indicador de pago pendiente */}
-                {tienePagosPendientesEfectivo() && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                    💵 Pago pendiente
-                  </span>
-                )}
-              </div>
-            </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              🔥 MODAL NUEVO - Pedido #{pedido.idPedido}
+            </h2>
+            <p className="text-gray-600">
+              {formatearFecha(pedido.fecha)}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoBadgeColor(pedido.estado)}`}>
+              {pedido.estado}
+            </span>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="p-2 hover:bg-gray-100 rounded-full"
             >
-              ×
+              <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Columna izquierda: Información del pedido */}
+        <div className="p-6 space-y-6">
+          {/* Info General */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <MapPin className="w-5 h-5 text-orange-500" />
+              <div>
+                <p className="font-medium">{pedido.tipoEnvio}</p>
+                <p className="text-sm text-gray-600">Tipo de entrega</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <Clock className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="font-medium">{pedido.tiempoEstimadoTotal} min</p>
+                <p className="text-sm text-gray-600">Tiempo estimado</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <Phone className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="font-medium">{pedido.telefonoCliente}</p>
+                <p className="text-sm text-gray-600">{pedido.nombreCliente} {pedido.apellidoCliente}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Productos */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Package className="w-5 h-5 text-gray-700" />
+              <h3 className="text-lg font-semibold">Productos</h3>
+            </div>
+            
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-3">Información del Pedido</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Fecha:</span>
-                    <span className="font-medium">{tiempos.fecha}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Hora:</span>
-                    <span className="font-medium">{tiempos.hora}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Hora estimada:</span>
-                    <span className="font-medium">{tiempos.horaEstimada}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tiempo estimado:</span>
-                    <span className="font-medium">{pedido.tiempoEstimadoTotal} min</span>
-                  </div>
-                </div>
-              </div>
+              {pedido.detalles.map((detalle, index) => {
+                // 🛡️ DEFENSA: Verificar que detalle existe
+                if (!detalle) {
+                  console.warn('⚠️ Detalle undefined en índice:', index);
+                  return null;
+                }
 
-              {/* Información del cliente */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-3">Cliente</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Nombre:</span>
-                    <span className="font-medium">
-                      {pedido.nombreCliente} {pedido.apellidoCliente}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Teléfono:</span>
-                    <span className="font-medium">{pedido.telefonoCliente}</span>
-                  </div>
-                </div>
-              </div>
+                // 🛡️ DEFENSA: Usar valores seguros de los tipos reales del backend
+                const tienePromocion = Boolean(detalle.tienePromocion && detalle.promocionAplicada);
+                const precioOriginal = detalle.precioUnitarioOriginal;
+                const precioFinal = detalle.precioUnitarioFinal;
+                const descuentoPromocion = detalle.descuentoPromocion || 0;
+                
+                // 🛡️ DEFENSA: Calcular precio por unidad seguro
+                const precioUnitario = detalle.cantidad > 0 ? detalle.subtotal / detalle.cantidad : 0;
 
-              {/* Información de entrega */}
-              {pedido.tipoEnvio === 'DELIVERY' && pedido.domicilio && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-gray-900 mb-3">Dirección de Entrega</h3>
-                  <div className="text-sm">
-                    <p className="font-medium">{pedido.domicilio.calle} {pedido.domicilio.numero}</p>
-                    <p className="text-gray-600">
-                      {pedido.domicilio.localidad}
-                    </p>
-                  </div>
-                </div>
-              )}
+                console.log('🔍 Debug detalle:', {
+                  producto: detalle.denominacionArticulo,
+                  tienePromocion,
+                  precioOriginal,
+                  precioFinal,
+                  descuentoPromocion,
+                  subtotal: detalle.subtotal,
+                  cantidad: detalle.cantidad,
+                  promocionAplicada: detalle.promocionAplicada
+                });
 
-              {/* ✅ NUEVO: Sección de información de pagos */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-3">Estado de Pagos</h3>
-                {loadingPagos ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                    <span className="ml-2 text-sm text-gray-600">Cargando pagos...</span>
-                  </div>
-                ) : pagosFactura.length === 0 ? (
-                  <p className="text-sm text-gray-500">No hay información de pagos</p>
-                ) : (
-                  <div className="space-y-3">
-                    {pagosFactura.map((pago) => {
-                      const estadoPago = PagoService.formatearEstado(pago.estado);
-                      const formaPago = PagoService.formatearFormaPago(pago.formaPago);
-                      
-                      return (
-                        <div key={pago.idPago} className="bg-white p-3 rounded border">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="text-sm font-medium">
-                                  {formaPago.icono} {formaPago.texto}
-                                </span>
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  estadoPago.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                                  estadoPago.color === 'green' ? 'bg-green-100 text-green-800' :
-                                  estadoPago.color === 'red' ? 'bg-red-100 text-red-800' :
-                                  estadoPago.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {estadoPago.icono} {estadoPago.texto}
-                                </span>
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                Monto: {formatearPrecio(pago.monto)}
-                              </div>
-                              {pago.descripcion && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {pago.descripcion}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* ✅ NUEVO: Botón para confirmar pago específico */}
-                            {pago.formaPago === 'EFECTIVO' && pago.estado === 'PENDIENTE' && (
-                              <button
-                                onClick={() => confirmarPago(pago)}
-                                disabled={confirmandoPago === pago.idPago}
-                                className="ml-3 px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {confirmandoPago === pago.idPago ? (
-                                  <span className="animate-spin">⏳</span>
-                                ) : (
-                                  '✅ Confirmar'
-                                )}
-                              </button>
-                            )}
+                return (
+                  <div key={detalle.idDetallePedido || index} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              {detalle.denominacionArticulo || 'Producto sin nombre'}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              Cantidad: {detalle.cantidad || 0}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Observaciones */}
-              {pedido.observaciones && (
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-gray-900 mb-2">Observaciones</h3>
-                  <p className="text-sm text-gray-700">{pedido.observaciones}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Columna derecha: Detalles del pedido */}
-            <div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-4">Productos</h3>
-                <div className="space-y-3">
-                  {pedido.detalles.map((detalle, index) => (
-                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{detalle.denominacionArticulo}</p>
-                        <p className="text-sm text-gray-600">
-                          Cantidad: {detalle.cantidad}
-                        </p>
+                        
+                        {/* 🆕 Mostrar promoción SOLO si existe y es válida */}
+                        {tienePromocion && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-red-800">
+                                  🎁 {detalle.promocionAplicada?.denominacion || 'Promoción'}
+                                </p>
+                                <p className="text-sm text-red-600">
+                                  {detalle.promocionAplicada?.resumenDescuento || 'Descuento aplicado'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-red-600 font-medium">
+                                  Ahorro: {formatearPrecio(descuentoPromocion)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {detalle.observaciones && (
+                          <p className="text-sm text-gray-600 italic">
+                            Obs: {detalle.observaciones}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">{formatearPrecio(detalle.subtotal)}</p>
-                        <p className="text-sm text-gray-600">
-                          {formatearPrecio(detalle.subtotal / detalle.cantidad)} c/u
-                        </p>
+                      
+                      {/* 🆕 Precios con descuento visible */}
+                      <div className="text-right ml-4">
+                        {tienePromocion && precioOriginal && precioFinal ? (
+                          <div>
+                            {/* CON promoción */}
+                            <p className="text-sm text-gray-500 line-through">
+                              {formatearPrecio(precioOriginal)} c/u
+                            </p>
+                            <p className="font-medium text-gray-900">
+                              {formatearPrecio(precioFinal)} c/u
+                            </p>
+                            <div className="border-t pt-1 mt-1">
+                              <p className="text-sm text-gray-500 line-through">
+                                {formatearPrecio(precioOriginal * detalle.cantidad)}
+                              </p>
+                              <p className="font-bold text-lg text-gray-900">
+                                {formatearPrecio(detalle.subtotal || 0)}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            {/* SIN promoción - Fallback seguro */}
+                            <p className="font-medium text-gray-900">
+                              {formatearPrecio(precioUnitario)} c/u
+                            </p>
+                            <div className="border-t pt-1 mt-1">
+                              <p className="font-bold text-lg text-gray-900">
+                                {formatearPrecio(detalle.subtotal || 0)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Total */}
-                <div className="mt-4 pt-4 border-t border-gray-300">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-gray-900">Total:</span>
-                    <span className="text-xl font-bold text-green-600">
-                      {formatearPrecio(pedido.total)}
-                    </span>
                   </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* ✅ NUEVO: Sección de acciones rápidas para pagos */}
-          {tienePagosPendientesEfectivo() && (
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold text-yellow-800 mb-3">⚡ Acciones Rápidas de Pago</h3>
-              <div className="flex flex-wrap gap-2">
-                {getPagosPendientesEfectivo().map((pago) => (
-                  <button
-                    key={pago.idPago}
-                    onClick={() => confirmarPago(pago)}
-                    disabled={confirmandoPago === pago.idPago}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {confirmandoPago === pago.idPago ? (
-                      <span className="animate-spin">⏳</span>
-                    ) : (
-                      <>💵 Confirmar {formatearPrecio(pago.monto)}</>
-                    )}
-                  </button>
-                ))}
-              </div>
+          {/* Total */}
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-semibold">Total del Pedido:</span>
+              <span className="text-2xl font-bold text-orange-600">
+                {formatearPrecio(pedido.total)}
+              </span>
             </div>
-          )}
-
-          {/* Botones de acción */}
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              Cerrar
-            </button>
+            
+            {pedido.observaciones && (
+              <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                <p className="text-sm font-medium text-yellow-800">Observaciones:</p>
+                <p className="text-sm text-yellow-700">{pedido.observaciones}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export { PedidoDetalleModal };
