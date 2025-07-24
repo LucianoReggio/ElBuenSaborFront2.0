@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,6 +6,7 @@ import {
   Link,
   useLocation,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 import InformesPage from "./pages/InformesPage";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -25,6 +26,7 @@ import Usuarios from "./pages/Usuarios";
 
 // ✅ CORREGIDO: Solo usar el Context Unificado
 import { CarritoUnificadoProvider } from "./context/CarritoUnificadoContext";
+import { WebSocketProvider } from "./context/WebSocketProvider";
 
 import MisPedidos from "./pages/MisPedidos";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
@@ -42,6 +44,78 @@ import {
   BookCopy,
 } from "lucide-react";
 import AuthComplete from "./pages/AuthComplete";
+
+// ✅ CORREGIDO: Componente que maneja logout correctamente
+const ProtectedHomeRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, needsAdditionalData, backendSynced } =
+    useAuth();
+
+  // ✅ NUEVA LÓGICA: Solo verificar redirección si está autenticado
+  const shouldRedirect = React.useMemo(() => {
+    // Si no está autenticado, NO redirigir (permitir acceso al home público)
+    if (!isAuthenticated) {
+      return false;
+    }
+
+    // Si está autenticado, verificar si necesita completar datos
+    if (!isLoading && backendSynced) {
+      return needsAdditionalData();
+    }
+
+    return false;
+  }, [isAuthenticated, isLoading, backendSynced, needsAdditionalData]);
+
+  // ✅ Redirección inmediata solo para usuarios autenticados que necesitan completar datos
+  React.useLayoutEffect(() => {
+    if (shouldRedirect) {
+      console.log(
+        "⚡ ProtectedHomeRoute: Redirección inmediata a /auth-complete"
+      );
+      navigate("/auth-complete", { replace: true });
+    }
+  }, [shouldRedirect, navigate]);
+
+  // ✅ CORREGIDO: Permitir acceso al home si NO está autenticado (usuario público)
+  if (!isAuthenticated) {
+    console.log(
+      "🏠 ProtectedHomeRoute: Usuario no autenticado - mostrando home público"
+    );
+    return <>{children}</>;
+  }
+
+  // ✅ Solo mostrar loading si está autenticado y aún cargando
+  if (isAuthenticated && (isLoading || !backendSynced)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CD6C50] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Bloquear solo si va a redirigir
+  if (shouldRedirect) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CD6C50] mx-auto"></div>
+          <p className="mt-4 text-gray-600">
+            Redirigiendo a completar perfil...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Renderizar home normal (usuario autenticado con perfil completo O usuario no autenticado)
+  console.log("🏠 ProtectedHomeRoute: Renderizando home normal");
+  return <>{children}</>;
+};
 
 // Componente de Loading
 const LoadingScreen: React.FC<{ message?: string }> = ({
@@ -274,38 +348,46 @@ function App() {
   const { isLoading: auth0Loading } = useAuth0();
   const { isLoading: authLoading } = useAuth();
 
-  // Loading global: Esperar hasta que todo esté listo
-  if (auth0Loading || authLoading) {
+  // ✅ Solo mostrar loading global si NO estamos en auth-complete
+  const location = useLocation();
+  const isInAuthComplete = location.pathname === "/auth-complete";
+
+  if ((auth0Loading || authLoading) && !isInAuthComplete) {
     return <LoadingScreen message="Inicializando aplicación..." />;
   }
 
   return (
-    // ✅ CORREGIDO: Solo usar el Context Unificado
     <CarritoUnificadoProvider>
-      <Router>
+      <WebSocketProvider>
         <Routes>
           <Route path="/callback" element={<CallbackPage />} />
 
-          {/* Nueva ruta unificada */}
+          {/* ✅ RUTA PRIORITARIA: Auth Complete */}
           <Route path="/auth-complete" element={<AuthComplete />} />
 
-          {/* Rutas públicas */}
+          {/* ✅ RUTAS PROTEGIDAS: Home con redirección automática */}
           <Route
             path="/"
             element={
-              <PublicLayout>
-                <Home />
-              </PublicLayout>
+              <ProtectedHomeRoute>
+                <PublicLayout>
+                  <Home />
+                </PublicLayout>
+              </ProtectedHomeRoute>
             }
           />
           <Route
             path="/home"
             element={
-              <PublicLayout>
-                <Home />
-              </PublicLayout>
+              <ProtectedHomeRoute>
+                <PublicLayout>
+                  <Home />
+                </PublicLayout>
+              </ProtectedHomeRoute>
             }
           />
+
+          {/* Rutas públicas sin protección */}
           <Route
             path="/catalogo"
             element={
@@ -502,9 +584,16 @@ function App() {
             }
           />
         </Routes>
-      </Router>
+      </WebSocketProvider>
     </CarritoUnificadoProvider>
   );
 }
 
-export default App;
+// ✅ WRAPPER CON ROUTER
+const AppWithRouter: React.FC = () => (
+  <Router>
+    <App />
+  </Router>
+);
+
+export default AppWithRouter;
